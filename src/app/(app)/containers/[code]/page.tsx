@@ -6,20 +6,22 @@ import { ContainerDto, ContainerFillDto, ContainerStatus } from '@/shared/types'
 import * as containersApi from '@/shared/api/containers'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ArrowLeft, Download, Edit, MapPin, Package, Trash2 } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
+import { ArrowLeft, Download, Droplets, Edit, Package, Trash2, X } from 'lucide-react'
+import { FillContainerDialog } from '@/shared/ui/containers/FillContainerDialog'
+import { EditFillDialog } from '@/shared/ui/containers/EditFillDialog'
 import { format } from 'date-fns'
+import { toast } from 'sonner'
 
 export default function ContainerDetailPage() {
   const params = useParams()
   const router = useRouter()
   const code = params.code as string
-  const { toast } = useToast()
 
   const [container, setContainer] = useState<ContainerDto | null>(null)
   const [history, setHistory] = useState<ContainerFillDto[]>([])
   const [loading, setLoading] = useState(true)
+  const [fillOpen, setFillOpen] = useState(false)
+  const [editFillOpen, setEditFillOpen] = useState(false)
 
   useEffect(() => {
     fetchContainerData()
@@ -28,18 +30,18 @@ export default function ContainerDetailPage() {
   const fetchContainerData = async () => {
     try {
       setLoading(true)
-      const [containerData, historyData] = await Promise.all([
-        containersApi.getContainerByCode(code),
-        containersApi.getContainerHistory(code).catch(() => [])
-      ])
+      const containerData = await containersApi.getContainerByCode(code)
       setContainer(containerData)
-      setHistory(historyData)
+      
+      // Fetch history using container ID
+      try {
+        const historyData = await containersApi.getContainerHistory(containerData.id)
+        setHistory(historyData)
+      } catch (historyError) {
+        setHistory([])
+      }
     } catch (error) {
-      toast({
-        title: 'Помилка',
-        description: 'Не вдалося завантажити дані контейнера',
-        variant: 'destructive'
-      })
+      toast.error('Не вдалося завантажити дані контейнера')
       router.push('/')
     } finally {
       setLoading(false)
@@ -55,27 +57,33 @@ export default function ContainerDetailPage() {
 
     try {
       await containersApi.deleteContainer(container.id)
-      toast({
-        title: 'Успіх',
-        description: 'Контейнер видалено'
-      })
+      toast.success('Контейнер видалено')
       router.push('/')
     } catch (error) {
-      toast({
-        title: 'Помилка',
-        description: 'Не вдалося видалити контейнер',
-        variant: 'destructive'
-      })
+      toast.error('Не вдалося видалити контейнер')
+    }
+  }
+
+  const handleEmpty = async () => {
+    if (!container) return
+    
+    if (!window.confirm('Спорожнити цей контейнер?')) {
+      return
+    }
+
+    try {
+      await containersApi.emptyContainer(container.id)
+      toast.success('Контейнер спорожнено')
+      fetchContainerData()
+    } catch (error) {
+      toast.error('Не вдалося спорожнити контейнер')
     }
   }
 
   const handleExportQR = () => {
     if (!container) return
     const qrUrl = `${window.location.origin}/containers/${container.code}`
-    toast({
-      title: 'QR Код',
-      description: 'QR код збережено'
-    })
+    toast.success('QR код: ' + qrUrl)
   }
 
   if (loading) {
@@ -119,10 +127,27 @@ export default function ContainerDetailPage() {
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {container.status === ContainerStatus.Empty ? (
+            <Button size="sm" onClick={() => setFillOpen(true)} className="bg-brand-navy">
+              <Droplets className="h-4 w-4 mr-2" />
+              Заповнити
+            </Button>
+          ) : (
+            <>
+              <Button size="sm" variant="outline" onClick={() => setEditFillOpen(true)}>
+                <Edit className="h-4 w-4 mr-2" />
+                Редагувати
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleEmpty}>
+                <X className="h-4 w-4 mr-2" />
+                Спорожнити
+              </Button>
+            </>
+          )}
           <Button variant="outline" size="sm" onClick={handleExportQR}>
             <Download className="h-4 w-4 mr-2" />
-            QR Код
+            QR
           </Button>
           <Button variant="destructive" size="sm" onClick={handleDelete}>
             <Trash2 className="h-4 w-4 mr-2" />
@@ -234,6 +259,24 @@ export default function ContainerDetailPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Dialogs */}
+      {container.status === ContainerStatus.Empty && (
+        <FillContainerDialog
+          container={container}
+          open={fillOpen}
+          onClose={() => setFillOpen(false)}
+          onSuccess={fetchContainerData}
+        />
+      )}
+      {container.status === ContainerStatus.Full && (
+        <EditFillDialog
+          container={container}
+          open={editFillOpen}
+          onClose={() => setEditFillOpen(false)}
+          onSuccess={fetchContainerData}
+        />
       )}
     </div>
   )
