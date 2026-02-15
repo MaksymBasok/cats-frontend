@@ -2,18 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Box, Shield, User } from "lucide-react";
+import { Box, Package, Shield, User } from "lucide-react";
 import { useAuth } from "@/shared/auth/AuthProvider";
 import { cn } from "@/lib/utils";
 
 const operatorLinks = [
   { href: "/", label: "Тара", icon: Box },
+  { href: "/products", label: "Продукти", icon: Package },
   { href: "/profile", label: "Профіль", icon: User },
 ];
 
 const adminLinks = [
   { href: "/", label: "Тара", icon: Box },
-  { href: "/admin/users", label: "Адмін", icon: Shield },
+  { href: "/products", label: "Продукти", icon: Package },
+  { href: "/admin", label: "Адмін", icon: Shield },
   { href: "/profile", label: "Профіль", icon: User },
 ];
 

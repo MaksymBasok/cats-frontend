@@ -22,14 +22,11 @@ interface NavItem {
 
 const mainLinks: NavItem[] = [
   { href: "/", label: "Тара", icon: Box },
+  { href: "/products", label: "Продукти", icon: Package },
 ];
 
 const adminLinks: NavItem[] = [
-  { href: "/admin/users", label: "Користувачі", icon: Users },
-  { href: "/admin/products", label: "Продукти", icon: Package },
-  { href: "/admin/product-types", label: "Типи продуктів", icon: Tags },
-  { href: "/admin/container-types", label: "Типи тари", icon: Container },
-  { href: "/admin/reminders", label: "Нагадування", icon: Clock },
+  { href: "/admin", label: "Користувачі", icon: Users },
 ];
 
 const bottomLinks: NavItem[] = [
