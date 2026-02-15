@@ -7,7 +7,6 @@ import * as containersApi from '@/shared/api/containers'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft, Download, Droplets, Edit, Package, Trash2, X } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
 import { FillContainerDialog } from '@/shared/ui/containers/FillContainerDialog'
 import { EditFillDialog } from '@/shared/ui/containers/EditFillDialog'
 import { format } from 'date-fns'
@@ -17,7 +16,6 @@ export default function ContainerDetailPage() {
   const params = useParams()
   const router = useRouter()
   const code = params.code as string
-  const { toast } = useToast()
 
   const [container, setContainer] = useState<ContainerDto | null>(null)
   const [history, setHistory] = useState<ContainerFillDto[]>([])
@@ -43,11 +41,7 @@ export default function ContainerDetailPage() {
         setHistory([])
       }
     } catch (error) {
-      toast({
-        title: 'Помилка',
-        description: 'Не вдалося завантажити дані контейнера',
-        variant: 'destructive'
-      })
+      toast.error('Не вдалося завантажити дані контейнера')
       router.push('/')
     } finally {
       setLoading(false)
@@ -63,17 +57,10 @@ export default function ContainerDetailPage() {
 
     try {
       await containersApi.deleteContainer(container.id)
-      toast({
-        title: 'Успіх',
-        description: 'Контейнер видалено'
-      })
+      toast.success('Контейнер видалено')
       router.push('/')
     } catch (error) {
-      toast({
-        title: 'Помилка',
-        description: 'Не вдалося видалити контейнер',
-        variant: 'destructive'
-      })
+      toast.error('Не вдалося видалити контейнер')
     }
   }
 
