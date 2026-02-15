@@ -2,19 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Container, Event } from '@/types'
-import { containersApi } from '@/api/containers'
-import { eventsApi } from '@/api/events'
+import { ContainerDto, ContainerFillDto, ContainerStatus } from '@/shared/types'
+import * as containersApi from '@/shared/api/containers'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ArrowLeft, Download, Edit, MapPin, Package, Trash2 } from 'lucide-react'
-import { EditContainerDialog } from '@/shared/ui/containers/EditContainerDialog'
-import { TransferOwnershipDialog } from '@/shared/ui/containers/TransferOwnershipDialog'
-import { ContainerTimeline } from '@/shared/ui/containers/ContainerTimeline'
-import { ContainerMap } from '@/shared/ui/containers/ContainerMap'
-import { useConfirm } from '@/shared/ui/ConfirmDialog'
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 
@@ -23,13 +16,10 @@ export default function ContainerDetailPage() {
   const router = useRouter()
   const code = params.code as string
   const { toast } = useToast()
-  const { confirm } = useConfirm()
 
-  const [container, setContainer] = useState<Container | null>(null)
-  const [events, setEvents] = useState<Event[]>([])
+  const [container, setContainer] = useState<ContainerDto | null>(null)
+  const [history, setHistory] = useState<ContainerFillDto[]>([])
   const [loading, setLoading] = useState(true)
-  const [editOpen, setEditOpen] = useState(false)
-  const [transferOpen, setTransferOpen] = useState(false)
 
   useEffect(() => {
     fetchContainerData()
@@ -38,16 +28,16 @@ export default function ContainerDetailPage() {
   const fetchContainerData = async () => {
     try {
       setLoading(true)
-      const [containerData, eventsData] = await Promise.all([
-        containersApi.getByCode(code),
-        eventsApi.getByContainer(code)
+      const [containerData, historyData] = await Promise.all([
+        containersApi.getContainerByCode(code),
+        containersApi.getContainerHistory(code).catch(() => [])
       ])
       setContainer(containerData)
-      setEvents(eventsData)
+      setHistory(historyData)
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to load container details',
+        title: 'Помилка',
+        description: 'Не вдалося завантажити дані контейнера',
         variant: 'destructive'
       })
       router.push('/')
@@ -59,38 +49,32 @@ export default function ContainerDetailPage() {
   const handleDelete = async () => {
     if (!container) return
     
-    const confirmed = await confirm({
-      title: 'Delete Container',
-      description: `Are you sure you want to delete container ${container.code}? This action cannot be undone.`,
-      confirmText: 'Delete'
-    })
+    if (!window.confirm(`Видалити контейнер ${container.code}? Цю дію не можна скасувати.`)) {
+      return
+    }
 
-    if (confirmed) {
-      try {
-        await containersApi.delete(container.id)
-        toast({
-          title: 'Success',
-          description: 'Container deleted successfully'
-        })
-        router.push('/')
-      } catch (error) {
-        toast({
-          title: 'Error',
-          description: 'Failed to delete container',
-          variant: 'destructive'
-        })
-      }
+    try {
+      await containersApi.deleteContainer(container.id)
+      toast({
+        title: 'Успіх',
+        description: 'Контейнер видалено'
+      })
+      router.push('/')
+    } catch (error) {
+      toast({
+        title: 'Помилка',
+        description: 'Не вдалося видалити контейнер',
+        variant: 'destructive'
+      })
     }
   }
 
   const handleExportQR = () => {
     if (!container) return
-    // Generate QR code with container code URL
     const qrUrl = `${window.location.origin}/containers/${container.code}`
-    // In a real app, you would generate and download the QR code here
     toast({
-      title: 'QR Code',
-      description: 'QR code downloaded successfully'
+      title: 'QR Код',
+      description: 'QR код збережено'
     })
   }
 
@@ -107,11 +91,13 @@ export default function ContainerDetailPage() {
   }
 
   const statusColors = {
-    EMPTY: 'bg-gray-500',
-    FILLED: 'bg-blue-500',
-    IN_TRANSIT: 'bg-yellow-500',
-    DELIVERED: 'bg-green-500',
-    DAMAGED: 'bg-red-500'
+    [ContainerStatus.Empty]: 'bg-gray-500',
+    [ContainerStatus.Full]: 'bg-blue-500',
+  }
+
+  const statusLabels = {
+    [ContainerStatus.Empty]: 'Порожній',
+    [ContainerStatus.Full]: 'Заповнений',
   }
 
   return (
@@ -129,66 +115,44 @@ export default function ContainerDetailPage() {
           <div>
             <h1 className="text-2xl font-bold">{container.code}</h1>
             <p className="text-sm text-muted-foreground">
-              Created {format(new Date(container.createdAt), 'PPP')}
+              Створено {format(new Date(container.createdAt), 'dd.MM.yyyy')}
             </p>
           </div>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleExportQR}>
             <Download className="h-4 w-4 mr-2" />
-            QR Code
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-            <Edit className="h-4 w-4 mr-2" />
-            Edit
+            QR Код
           </Button>
           <Button variant="destructive" size="sm" onClick={handleDelete}>
             <Trash2 className="h-4 w-4 mr-2" />
-            Delete
+            Видалити
           </Button>
         </div>
       </div>
 
       {/* Overview Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Status</CardTitle>
+            <CardTitle className="text-sm font-medium">Статус</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
               <div className={`h-2 w-2 rounded-full ${statusColors[container.status]}`} />
-              <span className="text-2xl font-bold">{container.status}</span>
+              <span className="text-2xl font-bold">{statusLabels[container.status]}</span>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Owner</CardTitle>
+            <CardTitle className="text-sm font-medium">Тип</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{container.owner.name}</div>
-            <p className="text-xs text-muted-foreground">{container.owner.email}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Location</CardTitle>
-            <MapPin className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {container.latitude && container.longitude ? 'Tracked' : 'Unknown'}
-            </div>
-            {container.latitude && container.longitude && (
-              <p className="text-xs text-muted-foreground">
-                {container.latitude.toFixed(4)}, {container.longitude.toFixed(4)}
-              </p>
-            )}
+            <div className="text-2xl font-bold">{container.containerTypeName}</div>
           </CardContent>
         </Card>
       </div>
@@ -196,65 +160,81 @@ export default function ContainerDetailPage() {
       {/* Details Card */}
       <Card>
         <CardHeader>
-          <CardTitle>Details</CardTitle>
+          <CardTitle>Деталі</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Container Code</p>
+              <p className="text-sm font-medium text-muted-foreground">Код контейнера</p>
               <p className="text-lg font-medium">{container.code}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Type</p>
-              <p className="text-lg font-medium">{container.type || 'Standard'}</p>
+              <p className="text-sm font-medium text-muted-foreground">Назва</p>
+              <p className="text-lg font-medium">{container.name}</p>
             </div>
-            {container.description && (
-              <div className="md:col-span-2">
-                <p className="text-sm font-medium text-muted-foreground">Description</p>
-                <p className="text-lg font-medium">{container.description}</p>
-              </div>
-            )}
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Об'єм</p>
+              <p className="text-lg font-medium">{container.volume} {container.unit}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Тип контейнера</p>
+              <p className="text-lg font-medium">{container.containerTypeName}</p>
+            </div>
           </div>
 
-          <div className="pt-4 border-t">
-            <Button
-              variant="outline"
-              onClick={() => setTransferOpen(true)}
-              className="w-full sm:w-auto"
-            >
-              Transfer Ownership
-            </Button>
-          </div>
+          {container.currentFill && (
+            <div className="pt-4 border-t">
+              <h3 className="font-medium mb-2">Поточний вміст</h3>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Продукт</p>
+                  <p className="text-lg font-medium">{container.currentFill.productName}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Кількість</p>
+                  <p className="text-lg font-medium">{container.currentFill.quantity} {container.currentFill.unit}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Дата виробництва</p>
+                  <p className="text-lg font-medium">{format(new Date(container.currentFill.productionDate), 'dd.MM.yyyy')}</p>
+                </div>
+                {container.currentFill.expirationDate && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Термін придатності</p>
+                    <p className="text-lg font-medium">{format(new Date(container.currentFill.expirationDate), 'dd.MM.yyyy')}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Tabs for Timeline and Map */}
-      <Tabs defaultValue="timeline" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="timeline">Timeline</TabsTrigger>
-          <TabsTrigger value="map">Map</TabsTrigger>
-        </TabsList>
-        <TabsContent value="timeline" className="space-y-4">
-          <ContainerTimeline events={events} />
-        </TabsContent>
-        <TabsContent value="map">
-          <ContainerMap container={container} events={events} />
-        </TabsContent>
-      </Tabs>
-
-      {/* Dialogs */}
-      <EditContainerDialog
-        container={container}
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        onSuccess={fetchContainerData}
-      />
-      <TransferOwnershipDialog
-        container={container}
-        open={transferOpen}
-        onOpenChange={setTransferOpen}
-        onSuccess={fetchContainerData}
-      />
+      {/* History */}
+      {history.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Історія</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {history.map((fill) => (
+                <div key={fill.id} className="border-l-2 border-primary pl-4 py-2">
+                  <div className="font-medium">{fill.productName}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {fill.quantity} {fill.unit} • {format(new Date(fill.filledAt), 'dd.MM.yyyy HH:mm')}
+                  </div>
+                  {fill.emptiedAt && (
+                    <div className="text-sm text-muted-foreground">
+                      Спорожнено: {format(new Date(fill.emptiedAt), 'dd.MM.yyyy HH:mm')}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

@@ -4,14 +4,16 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ScanLine, LogOut, UserCircle, ChevronDown } from "lucide-react";
+import { ScanLine, LogOut, UserCircle, ChevronDown, Moon, Sun } from "lucide-react";
 import { useAuth } from "@/shared/auth/AuthProvider";
+import { useTheme } from "@/lib/ThemeProvider";
 import { UserRole } from "@/shared/types";
 import { QrScannerModal } from "./QrScannerModal";
 import { Breadcrumbs } from "./Breadcrumbs";
 
 export function AppHeader() {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const router = useRouter();
   const [scanOpen, setScanOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -46,6 +48,14 @@ export function AppHeader() {
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={toggleTheme}
+              className="flex items-center justify-center rounded-lg p-2 text-foreground hover:bg-muted transition-colors"
+              aria-label={theme === "light" ? "Темна тема" : "Світла тема"}
+            >
+              {theme === "light" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+            </button>
+
             <button
               onClick={() => setScanOpen(true)}
               className="flex items-center gap-1.5 rounded-lg bg-brand-orange px-3 py-2 text-sm font-medium text-brand-navy transition-colors hover:opacity-90"

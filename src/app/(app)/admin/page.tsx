@@ -1,44 +1,42 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { User } from '@/types'
-import { usersApi } from '@/api/users'
+import { UserDto, UserRole } from '@/shared/types'
+import * as usersApi from '@/shared/api/users'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
-import { useConfirm } from '@/shared/ui/ConfirmDialog'
 import { Search, UserCheck, UserX, Shield, Trash2 } from 'lucide-react'
-import { useAuth } from '@/shared/auth/AuthContext'
+import { useAuth } from '@/shared/auth/AuthProvider'
 import { useRouter } from 'next/navigation'
 
 export default function AdminPage() {
-  const { user } = useAuth()
+  const { user, isAdmin } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
-  const { confirm } = useConfirm()
-  const [users, setUsers] = useState<User[]>([])
+  const [users, setUsers] = useState<UserDto[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 
   useEffect(() => {
-    if (user?.role !== 'ADMIN') {
+    if (!isAdmin) {
       router.push('/')
       return
     }
     fetchUsers()
-  }, [user])
+  }, [isAdmin, router])
 
   const fetchUsers = async () => {
     try {
       setLoading(true)
-      const data = await usersApi.getAll()
+      const data = await usersApi.getUsers()
       setUsers(data)
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to load users',
+        title: 'Помилка',
+        description: 'Не вдалося завантажити користувачів',
         variant: 'destructive'
       })
     } finally {
@@ -46,108 +44,70 @@ export default function AdminPage() {
     }
   }
 
-  const handleApprove = async (userId: number) => {
+  const handleApprove = async (userId: string) => {
     try {
-      await usersApi.approve(userId)
+      await usersApi.activateUser(userId)
       toast({
-        title: 'Success',
-        description: 'User approved successfully'
+        title: 'Успіх',
+        description: 'Користувача підтверджено'
       })
       fetchUsers()
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to approve user',
+        title: 'Помилка',
+        description: 'Не вдалося підтвердити користувача',
         variant: 'destructive'
       })
     }
   }
 
-  const handleReject = async (userId: number) => {
-    const confirmed = await confirm({
-      title: 'Reject User',
-      description: 'Are you sure you want to reject this user?',
-      confirmText: 'Reject'
-    })
+  const handleReject = async (userId: string) => {
+    if (!window.confirm('Відхилити цього користувача?')) return
 
-    if (confirmed) {
-      try {
-        await usersApi.reject(userId)
-        toast({
-          title: 'Success',
-          description: 'User rejected successfully'
-        })
-        fetchUsers()
-      } catch (error) {
-        toast({
-          title: 'Error',
-          description: 'Failed to reject user',
-          variant: 'destructive'
-        })
-      }
+    try {
+      await usersApi.deactivateUser(userId)
+      toast({
+        title: 'Успіх',
+        description: 'Користувача відхилено'
+      })
+      fetchUsers()
+    } catch (error) {
+      toast({
+        title: 'Помилка',
+        description: 'Не вдалося відхилити користувача',
+        variant: 'destructive'
+      })
     }
   }
 
-  const handleMakeAdmin = async (userId: number) => {
-    const confirmed = await confirm({
-      title: 'Make Admin',
-      description: 'Are you sure you want to give this user admin privileges?',
-      confirmText: 'Confirm'
-    })
+  const handleMakeAdmin = async (userId: string) => {
+    if (!window.confirm('Надати цьому користувачу права адміністратора?')) return
 
-    if (confirmed) {
-      try {
-        await usersApi.makeAdmin(userId)
-        toast({
-          title: 'Success',
-          description: 'User is now an admin'
-        })
-        fetchUsers()
-      } catch (error) {
-        toast({
-          title: 'Error',
-          description: 'Failed to update user role',
-          variant: 'destructive'
-        })
-      }
-    }
-  }
-
-  const handleDelete = async (userId: number) => {
-    const confirmed = await confirm({
-      title: 'Delete User',
-      description: 'Are you sure you want to delete this user? This action cannot be undone.',
-      confirmText: 'Delete'
-    })
-
-    if (confirmed) {
-      try {
-        await usersApi.delete(userId)
-        toast({
-          title: 'Success',
-          description: 'User deleted successfully'
-        })
-        fetchUsers()
-      } catch (error) {
-        toast({
-          title: 'Error',
-          description: 'Failed to delete user',
-          variant: 'destructive'
-        })
-      }
+    try {
+      await usersApi.updateUser(userId, { role: UserRole.Admin })
+      toast({
+        title: 'Успіх',
+        description: 'Користувач тепер адміністратор'
+      })
+      fetchUsers()
+    } catch (error) {
+      toast({
+        title: 'Помилка',
+        description: 'Не вдалося оновити роль користувача',
+        variant: 'destructive'
+      })
     }
   }
 
   const filteredUsers = users.filter(u =>
-    u.name.toLowerCase().includes(search.toLowerCase()) ||
+    `${u.firstName} ${u.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
     u.email.toLowerCase().includes(search.toLowerCase())
   )
 
-  const pendingUsers = filteredUsers.filter(u => u.status === 'PENDING')
-  const activeUsers = filteredUsers.filter(u => u.status === 'ACTIVE')
-  const rejectedUsers = filteredUsers.filter(u => u.status === 'REJECTED')
+  const pendingUsers = filteredUsers.filter(u => !u.isActive)
+  const activeUsers = filteredUsers.filter(u => u.isActive)
 
-  if (user?.role !== 'ADMIN') {
+  if (!isAdmin) {
     return null
   }
 
@@ -201,23 +161,23 @@ export default function AdminPage() {
       {pendingUsers.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Pending Approvals ({pendingUsers.length})</CardTitle>
+            <CardTitle>Очікують підтвердження ({pendingUsers.length})</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {pendingUsers.map(user => (
-              <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
+            {pendingUsers.map(u => (
+              <div key={u.id} className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex-1">
-                  <div className="font-medium">{user.name}</div>
-                  <div className="text-sm text-muted-foreground">{user.email}</div>
+                  <div className="font-medium">{u.firstName} {u.lastName}</div>
+                  <div className="text-sm text-muted-foreground">{u.email}</div>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" onClick={() => handleApprove(user.id)}>
+                  <Button size="sm" onClick={() => handleApprove(u.id)}>
                     <UserCheck className="h-4 w-4 mr-2" />
-                    Approve
+                    Підтвердити
                   </Button>
-                  <Button size="sm" variant="destructive" onClick={() => handleReject(user.id)}>
+                  <Button size="sm" variant="destructive" onClick={() => handleReject(u.id)}>
                     <UserX className="h-4 w-4 mr-2" />
-                    Reject
+                    Відхилити
                   </Button>
                 </div>
               </div>
@@ -229,63 +189,38 @@ export default function AdminPage() {
       {/* Active Users */}
       <Card>
         <CardHeader>
-          <CardTitle>Active Users ({activeUsers.length})</CardTitle>
+          <CardTitle>Активні користувачі ({activeUsers.length})</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {activeUsers.map(u => (
             <div key={u.id} className="flex items-center justify-between p-4 border rounded-lg">
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <div className="font-medium">{u.name}</div>
-                  {u.role === 'ADMIN' && (
+                  <div className="font-medium">{u.firstName} {u.lastName}</div>
+                  {u.role === UserRole.Admin && (
                     <Badge variant="secondary">
                       <Shield className="h-3 w-3 mr-1" />
-                      Admin
+                      Адмін
                     </Badge>
                   )}
                 </div>
                 <div className="text-sm text-muted-foreground">{u.email}</div>
               </div>
               <div className="flex gap-2">
-                {u.role !== 'ADMIN' && (
+                {u.role !== UserRole.Admin && (
                   <Button size="sm" variant="outline" onClick={() => handleMakeAdmin(u.id)}>
                     <Shield className="h-4 w-4 mr-2" />
-                    Make Admin
+                    Зробити адміном
                   </Button>
                 )}
-                <Button size="sm" variant="destructive" onClick={() => handleDelete(u.id)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
               </div>
             </div>
           ))}
           {activeUsers.length === 0 && (
-            <p className="text-center text-muted-foreground py-8">No active users</p>
+            <p className="text-center text-muted-foreground py-8">Немає активних користувачів</p>
           )}
         </CardContent>
       </Card>
-
-      {/* Rejected Users */}
-      {rejectedUsers.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Rejected Users ({rejectedUsers.length})</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {rejectedUsers.map(u => (
-              <div key={u.id} className="flex items-center justify-between p-4 border rounded-lg opacity-60">
-                <div className="flex-1">
-                  <div className="font-medium">{u.name}</div>
-                  <div className="text-sm text-muted-foreground">{u.email}</div>
-                </div>
-                <Button size="sm" variant="destructive" onClick={() => handleDelete(u.id)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
     </div>
   )
 }

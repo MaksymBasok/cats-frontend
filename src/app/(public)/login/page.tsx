@@ -117,7 +117,7 @@ export default function LoginPage() {
             alt="CATS - Container Audit Tracking System"
             width={80}
             height={80}
-            className="rounded-xl"
+            className="rounded-xl w-20 h-auto"
             priority
           />
           <div className="text-center">
