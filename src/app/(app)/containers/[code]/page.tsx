@@ -161,7 +161,7 @@ export default function ContainerDetailPage() {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           {isEmpty ? (
             <Button size="sm" onClick={() => setFillOpen(true)} className="bg-brand-navy">
               <Droplets className="mr-2 h-4 w-4" />
@@ -169,9 +169,14 @@ export default function ContainerDetailPage() {
             </Button>
           ) : (
             <>
-              <Button size="sm" variant="outline" onClick={() => setEditFillOpen(true)}>
-                <Edit className="mr-2 h-4 w-4" />
-                Редагувати
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setEditFillOpen(true)}
+                aria-label="Редагувати"
+              >
+                <Edit className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Редагувати</span>
               </Button>
               <Button size="sm" variant="outline" onClick={() => setEmptyConfirmOpen(true)}>
                 <X className="mr-2 h-4 w-4" />
@@ -185,9 +190,14 @@ export default function ContainerDetailPage() {
             QR
           </Button>
 
-          <Button variant="destructive" size="sm" onClick={() => setDeleteConfirmOpen(true)}>
-            <Trash2 className="mr-2 h-4 w-4" />
-            Видалити
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => setDeleteConfirmOpen(true)}
+            aria-label="Видалити"
+          >
+            <Trash2 className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Видалити</span>
           </Button>
         </div>
       </div>
