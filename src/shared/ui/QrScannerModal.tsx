@@ -130,10 +130,10 @@ export function QrScannerModal({ open, onClose }: QrScannerModalProps) {
         if (qrInstanceRef.current) {
           try {
             await qrInstanceRef.current.stop();
-          } catch {}
-          try {
             await qrInstanceRef.current.clear();
-          } catch {}
+          } catch {
+            // Instance might not be running, just clear the ref
+          }
           qrInstanceRef.current = null;
         }
 
@@ -171,9 +171,15 @@ export function QrScannerModal({ open, onClose }: QrScannerModalProps) {
       cancelled = true;
       const instance = qrInstanceRef.current;
       if (instance) {
-        instance.stop().catch(() => {});
-        instance.clear().catch(() => {});
-        qrInstanceRef.current = null;
+        // Try to stop, but don't throw if not running
+        instance.stop()
+          .then(() => instance.clear())
+          .catch(() => {
+            // Scanner might not be running, that's ok
+          })
+          .finally(() => {
+            qrInstanceRef.current = null;
+          });
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

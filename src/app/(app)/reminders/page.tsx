@@ -62,7 +62,7 @@ export default function RemindersPage() {
         <p className="text-muted-foreground">Моніторинг активних заповнень та контроль термінів придатності.</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-3">
         <StatCard title="Активних заповнень" value={filtered.length} icon={BellRing} />
         <StatCard title="Прострочено" value={expiredCount} icon={TriangleAlert} />
         <StatCard title="Заповниться / дозріє сьогодні" value={filtered.filter((f) => differenceInCalendarDays(parseISO(f.expirationDate), new Date()) === 0).length} icon={CalendarClock} />
