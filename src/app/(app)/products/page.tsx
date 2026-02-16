@@ -1,28 +1,36 @@
+// src/app/(app)/products/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Plus, Loader2, Package } from "lucide-react";
+import { useAuth } from "@/shared/auth/AuthProvider";
+import { useIsDesktop } from "@/hooks/useMediaQuery";
+import type { ProductDto, ProductTypeDto } from "@/shared/types";
 import { getProducts, deleteProduct } from "@/shared/api/products";
 import { getProductTypes } from "@/shared/api/product-types";
-import { useAuth } from "@/shared/auth/AuthProvider";
-import type { ProductDto, ProductTypeDto } from "@/shared/types";
 import { CreateProductDialog } from "@/shared/ui/products/CreateProductDialog";
 import { EditProductDialog } from "@/shared/ui/products/EditProductDialog";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { ProductsTable } from "@/shared/ui/products/ProductsTable";
+import { ProductCard } from "@/shared/ui/products/ProductCard";
 import { toast } from "sonner";
 
 export default function ProductsPage() {
   const { isAdmin } = useAuth();
+  const isDesktop = useIsDesktop();
+
   const [products, setProducts] = useState<ProductDto[]>([]);
   const [productTypes, setProductTypes] = useState<ProductTypeDto[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+
   const [createOpen, setCreateOpen] = useState(false);
   const [editProduct, setEditProduct] = useState<ProductDto | null>(null);
 
-  const fetchProducts = async () => {
+  const [search, setSearch] = useState("");
+  const debounceRef = useRef<number | null>(null);
+
+  const effectiveSearch = useMemo(() => search.trim().toLowerCase(), [search]);
+
+  const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
       const data = await getProducts();
@@ -32,53 +40,79 @@ export default function ProductsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     Promise.all([fetchProducts(), getProductTypes()])
       .then(([_, types]) => setProductTypes(types))
       .catch(() => {});
-  }, []);
+  }, [fetchProducts]);
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(`Видалити продукт "${name}"?`)) return;
+  // Debounced search (similar behavior to containers page)
+  const filteredProducts = useMemo(() => {
+    if (!effectiveSearch) return products;
+
+    return products.filter((p) => {
+      const name = (p.name ?? "").toLowerCase();
+      const typeName = (p.productTypeName ?? "").toLowerCase();
+      return name.includes(effectiveSearch) || typeName.includes(effectiveSearch);
+    });
+  }, [products, effectiveSearch]);
+
+  // optional: debounce search input state -> just to match "feel" (not mandatory)
+  const [searchUi, setSearchUi] = useState("");
+  useEffect(() => {
+    if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    debounceRef.current = window.setTimeout(() => setSearch(searchUi), 250);
+
+    return () => {
+      if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    };
+  }, [searchUi]);
+
+  const refresh = useCallback(async () => {
+    await fetchProducts();
+  }, [fetchProducts]);
+
+  const handleDelete = async (id: number, name: string | null) => {
+    const label = (name ?? "").trim() || `#${id}`;
+    if (!window.confirm(`Видалити продукт "${label}"?`)) return;
 
     try {
       await deleteProduct(id);
       toast.success("Продукт видалено");
-      fetchProducts();
+      await refresh();
     } catch {
       toast.error("Не вдалося видалити продукт");
     }
   };
 
-  const filteredProducts = products.filter(
-    (p) =>
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.productTypeName.toLowerCase().includes(search.toLowerCase())
-  );
-
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          Продукти
-        </h1>
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">Продукти</h1>
+
         {isAdmin && (
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
+          <button
+            onClick={() => setCreateOpen(true)}
+            className="flex items-center gap-1.5 rounded-lg bg-brand-navy px-3 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+          >
+            <Plus className="h-4 w-4" />
             Додати
-          </Button>
+          </button>
         )}
       </div>
 
-      <div className="flex gap-4">
-        <Input
-          placeholder="Пошук продуктів..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="max-w-sm"
-        />
+      {/* Filters row (simple search like before) */}
+      <div className="flex items-center gap-3">
+        <div className="w-full max-w-sm">
+          <input
+            value={searchUi}
+            onChange={(e) => setSearchUi(e.target.value)}
+            placeholder="Пошук продуктів..."
+            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
       </div>
 
       {loading ? (
@@ -87,59 +121,27 @@ export default function ProductsPage() {
         </div>
       ) : filteredProducts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
-          <Package className="h-12 w-12 text-muted-foreground/40 mb-3" />
-          <p className="text-sm font-medium text-muted-foreground">
-            Продукти не знайдено
-          </p>
+          <Package className="mb-3 h-12 w-12 text-muted-foreground/40" />
+          <p className="text-sm font-medium text-muted-foreground">Продукти не знайдено</p>
+          <p className="mt-1 text-xs text-muted-foreground/70">Спробуйте змінити пошук або додайте новий продукт</p>
         </div>
+      ) : isDesktop ? (
+        <ProductsTable
+          products={filteredProducts}
+          isAdmin={isAdmin}
+          onEdit={(p) => setEditProduct(p)}
+          onDelete={(p) => handleDelete(p.id, p.name)}
+        />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredProducts.map((product) => (
-            <Card key={product.id}>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">{product.name}</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  {product.productTypeName}
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {product.description && (
-                  <p className="text-sm text-muted-foreground">
-                    {product.description}
-                  </p>
-                )}
-                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                  {product.shelfLifeDays && (
-                    <span className="bg-muted px-2 py-1 rounded">
-                      Термін: {product.shelfLifeDays} днів
-                    </span>
-                  )}
-                  {product.shelfLifeHours && (
-                    <span className="bg-muted px-2 py-1 rounded">
-                      Термін: {product.shelfLifeHours} годин
-                    </span>
-                  )}
-                </div>
-                {isAdmin && (
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setEditProduct(product)}
-                    >
-                      Редагувати
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleDelete(product.id, product.name)}
-                    >
-                      Видалити
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+        <div className="flex flex-col gap-2">
+          {filteredProducts.map((p) => (
+            <ProductCard
+              key={p.id}
+              product={p}
+              isAdmin={isAdmin}
+              onEdit={() => setEditProduct(p)}
+              onDelete={() => handleDelete(p.id, p.name)}
+            />
           ))}
         </div>
       )}
@@ -147,16 +149,16 @@ export default function ProductsPage() {
       <CreateProductDialog
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        onCreated={fetchProducts}
+        onCreated={refresh}
         productTypes={productTypes}
       />
 
       {editProduct && (
         <EditProductDialog
           product={editProduct}
-          open={!!editProduct}
+          open={true}
           onClose={() => setEditProduct(null)}
-          onUpdated={fetchProducts}
+          onUpdated={refresh}
           productTypes={productTypes}
         />
       )}

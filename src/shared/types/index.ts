@@ -1,234 +1,227 @@
+// src/shared/types/index.ts
+
 // === Enums ===
-
-export enum ContainerStatus {
-  Empty = 0,
-  Full = 1,
-}
-
-export enum UserRole {
-  Admin = 0,
-  Operator = 1,
-}
+export type ContainerStatus = "Empty" | "Full";
+export type UserRole = "Operator" | "Admin";
 
 // === Container Types ===
-
 export interface ContainerTypeDto {
-  id: string;
-  name: string;
-  codePrefix: string;
-  defaultUnit: string;
+  id: number;
+  name: string | null;
+  codePrefix: string | null;
+  defaultUnit: string | null;
   meta: string | null;
-  allowedProductTypeIds: string[];
   createdAt: string;
-  updatedAt: string;
+  allowedProductTypeNames: string[] | null;
 }
 
 export interface CreateContainerTypeDto {
-  name: string;
-  codePrefix: string;
-  defaultUnit: string;
+  name?: string | null;
+  codePrefix?: string | null;
+  defaultUnit?: string | null;
   meta?: string | null;
-  allowedProductTypeIds: string[];
+  allowedProductTypeIds?: number[] | null;
 }
 
 export interface UpdateContainerTypeDto {
-  name: string;
-  codePrefix: string;
-  defaultUnit: string;
+  name?: string | null;
+  codePrefix?: string | null;
+  defaultUnit?: string | null;
   meta?: string | null;
-  allowedProductTypeIds: string[];
+  allowedProductTypeIds?: number[] | null;
 }
 
 // === Product Types ===
-
 export interface ProductTypeDto {
-  id: string;
-  name: string;
+  id: number;
+  name: string | null;
   shelfLifeDays: number | null;
   shelfLifeHours: number | null;
   meta: string | null;
   createdAt: string;
-  updatedAt: string;
 }
 
 export interface CreateProductTypeDto {
-  name: string;
+  name?: string | null;
   shelfLifeDays?: number | null;
   shelfLifeHours?: number | null;
   meta?: string | null;
 }
 
 export interface UpdateProductTypeDto {
-  name: string;
+  name?: string | null;
   shelfLifeDays?: number | null;
   shelfLifeHours?: number | null;
   meta?: string | null;
 }
 
 // === Products ===
-
 export interface ProductDto {
-  id: string;
-  name: string;
+  id: number;
+  name: string | null;
   description: string | null;
-  productTypeId: string;
-  productTypeName: string;
+  productTypeId: number;
+  productTypeName: string | null;
   shelfLifeDays: number | null;
   shelfLifeHours: number | null;
   createdAt: string;
-  updatedAt: string;
 }
 
 export interface CreateProductDto {
-  name: string;
+  name: string | null;
   description?: string | null;
-  productTypeId: string;
+  productTypeId: number;
   shelfLifeDays?: number | null;
   shelfLifeHours?: number | null;
 }
 
 export interface UpdateProductDto {
-  name: string;
+  name: string | null;
   description?: string | null;
-  productTypeId: string;
+  productTypeId: number;
   shelfLifeDays?: number | null;
   shelfLifeHours?: number | null;
 }
 
 // === Containers ===
-
 export interface ContainerFillDto {
-  id: string;
-  productId: string;
-  productName: string;
-  productTypeName: string;
+  id: number;
+
+  containerId: number;
+  containerCode: string | null;
+
+  productId: number;
+  productName: string | null;
+
   quantity: number;
-  unit: string;
-  productionDate: string;
-  expirationDate: string | null;
-  filledAt: string;
-  filledByUserName: string;
-  emptiedAt: string | null;
-  emptiedByUserName: string | null;
+  unit: string | null;
+
+  productionDate: string; // date-time
+  filledDate: string; // date-time
+  expirationDate: string; // date-time
+
+  emptiedDate: string | null; // date-time | null
+
+  filledByUserId: string; // uuid
+  emptiedByUserId: string | null; // uuid | null
 }
 
 export interface ContainerDto {
-  id: string;
-  code: string;
-  name: string;
+  id: number;
+
+  code: string | null;
+  name: string | null;
+
   volume: number;
-  unit: string;
-  containerTypeId: string;
-  containerTypeName: string;
-  status: ContainerStatus;
+  unit: string | null;
+
+  containerTypeId: number;
+  containerTypeName: string | null;
+
+  status: ContainerStatus | null;
+
+  currentProductId: number | null;
+  currentProductName: string | null;
+  currentQuantity: number | null;
+  currentProductionDate: string | null; // date-time
+  currentExpirationDate: string | null; // date-time
+  currentFilledAt: string | null; // date-time
+
   meta: string | null;
-  currentFill: ContainerFillDto | null;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: string; // date-time
 }
 
 export interface CreateContainerDto {
   code?: string | null;
-  name: string;
+  name?: string | null;
   volume: number;
-  unit: string;
-  containerTypeId: string;
+  unit?: string | null;
+  containerTypeId: number;
   meta?: string | null;
 }
 
 export interface UpdateContainerDto {
-  name: string;
+  name?: string | null;
   volume: number;
-  unit: string;
-  containerTypeId: string;
+  unit?: string | null;
+  containerTypeId: number;
   meta?: string | null;
 }
 
 export interface FillContainerDto {
-  productId: string;
+  productId: number;
   quantity: number;
-  unit: string;
-  productionDate: string;
-  expirationDate?: string | null;
+  unit?: string | null;
+  productionDate: string; // date-time
+  expirationDate?: string | null; // date-time | null
 }
 
 export interface UpdateContainerFillDto {
-  productId: string;
+  productId?: number | null;
   quantity: number;
-  unit: string;
-  productionDate: string;
-  expirationDate?: string | null;
+  unit?: string | null;
+  productionDate: string; // date-time
+  expirationDate: string; // date-time (required in OpenAPI)
 }
 
 export interface SearchContainersParams {
   searchTerm?: string;
-  containerTypeId?: string;
+  containerTypeId?: number;
   status?: ContainerStatus;
-  productionDate?: string;
-  currentProductId?: string;
-  currentProductTypeId?: string;
-  lastProductId?: string;
+
+  productionDate?: string; // date-time
+  currentProductId?: number;
+  currentProductTypeId?: number;
+  lastProductId?: number;
+
   showExpired?: boolean;
-  filledToday?: boolean;
+  filledToday?: string; // date-time
 }
 
 export interface SearchContainerFillsParams {
-  containerId?: string;
-  productId?: string;
-  productTypeId?: string;
-  fromDate?: string;
-  toDate?: string;
+  containerId?: number;
+  productId?: number;
+  productTypeId?: number;
+  fromDate?: string; // date-time
+  toDate?: string; // date-time
+  onlyActive?: boolean;
 }
 
 // === Users ===
-
 export interface UserDto {
-  id: string;
-  email: string;
-  firstName: string;
+  id: string; // uuid
+  email: string | null;
+  firstName: string | null;
   middleName: string | null;
-  lastName: string;
+  lastName: string | null;
   role: UserRole;
   isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface CreateUserDto {
-  email: string;
-  firstName: string;
+  email?: string | null;
+  firstName?: string | null;
   middleName?: string | null;
-  lastName: string;
+  lastName?: string | null;
   role: UserRole;
   isActive: boolean;
 }
 
 export interface UpdateUserDto {
-  firstName?: string;
+  firstName?: string | null;
   middleName?: string | null;
-  lastName?: string;
-  role?: UserRole;
+  lastName?: string | null;
+  role?: UserRole | null;
 }
 
 export interface UpdateProfileDto {
-  firstName: string;
+  firstName?: string | null;
   middleName?: string | null;
-  lastName: string;
+  lastName?: string | null;
 }
 
 // === Invitations ===
-
-export interface InvitationDto {
-  id: string;
-  email: string;
-  role: UserRole;
-  token: string;
-  isUsed: boolean;
-  createdAt: string;
-  expiresAt: string;
-}
-
 export interface CreateInvitationDto {
-  email: string;
+  email?: string | null;
   role: UserRole;
 }

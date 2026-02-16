@@ -16,39 +16,60 @@ type RequestOptions = {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   signal?: AbortSignal;
-  auth?: boolean; // default true
+  auth?: boolean;
+  headers?: Record<string, string>;
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL!;
+const API_BASE =
+  (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5208").replace(/\/+$/, "");
 
 export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T> {
-  const { method = "GET", body, signal, auth = true } = opts;
+  const { method = "GET", body, signal, auth = true, headers: extraHeaders } = opts;
 
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
+  const headers: Record<string, string> = { ...(extraHeaders ?? {}) };
+
+  if (body !== undefined && body !== null && !headers["Content-Type"]) {
+    headers["Content-Type"] = "application/json";
+  }
 
   if (auth) {
     const token = getAccessToken();
     if (token) headers.Authorization = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-    signal,
-  });
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const url = `${API_BASE}${normalizedPath}`;
 
-  const text = await res.text();
-  const data = text ? safeJsonParse(text) : null;
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method,
+      headers,
+      body: body !== undefined && body !== null ? JSON.stringify(body) : undefined,
+      signal,
+    });
+  } catch (e: any) {
+    throw new ApiError(e?.message || "Network error", 0, { cause: e });
+  }
+
+  const contentType = res.headers.get("content-type") || "";
+  const raw = await res.text();
+
+  const data =
+    raw.length === 0
+      ? null
+      : contentType.includes("application/json") || contentType.includes("text/json")
+        ? safeJsonParse(raw)
+        : { raw };
 
   if (!res.ok) {
-    throw new ApiError(
-      data?.message || `Request failed: ${res.status}`,
-      res.status,
-      data
-    );
+    const message =
+      (data && typeof data === "object" && "message" in data && (data as any).message) ||
+      (data && typeof data === "object" && "title" in data && (data as any).title) ||
+      (typeof data === "string" ? data : null) ||
+      `Request failed: ${res.status}`;
+
+    throw new ApiError(String(message), res.status, data);
   }
 
   return data as T;

@@ -1,16 +1,34 @@
+// src/shared/ui/containers/ContainerFilters.tsx
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Search, Filter, X } from "lucide-react";
-import type { ContainerTypeDto, ProductTypeDto } from "@/shared/types";
-import { ContainerStatus } from "@/shared/types";
-import type { SearchContainersParams } from "@/shared/types";
+import type {
+  ContainerTypeDto,
+  ProductTypeDto,
+  SearchContainersParams,
+  ContainerStatus,
+} from "@/shared/types";
 
 interface ContainerFiltersProps {
   filters: SearchContainersParams;
   onChange: (filters: SearchContainersParams) => void;
   containerTypes: ContainerTypeDto[];
   productTypes: ProductTypeDto[];
+}
+
+function todayYmd() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function toNumberOrUndefined(v: string): number | undefined {
+  if (!v) return undefined;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : undefined;
 }
 
 export function ContainerFilters({
@@ -25,12 +43,26 @@ export function ContainerFilters({
     onChange({ ...filters, ...patch });
   };
 
-  const hasActiveFilters =
-    filters.containerTypeId ||
-    filters.status !== undefined ||
-    filters.currentProductTypeId ||
-    filters.showExpired ||
-    filters.filledToday;
+  // UI toggle -> API expects filledToday string (date) in your types.
+  const filledTodayChecked = useMemo(() => {
+    return !!filters.filledToday;
+  }, [filters.filledToday]);
+
+  const hasActiveFilters = useMemo(() => {
+    return (
+      (filters.containerTypeId != null && filters.containerTypeId !== undefined) ||
+      (filters.status != null && filters.status !== undefined) ||
+      (filters.currentProductTypeId != null && filters.currentProductTypeId !== undefined) ||
+      !!filters.showExpired ||
+      !!filters.filledToday
+    );
+  }, [
+    filters.containerTypeId,
+    filters.status,
+    filters.currentProductTypeId,
+    filters.showExpired,
+    filters.filledToday,
+  ]);
 
   const clearFilters = () => {
     onChange({ searchTerm: filters.searchTerm });
@@ -38,7 +70,7 @@ export function ContainerFilters({
 
   return (
     <div className="rounded-xl border border-border bg-card">
-      {/* Search bar - always visible */}
+      {/* Search bar */}
       <div className="flex items-center gap-2 p-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -50,8 +82,10 @@ export function ContainerFilters({
             className="w-full rounded-lg border border-input bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
+
         <button
-          onClick={() => setExpanded(!expanded)}
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
           className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
             hasActiveFilters
               ? "border-brand-orange bg-brand-orange/10 text-brand-orange"
@@ -68,7 +102,7 @@ export function ContainerFilters({
         </button>
       </div>
 
-      {/* Expandable filter panel */}
+      {/* Expandable panel */}
       {expanded && (
         <div className="border-t border-border px-3 pb-3 pt-2">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -77,16 +111,14 @@ export function ContainerFilters({
                 Тип тари
               </label>
               <select
-                value={filters.containerTypeId || ""}
-                onChange={(e) =>
-                  update({ containerTypeId: e.target.value || undefined })
-                }
+                value={filters.containerTypeId != null ? String(filters.containerTypeId) : ""}
+                onChange={(e) => update({ containerTypeId: toNumberOrUndefined(e.target.value) })}
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 <option value="">Всі типи</option>
                 {containerTypes.map((ct) => (
                   <option key={ct.id} value={ct.id}>
-                    {ct.name}
+                    {ct.name ?? "—"}
                   </option>
                 ))}
               </select>
@@ -97,19 +129,17 @@ export function ContainerFilters({
                 Статус
               </label>
               <select
-                value={filters.status !== undefined ? String(filters.status) : ""}
+                value={filters.status ?? ""}
                 onChange={(e) =>
                   update({
-                    status: e.target.value
-                      ? (Number(e.target.value) as ContainerStatus)
-                      : undefined,
+                    status: (e.target.value ? (e.target.value as ContainerStatus) : undefined),
                   })
                 }
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 <option value="">Всі</option>
-                <option value={String(ContainerStatus.Empty)}>Порожня</option>
-                <option value={String(ContainerStatus.Full)}>Заповнена</option>
+                <option value="Empty">Порожня</option>
+                <option value="Full">Заповнена</option>
               </select>
             </div>
 
@@ -118,10 +148,10 @@ export function ContainerFilters({
                 Тип продукту
               </label>
               <select
-                value={filters.currentProductTypeId || ""}
+                value={filters.currentProductTypeId != null ? String(filters.currentProductTypeId) : ""}
                 onChange={(e) =>
                   update({
-                    currentProductTypeId: e.target.value || undefined,
+                    currentProductTypeId: toNumberOrUndefined(e.target.value),
                   })
                 }
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -129,7 +159,7 @@ export function ContainerFilters({
                 <option value="">Всі типи</option>
                 {productTypes.map((pt) => (
                   <option key={pt.id} value={pt.id}>
-                    {pt.name}
+                    {pt.name ?? "—"}
                   </option>
                 ))}
               </select>
@@ -139,17 +169,22 @@ export function ContainerFilters({
               <label className="flex items-center gap-2 text-sm text-foreground">
                 <input
                   type="checkbox"
-                  checked={filters.showExpired || false}
-                  onChange={(e) => update({ showExpired: e.target.checked || undefined })}
+                  checked={!!filters.showExpired}
+                  onChange={(e) => update({ showExpired: e.target.checked ? true : undefined })}
                   className="rounded border-input"
                 />
                 Прострочені
               </label>
+
               <label className="flex items-center gap-2 text-sm text-foreground">
                 <input
                   type="checkbox"
-                  checked={filters.filledToday || false}
-                  onChange={(e) => update({ filledToday: e.target.checked || undefined })}
+                  checked={filledTodayChecked}
+                  onChange={(e) =>
+                    update({
+                      filledToday: e.target.checked ? todayYmd() : undefined,
+                    })
+                  }
                   className="rounded border-input"
                 />
                 Заповнені сьогодні
@@ -159,6 +194,7 @@ export function ContainerFilters({
 
           {hasActiveFilters && (
             <button
+              type="button"
               onClick={clearFilters}
               className="mt-3 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >

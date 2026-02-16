@@ -1,7 +1,9 @@
 // src/shared/auth/token.ts
+
 const KEY = "cats_access_token";
 
 export function setAccessToken(token: string) {
+  if (typeof window === "undefined") return;
   localStorage.setItem(KEY, token);
 }
 
@@ -11,5 +13,10 @@ export function getAccessToken(): string | null {
 }
 
 export function clearAccessToken() {
+  if (typeof window === "undefined") return;
   localStorage.removeItem(KEY);
+}
+
+export function hasAccessToken(): boolean {
+  return !!getAccessToken();
 }

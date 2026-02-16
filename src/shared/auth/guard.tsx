@@ -1,24 +1,42 @@
+// src/shared/auth/guard.tsx
 "use client";
 
-import { useAuth } from "./AuthProvider";
-import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { useAuth } from "./AuthProvider";
+
+/**
+ * Guards:
+ * - AuthGuard: requires authenticated + active user
+ * - AdminGuard: requires admin role
+ */
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (isLoading) return;
+
+    // Not logged in -> /login
     if (!isAuthenticated) {
-      router.replace("/login");
+      if (pathname !== "/login") router.replace("/login");
       return;
     }
-    if (user && !user.isActive) {
-      router.replace("/pending");
+
+    // Logged in but pending -> /pending
+    if (user && user.isActive === false) {
+      if (pathname !== "/pending") router.replace("/pending");
+      return;
     }
-  }, [isAuthenticated, isLoading, user, router]);
+
+    // If user is active and accidentally on /pending -> back to home
+    if (user && user.isActive === true && pathname === "/pending") {
+      router.replace("/");
+    }
+  }, [isAuthenticated, isLoading, user, router, pathname]);
 
   if (isLoading) {
     return (
@@ -28,26 +46,42 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!isAuthenticated || !user?.isActive) {
-    return null;
-  }
+  // While redirecting
+  if (!isAuthenticated) return null;
+  if (user && user.isActive === false) return null;
 
   return <>{children}</>;
 }
 
 export function AdminGuard({ children }: { children: React.ReactNode }) {
-  const { isAdmin, isLoading } = useAuth();
+  const { isAuthenticated, isAdmin, isLoading, user } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    if (!isLoading && !isAdmin) {
+    if (isLoading) return;
+
+    // If not authenticated, AuthGuard should handle it, but keep it safe
+    if (!isAuthenticated) {
+      if (pathname !== "/login") router.replace("/login");
+      return;
+    }
+
+    // If pending, AuthGuard should handle it
+    if (user && user.isActive === false) {
+      if (pathname !== "/pending") router.replace("/pending");
+      return;
+    }
+
+    if (!isAdmin) {
       router.replace("/");
     }
-  }, [isAdmin, isLoading, router]);
+  }, [isAuthenticated, isAdmin, isLoading, user, router, pathname]);
 
-  if (isLoading || !isAdmin) {
-    return null;
-  }
+  if (isLoading) return null;
+  if (!isAuthenticated) return null;
+  if (user && user.isActive === false) return null;
+  if (!isAdmin) return null;
 
   return <>{children}</>;
 }
