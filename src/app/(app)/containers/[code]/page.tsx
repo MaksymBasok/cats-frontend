@@ -11,6 +11,7 @@ import { ArrowLeft, Download, Droplets, Edit, Package, Trash2, X } from "lucide-
 import { FillContainerDialog } from "@/shared/ui/containers/FillContainerDialog";
 import { EditFillDialog } from "@/shared/ui/containers/EditFillDialog";
 import { QrGeneratorDialog } from "@/shared/ui/QrGeneratorDialog";
+import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -30,6 +31,9 @@ export default function ContainerDetailPage() {
   const [fillOpen, setFillOpen] = useState(false);
   const [editFillOpen, setEditFillOpen] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [emptyConfirmOpen, setEmptyConfirmOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     if (!code) return;
@@ -61,28 +65,31 @@ export default function ContainerDetailPage() {
   const handleDelete = async () => {
     if (!container) return;
 
-    const label = container.code ?? code;
-    if (!window.confirm(`Видалити контейнер ${label}? Цю дію не можна скасувати.`)) return;
-
     try {
+      setActionLoading(true);
       await containersApi.deleteContainer(container.id);
       toast.success("Контейнер видалено");
       router.push("/containers");
     } catch {
       toast.error("Не вдалося видалити контейнер");
+    } finally {
+      setActionLoading(false);
+      setDeleteConfirmOpen(false);
     }
   };
 
   const handleEmpty = async () => {
     if (!container) return;
-    if (!window.confirm("Спорожнити цей контейнер?")) return;
-
     try {
+      setActionLoading(true);
       await containersApi.emptyContainer(container.id);
       toast.success("Контейнер спорожнено");
       await fetchContainerData();
     } catch {
       toast.error("Не вдалося спорожнити контейнер");
+    } finally {
+      setActionLoading(false);
+      setEmptyConfirmOpen(false);
     }
   };
 
@@ -159,7 +166,7 @@ export default function ContainerDetailPage() {
                 <Edit className="mr-2 h-4 w-4" />
                 Редагувати
               </Button>
-              <Button size="sm" variant="outline" onClick={handleEmpty}>
+              <Button size="sm" variant="outline" onClick={() => setEmptyConfirmOpen(true)}>
                 <X className="mr-2 h-4 w-4" />
                 Спорожнити
               </Button>
@@ -171,7 +178,7 @@ export default function ContainerDetailPage() {
             QR
           </Button>
 
-          <Button variant="destructive" size="sm" onClick={handleDelete}>
+          <Button variant="destructive" size="sm" onClick={() => setDeleteConfirmOpen(true)}>
             <Trash2 className="mr-2 h-4 w-4" />
             Видалити
           </Button>
@@ -195,7 +202,7 @@ export default function ContainerDetailPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">��ип</CardTitle>
+            <CardTitle className="text-sm font-medium">Тип</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -316,6 +323,30 @@ export default function ContainerDetailPage() {
         onClose={() => setQrOpen(false)}
         url={qrUrl}
         title={containerCode}
+      />
+
+      <ConfirmDialog
+        open={emptyConfirmOpen}
+        title="Спорожнити контейнер?"
+        description="Поточне заповнення буде завершене. Ви зможете знову наповнити контейнер пізніше."
+        confirmLabel="Спорожнити"
+        cancelLabel="Скасувати"
+        variant="default"
+        onConfirm={handleEmpty}
+        onCancel={() => setEmptyConfirmOpen(false)}
+        loading={actionLoading}
+      />
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        title="Видалити контейнер?"
+        description={`Контейнер ${containerCode} буде видалено без можливості відновлення.`}
+        confirmLabel="Видалити"
+        cancelLabel="Скасувати"
+        variant="destructive"
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteConfirmOpen(false)}
+        loading={actionLoading}
       />
     </div>
   );

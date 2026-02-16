@@ -5,7 +5,7 @@ import { useRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, Copy, X } from "lucide-react";
+import { Download, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 interface QrGeneratorDialogProps {
@@ -72,15 +72,10 @@ export function QrGeneratorDialog({ open, onClose, url, title }: QrGeneratorDial
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <span>QR код {title && `- ${title}`}</span>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
-          </DialogTitle>
+          <DialogTitle>QR код {title && `- ${title}`}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">

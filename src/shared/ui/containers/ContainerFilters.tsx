@@ -25,6 +25,16 @@ function todayYmd() {
   return `${y}-${m}-${day}`;
 }
 
+function toIsoStartOfDay(dateValue: string): string | undefined {
+  if (!dateValue) return undefined;
+  return `${dateValue}T00:00:00.000Z`;
+}
+
+function fromIsoToDateInput(value?: string): string {
+  if (!value) return "";
+  return value.slice(0, 10);
+}
+
 function toNumberOrUndefined(v: string): number | undefined {
   if (!v) return undefined;
   const n = Number(v);
@@ -52,6 +62,7 @@ export function ContainerFilters({
     return (
       (filters.containerTypeId != null && filters.containerTypeId !== undefined) ||
       (filters.status != null && filters.status !== undefined) ||
+      !!filters.productionDate ||
       (filters.currentProductTypeId != null && filters.currentProductTypeId !== undefined) ||
       !!filters.showExpired ||
       !!filters.filledToday
@@ -59,6 +70,7 @@ export function ContainerFilters({
   }, [
     filters.containerTypeId,
     filters.status,
+    filters.productionDate,
     filters.currentProductTypeId,
     filters.showExpired,
     filters.filledToday,
@@ -105,7 +117,7 @@ export function ContainerFilters({
       {/* Expandable panel */}
       {expanded && (
         <div className="border-t border-border px-3 pb-3 pt-2">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <div>
               <label className="mb-1 block text-xs font-medium text-muted-foreground">
                 Тип тари
@@ -141,6 +153,20 @@ export function ContainerFilters({
                 <option value="Empty">Порожня</option>
                 <option value="Full">Заповнена</option>
               </select>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                Дата виробництва
+              </label>
+              <input
+                type="date"
+                value={fromIsoToDateInput(filters.productionDate)}
+                onChange={(e) =>
+                  update({ productionDate: toIsoStartOfDay(e.target.value) })
+                }
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
             </div>
 
             <div>

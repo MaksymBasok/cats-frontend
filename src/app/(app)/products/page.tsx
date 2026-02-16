@@ -12,6 +12,7 @@ import { CreateProductDialog } from "@/shared/ui/products/CreateProductDialog";
 import { EditProductDialog } from "@/shared/ui/products/EditProductDialog";
 import { ProductsTable } from "@/shared/ui/products/ProductsTable";
 import { ProductCard } from "@/shared/ui/products/ProductCard";
+import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { toast } from "sonner";
 
 export default function ProductsPage() {
@@ -24,6 +25,8 @@ export default function ProductsPage() {
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editProduct, setEditProduct] = useState<ProductDto | null>(null);
+  const [deleteProductItem, setDeleteProductItem] = useState<ProductDto | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const [search, setSearch] = useState("");
   const debounceRef = useRef<number | null>(null);
@@ -74,16 +77,18 @@ export default function ProductsPage() {
     await fetchProducts();
   }, [fetchProducts]);
 
-  const handleDelete = async (id: number, name: string | null) => {
-    const label = (name ?? "").trim() || `#${id}`;
-    if (!window.confirm(`Видалити продукт "${label}"?`)) return;
-
+  const handleDelete = async () => {
+    if (!deleteProductItem) return;
     try {
-      await deleteProduct(id);
+      setDeleteLoading(true);
+      await deleteProduct(deleteProductItem.id);
       toast.success("Продукт видалено");
       await refresh();
     } catch {
       toast.error("Не вдалося видалити продукт");
+    } finally {
+      setDeleteLoading(false);
+      setDeleteProductItem(null);
     }
   };
 
@@ -135,7 +140,7 @@ export default function ProductsPage() {
           products={filteredProducts}
           isAdmin={isAdmin}
           onEdit={(p) => setEditProduct(p)}
-          onDelete={(p) => handleDelete(p.id, p.name)}
+          onDelete={(p) => setDeleteProductItem(p)}
         />
       ) : (
         <div className="flex flex-col gap-2">
@@ -145,7 +150,7 @@ export default function ProductsPage() {
               product={p}
               isAdmin={isAdmin}
               onEdit={() => setEditProduct(p)}
-              onDelete={() => handleDelete(p.id, p.name)}
+              onDelete={() => setDeleteProductItem(p)}
             />
           ))}
         </div>
@@ -167,6 +172,18 @@ export default function ProductsPage() {
           productTypes={productTypes}
         />
       )}
+
+      <ConfirmDialog
+        open={!!deleteProductItem}
+        title="Видалити продукт?"
+        description={`Продукт "${deleteProductItem?.name?.trim() || `#${deleteProductItem?.id ?? ""}`}" буде видалено.`}
+        confirmLabel="Видалити"
+        cancelLabel="Скасувати"
+        variant="destructive"
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteProductItem(null)}
+        loading={deleteLoading}
+      />
     </div>
   );
 }

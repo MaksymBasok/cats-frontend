@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { TriangleAlert, ChevronDown, ChevronUp, Filter } from "lucide-react";
+import { TriangleAlert, ChevronDown, ChevronUp, Filter, X } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -65,6 +65,18 @@ export default function RemindersPage() {
 
   const expiredCount = filtered.filter((f) => isBefore(parseISO(f.expirationDate), new Date())).length;
   const dueTodayCount = filtered.filter((f) => differenceInCalendarDays(parseISO(f.expirationDate), new Date()) === 0).length;
+  const hasActiveFilters =
+    selectedContainer !== "all" ||
+    selectedProduct !== "all" ||
+    Boolean(fromDate) ||
+    Boolean(toDate);
+
+  const clearFilters = () => {
+    setSelectedContainer("all");
+    setSelectedProduct("all");
+    setFromDate("");
+    setToDate("");
+  };
 
   return (
     <div className="space-y-6 pb-20 md:pb-6">
@@ -87,17 +99,22 @@ export default function RemindersPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between gap-3">
-            <CardTitle>Фільтри</CardTitle>
-            <Button type="button" variant="outline" size="sm" onClick={() => setFiltersOpen((v) => !v)}>
-              <Filter className="mr-2 h-4 w-4" /> {filtersOpen ? "Сховати" : "Відкрити"}
-            </Button>
-          </div>
-        </CardHeader>
+      <div className="rounded-xl border border-border bg-card">
+        <div className="flex items-center justify-end gap-2 p-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setFiltersOpen((v) => !v)}
+            className={hasActiveFilters ? "border-brand-orange text-brand-orange" : ""}
+          >
+            <Filter className="mr-2 h-4 w-4" /> {filtersOpen ? "Сховати" : "Фільтри"}
+          </Button>
+        </div>
+
         {filtersOpen && (
-          <CardContent className="grid gap-3 md:grid-cols-4">
+          <div className="border-t border-border px-3 pb-3 pt-2">
+            <div className="grid gap-3 md:grid-cols-4">
             <Select value={selectedContainer} onValueChange={setSelectedContainer}>
               <SelectTrigger>
                 <SelectValue placeholder="Уся тара" />
@@ -128,9 +145,20 @@ export default function RemindersPage() {
 
             <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
             <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
-          </CardContent>
+            </div>
+
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="mt-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" /> Скинути фільтри
+              </button>
+            )}
+          </div>
         )}
-      </Card>
+      </div>
 
       <Card>
         <CardHeader>
