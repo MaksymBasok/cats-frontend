@@ -55,6 +55,23 @@ export function QrScannerModal({ open, onClose }: QrScannerModalProps) {
   const [scannerError, setScannerError] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
   const [hasScanned, setHasScanned] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect if device is mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent || navigator.vendor;
+      const isMobileDevice = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
+        userAgent.toLowerCase()
+      );
+      const hasTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+      setIsMobile(isMobileDevice || (hasTouch && window.innerWidth < 768));
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   const navigateToCode = useCallback(
     (raw: string) => {
@@ -82,7 +99,12 @@ export function QrScannerModal({ open, onClose }: QrScannerModalProps) {
       setHasScanned(false);
       return;
     }
-  }, [open]);
+
+    // On desktop, show manual input by default
+    if (!isMobile) {
+      setShowManual(true);
+    }
+  }, [open, isMobile]);
 
   useEffect(() => {
     if (!open || showManual) return;
@@ -175,7 +197,9 @@ export function QrScannerModal({ open, onClose }: QrScannerModalProps) {
     >
       <div className="relative w-full max-w-sm rounded-xl bg-card p-4">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-card-foreground">Сканувати QR</h2>
+          <h2 className="text-lg font-semibold text-card-foreground">
+            {showManual ? "Введіть код" : "Сканувати QR"}
+          </h2>
           <button
             onClick={onClose}
             className="rounded-md p-1 text-muted-foreground hover:bg-muted"
@@ -203,14 +227,16 @@ export function QrScannerModal({ open, onClose }: QrScannerModalProps) {
               <p className="mt-2 text-sm text-destructive">{scannerError}</p>
             )}
 
-            <button
-              onClick={() => setShowManual(true)}
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-muted px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary"
-              type="button"
-            >
-              <Keyboard className="h-4 w-4" />
-              Ввести код вручну
-            </button>
+            {isMobile && (
+              <button
+                onClick={() => setShowManual(true)}
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-muted px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary"
+                type="button"
+              >
+                <Keyboard className="h-4 w-4" />
+                Ввести код вручну
+              </button>
+            )}
           </>
         ) : (
           <>
@@ -234,17 +260,19 @@ export function QrScannerModal({ open, onClose }: QrScannerModalProps) {
               </button>
             </div>
 
-            <button
-              onClick={() => {
-                setShowManual(false);
-                setScannerError(null);
-              }}
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-muted px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary"
-              type="button"
-            >
-              <Camera className="h-4 w-4" />
-              Сканувати камерою
-            </button>
+            {isMobile && (
+              <button
+                onClick={() => {
+                  setShowManual(false);
+                  setScannerError(null);
+                }}
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-muted px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary"
+                type="button"
+              >
+                <Camera className="h-4 w-4" />
+                Сканувати камерою
+              </button>
+            )}
           </>
         )}
       </div>

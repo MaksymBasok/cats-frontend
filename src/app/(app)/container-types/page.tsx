@@ -116,10 +116,31 @@ export default function ContainerTypesPage() {
   if (!isAdmin) return null;
 
   return (
-    <div className="space-y-4 pb-20 md:pb-6">
+    <div className="space-y-6 pb-20 md:pb-6">
       <div>
-        <h1 className="text-2xl font-semibold">Типи тари</h1>
-        <p className="text-sm text-muted-foreground">CRUD керування /container-types + обмеження на типи продуктів.</p>
+        <h1 className="text-3xl font-bold">Типи тари</h1>
+        <p className="text-muted-foreground">Керування типами контейнерів та обмеженнями на типи продуктів.</p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Всього типів тари</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{items.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Статус системи</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-emerald-600">Активна</div>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>

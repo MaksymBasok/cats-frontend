@@ -88,14 +88,17 @@ export default function ProductsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6 pb-20 md:pb-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">Продукти</h1>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Продукти</h1>
+          <p className="text-sm text-muted-foreground">Управління асортиментом та типами продукції</p>
+        </div>
 
         {isAdmin && (
           <button
             onClick={() => setCreateOpen(true)}
-            className="flex items-center gap-1.5 rounded-lg bg-brand-navy px-3 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98]"
           >
             <Plus className="h-4 w-4" />
             Додати
@@ -116,14 +119,16 @@ export default function ProductsPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-6 w-6 animate-spin text-brand-navy" />
+        <div className="flex items-center justify-center rounded-xl border border-border bg-card/50 py-24">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : filteredProducts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <Package className="mb-3 h-12 w-12 text-muted-foreground/40" />
-          <p className="text-sm font-medium text-muted-foreground">Продукти не знайдено</p>
-          <p className="mt-1 text-xs text-muted-foreground/70">Спробуйте змінити пошук або додайте новий продукт</p>
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 py-24 text-center">
+          <div className="rounded-full bg-muted p-4">
+            <Package className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <p className="mt-4 text-base font-medium text-foreground">Продукти не знайдено</p>
+          <p className="mt-1 text-sm text-muted-foreground">Спробуйте змінити пошук або додайте новий продукт</p>
         </div>
       ) : isDesktop ? (
         <ProductsTable
