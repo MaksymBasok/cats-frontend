@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import Image from "next/image";
 import { Save, LogOut, UserCircle } from "lucide-react";
 
 import { useAuth } from "@/shared/auth/AuthProvider";
@@ -27,6 +28,11 @@ export default function ProfilePage() {
   const roleName = useMemo(() => {
     if (!user) return "";
     return user.role === "Admin" ? "Адміністратор" : "Оператор";
+  }, [user]);
+
+  const avatarUrl = useMemo(() => {
+    const extended = user as (typeof user & { avatarUrl?: string | null; picture?: string | null; imageUrl?: string | null }) | null;
+    return extended?.avatarUrl || extended?.picture || extended?.imageUrl || null;
   }, [user]);
 
   const dirty = useMemo(() => {
@@ -83,12 +89,22 @@ export default function ProfilePage() {
 
       <div className="mt-4 rounded-xl border border-border bg-card p-6">
         <div className="mb-6 flex items-center gap-3 border-b border-border pb-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-navy/10">
-            <UserCircle className="h-6 w-6 text-brand-navy" />
-          </div>
+          {avatarUrl ? (
+            <Image
+              src={avatarUrl}
+              alt="Аватар користувача"
+              width={48}
+              height={48}
+              className="h-12 w-12 rounded-full border border-border object-cover"
+            />
+          ) : (
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-navy/10 dark:bg-brand-orange/20">
+              <UserCircle className="h-6 w-6 text-brand-navy dark:text-brand-orange" />
+            </div>
+          )}
           <div>
             <p className="text-sm font-medium text-card-foreground">{user.email}</p>
-            <span className="mt-0.5 inline-block rounded-full bg-brand-navy/10 px-2 py-0.5 text-xs font-medium text-brand-navy">
+            <span className="mt-0.5 inline-block rounded-full bg-brand-navy/10 px-2 py-0.5 text-xs font-semibold text-brand-navy dark:bg-brand-orange/20 dark:text-brand-orange">
               {roleName}
             </span>
           </div>

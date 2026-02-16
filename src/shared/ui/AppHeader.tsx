@@ -21,6 +21,11 @@ export function AppHeader() {
   const menuRef = useRef<HTMLDivElement>(null);
 
   const roleName = useMemo(() => (isAdmin ? "Адмін" : "Оператор"), [isAdmin]);
+  const userAvatar = useMemo(() => {
+    const extended = user as (typeof user & { avatarUrl?: string | null; picture?: string | null; imageUrl?: string | null }) | null;
+    return extended?.avatarUrl || extended?.picture || extended?.imageUrl || null;
+  }, [user]);
+
   const userInitials = useMemo(() => {
     const first = (user?.firstName ?? "").trim();
     const last = (user?.lastName ?? "").trim();
@@ -70,6 +75,7 @@ export function AppHeader() {
                 width={32}
                 height={32}
                 className="cats-logo-glow h-auto w-auto rounded-md"
+                quality={100}
                 priority
               />
               <span className="hidden text-lg font-semibold tracking-tight text-brand-navy dark:text-brand-orange sm:inline">
@@ -111,9 +117,19 @@ export function AppHeader() {
                 aria-expanded={profileOpen}
                 type="button"
               >
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
-                  {userInitials}
-                </div>
+                {userAvatar ? (
+                  <Image
+                    src={userAvatar}
+                    alt="Аватар"
+                    width={24}
+                    height={24}
+                    className="h-6 w-6 rounded-full border border-border object-cover"
+                  />
+                ) : (
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
+                    {userInitials}
+                  </div>
+                )}
                 <span className="hidden max-w-[140px] truncate sm:inline">
                   {user?.firstName || user?.email || ""}
                 </span>

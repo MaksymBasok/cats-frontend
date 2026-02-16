@@ -41,8 +41,10 @@ export function BottomNav() {
               key={link.href}
               href={link.href}
               className={cn(
-                "flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] transition-colors",
-                isActive ? "text-brand-navy font-medium" : "text-muted-foreground"
+                "flex flex-1 flex-col items-center gap-0.5 rounded-md py-2 text-[10px] transition-all",
+                isActive
+                  ? "bg-primary text-primary-foreground font-semibold shadow-sm dark:bg-brand-orange dark:text-brand-navy"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
               <link.icon className="h-4 w-4" />

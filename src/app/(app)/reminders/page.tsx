@@ -99,21 +99,21 @@ export default function RemindersPage() {
         </CardContent>
       </Card>
 
-      <div className="rounded-xl border border-border bg-card">
-        <div className="flex items-center justify-end gap-2 p-3">
+      <Card>
+        <CardHeader className="flex-row items-center justify-between space-y-0">
+          <CardTitle>Список нагадувань</CardTitle>
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={() => setFiltersOpen((v) => !v)}
-            className={hasActiveFilters ? "border-brand-orange text-brand-orange" : ""}
+            className={hasActiveFilters ? "border-brand-orange text-brand-orange dark:border-brand-orange dark:text-brand-orange" : ""}
           >
             <Filter className="mr-2 h-4 w-4" /> {filtersOpen ? "Сховати" : "Фільтри"}
           </Button>
-        </div>
-
+        </CardHeader>
         {filtersOpen && (
-          <div className="border-t border-border px-3 pb-3 pt-2">
+          <div className="border-t border-border px-4 pb-4 pt-3">
             <div className="grid gap-3 md:grid-cols-4">
             <Select value={selectedContainer} onValueChange={setSelectedContainer}>
               <SelectTrigger>
@@ -158,13 +158,7 @@ export default function RemindersPage() {
             )}
           </div>
         )}
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Список нагадувань</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-3 pt-0">
           {loading ? (
             <p className="text-sm text-muted-foreground">Завантаження...</p>
           ) : filtered.length === 0 ? (

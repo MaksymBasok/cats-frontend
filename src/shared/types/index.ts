@@ -196,6 +196,9 @@ export interface UserDto {
   lastName: string | null;
   role: UserRole;
   isActive: boolean;
+  avatarUrl?: string | null;
+  picture?: string | null;
+  imageUrl?: string | null;
 }
 
 export interface CreateUserDto {
@@ -205,6 +208,9 @@ export interface CreateUserDto {
   lastName?: string | null;
   role: UserRole;
   isActive: boolean;
+  avatarUrl?: string | null;
+  picture?: string | null;
+  imageUrl?: string | null;
 }
 
 export interface UpdateUserDto {

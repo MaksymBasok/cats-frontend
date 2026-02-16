@@ -172,15 +172,26 @@ export default function ProductTypesPage() {
                       {item.meta || "—"}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => openEditDialog(item)}
-                        className="h-8"
-                      >
-                        <Edit className="mr-2 h-4 w-4" />
-                        Редагувати
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openEditDialog(item)}
+                          className="h-8"
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          Редагувати
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="destructive"
+                          onClick={() => handleDelete(item)}
+                          className="h-8 w-8"
+                          aria-label="Видалити"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -208,9 +219,20 @@ export default function ProductTypesPage() {
                       </div>
                       {item.meta && <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{item.meta}</p>}
                     </div>
-                    <Button size="sm" variant="ghost" onClick={() => openEditDialog(item)} className="h-8 px-2">
-                      <Edit className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button size="icon" variant="ghost" onClick={() => openEditDialog(item)} className="h-8 w-8">
+                        <Edit className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => handleDelete(item)}
+                        className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                        aria-label="Видалити"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -287,9 +309,6 @@ export default function ProductTypesPage() {
               <div className="flex gap-2 pt-2">
                 <Button onClick={() => handleUpdate(editingItem)} className="flex-1">
                   <Save className="mr-2 h-4 w-4" /> Зберегти
-                </Button>
-                <Button variant="destructive" onClick={() => handleDelete(editingItem)}>
-                  <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             </div>
