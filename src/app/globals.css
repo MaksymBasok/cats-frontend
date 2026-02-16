@@ -140,19 +140,11 @@
   .cats-logo-glow {
     box-shadow:
       0 0 0 1px color-mix(in oklab, var(--brand-orange, #F0A050) 40%, transparent),
-      0 0 22px color-mix(in oklab, var(--brand-orange, #F0A050) 30%, transparent);
-    animation: logoPulse 2.8s ease-in-out infinite;
+      0 0 14px color-mix(in oklab, var(--brand-orange, #F0A050) 22%, transparent);
+    transform: translateZ(0);
   }
-}
 
-@keyframes logoPulse {
-  0%,
-  100% {
-    transform: scale(1);
-    filter: saturate(1);
-  }
-  50% {
-    transform: scale(1.03);
-    filter: saturate(1.1);
+  .stylish-card {
+    @apply rounded-xl border border-border bg-card/90 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md;
   }
 }
