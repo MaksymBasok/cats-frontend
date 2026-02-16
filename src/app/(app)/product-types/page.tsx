@@ -11,13 +11,13 @@ import {
   getProductTypes,
   updateProductType,
 } from "@/shared/api/product-types";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Save, Trash2, Boxes, Edit, Clock, Sparkles } from "lucide-react";
+import { Plus, Save, Trash2, Edit, Clock } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -42,7 +42,7 @@ export default function ProductTypesPage() {
 
   const [editingItem, setEditingItem] = useState<ProductTypeDto | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [createOpenMobile, setCreateOpenMobile] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -88,6 +88,7 @@ export default function ProductTypesPage() {
       setDays("");
       setHours("");
       setMeta("");
+      setCreateDialogOpen(false);
       await load();
     } catch {
       toast.error("Не вдалося створити тип продукту");
@@ -135,55 +136,28 @@ export default function ProductTypesPage() {
 
   return (
     <div className="space-y-6 pb-20 md:pb-6">
-      <div>
-        <h1 className="text-3xl font-bold">Типи продуктів</h1>
-        <p className="text-muted-foreground">Керування довідником типів продуктів та термінами придатності.</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold">Типи продуктів</h1>
+          <p className="text-muted-foreground">Керування довідником типів продуктів та термінами придатності.</p>
+        </div>
+        <Button type="button" onClick={() => setCreateDialogOpen(true)} className="gap-2">
+          <Plus className="h-4 w-4" /> Додати тип
+        </Button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card className="border-primary/10 bg-gradient-to-br from-primary/5 to-transparent transition-all hover:-translate-y-0.5 hover:shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Кількість типів</CardTitle>
-            <Boxes className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{items.length}</div>
+      {!loading && (
+        <Card className="border-primary/10 bg-gradient-to-r from-primary/5 to-transparent">
+          <CardContent className="grid gap-2 p-4 text-sm sm:grid-cols-2">
+            <p>
+              Всього типів: <span className="font-semibold text-foreground">{items.length}</span>
+            </p>
+            <p>
+              Сумарний shelf-life: <span className="font-semibold text-foreground">{totalShelfHours} год</span>
+            </p>
           </CardContent>
         </Card>
-        <Card className="border-primary/10 bg-gradient-to-br from-sky-500/5 to-transparent transition-all hover:-translate-y-0.5 hover:shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Сумарний shelf-life (год)</CardTitle>
-            <Clock className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalShelfHours}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 justify-between">
-            <span className="inline-flex items-center gap-2"><Plus className="h-5 w-5" />Створити тип продукту</span>
-            <Button type="button" size="sm" variant="outline" className="md:hidden" onClick={() => setCreateOpenMobile((v) => !v)}>
-              {createOpenMobile ? "Сховати" : "Відкрити"}
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className={createOpenMobile ? "block" : "hidden md:block"}>
-          <form onSubmit={onCreate} className="grid gap-3 md:grid-cols-4">
-            <Input placeholder="Назва" value={name} onChange={(e) => setName(e.target.value)} required />
-            <Input placeholder="Дні" value={days} onChange={(e) => setDays(e.target.value)} type="number" min="0" />
-            <Input placeholder="Години" value={hours} onChange={(e) => setHours(e.target.value)} type="number" min="0" />
-            <Button disabled={creating} type="submit" className="transition-all hover:shadow-md active:scale-[0.98]">
-              <Plus className="mr-2 h-4 w-4" /> Додати
-            </Button>
-            <div className="md:col-span-4">
-              <Textarea placeholder="Meta / коментар" value={meta} onChange={(e) => setMeta(e.target.value)} rows={2} />
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+      )}
 
       {loading ? (
         <div className="flex min-h-[200px] items-center justify-center">
@@ -191,7 +165,6 @@ export default function ProductTypesPage() {
         </div>
       ) : (
         <>
-          {/* Desktop Table View */}
           <Card className="hidden md:block">
             <Table>
               <TableHeader>
@@ -213,7 +186,7 @@ export default function ProductTypesPage() {
                     <TableCell className="font-medium">{item.name ?? "—"}</TableCell>
                     <TableCell>{item.shelfLifeDays ?? 0}</TableCell>
                     <TableCell>{item.shelfLifeHours ?? 0}</TableCell>
-                    <TableCell className="max-w-[200px] truncate text-muted-foreground">
+                    <TableCell className="max-w-[240px] truncate text-muted-foreground">
                       {item.meta || "—"}
                     </TableCell>
                     <TableCell>
@@ -232,7 +205,6 @@ export default function ProductTypesPage() {
             </Table>
           </Card>
 
-          {/* Mobile Card View */}
           <div className="grid gap-3 md:hidden">
             {items.map((item) => (
               <Card key={item.id} className="group transition-all hover:shadow-md active:scale-[0.98]">
@@ -241,7 +213,9 @@ export default function ProductTypesPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <h3 className="font-semibold">{item.name}</h3>
-                        <Badge variant="secondary" className="text-xs">#{item.id}</Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          #{item.id}
+                        </Badge>
                       </div>
                       <div className="mt-2 flex flex-wrap gap-2 text-sm text-muted-foreground">
                         <span className="inline-flex items-center gap-1">
@@ -249,12 +223,10 @@ export default function ProductTypesPage() {
                           {item.shelfLifeDays ?? 0}д {item.shelfLifeHours ?? 0}г
                         </span>
                       </div>
-                      {item.meta && (
-                        <p className="mt-2 text-xs text-muted-foreground line-clamp-2">{item.meta}</p>
-                      )}
+                      {item.meta && <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{item.meta}</p>}
                     </div>
                     <Button size="sm" variant="ghost" onClick={() => openEditDialog(item)} className="h-8 px-2">
-                      <Sparkles className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+                      <Edit className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
                     </Button>
                   </div>
                 </CardContent>
@@ -264,7 +236,25 @@ export default function ProductTypesPage() {
         </>
       )}
 
-      {/* Edit Dialog */}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Створити тип продукту</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={onCreate} className="grid gap-3">
+            <Input placeholder="Назва" value={name} onChange={(e) => setName(e.target.value)} required />
+            <div className="grid grid-cols-2 gap-3">
+              <Input placeholder="Дні" value={days} onChange={(e) => setDays(e.target.value)} type="number" min="0" />
+              <Input placeholder="Години" value={hours} onChange={(e) => setHours(e.target.value)} type="number" min="0" />
+            </div>
+            <Textarea placeholder="Meta / коментар" value={meta} onChange={(e) => setMeta(e.target.value)} rows={3} />
+            <Button disabled={creating} type="submit" className="gap-2">
+              <Plus className="h-4 w-4" /> Додати
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>

@@ -39,7 +39,7 @@ export default function PendingPage() {
             alt="CATS"
             width={64}
             height={64}
-            className="rounded-xl"
+            className="h-auto w-auto rounded-xl"
           />
 
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-orange/10">

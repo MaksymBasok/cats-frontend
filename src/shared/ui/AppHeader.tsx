@@ -21,6 +21,13 @@ export function AppHeader() {
   const menuRef = useRef<HTMLDivElement>(null);
 
   const roleName = useMemo(() => (isAdmin ? "Адмін" : "Оператор"), [isAdmin]);
+  const userInitials = useMemo(() => {
+    const first = (user?.firstName ?? "").trim();
+    const last = (user?.lastName ?? "").trim();
+    if (first || last) return `${first[0] ?? ""}${last[0] ?? ""}`.toUpperCase() || "U";
+    const mail = (user?.email ?? "").trim();
+    return mail ? mail[0].toUpperCase() : "U";
+  }, [user?.email, user?.firstName, user?.lastName]);
 
   const handleLogout = () => {
     setProfileOpen(false);
@@ -62,7 +69,7 @@ export function AppHeader() {
                 alt="CATS"
                 width={32}
                 height={32}
-                className="rounded-md"
+                className="h-auto w-auto rounded-md"
                 priority
               />
               <span className="hidden text-lg font-semibold tracking-tight text-brand-navy sm:inline">
@@ -78,7 +85,7 @@ export function AppHeader() {
           <div className="flex items-center gap-2">
             <button
               onClick={toggleTheme}
-              className="flex items-center justify-center rounded-lg p-2 text-foreground hover:bg-muted transition-colors"
+              className="flex items-center justify-center rounded-lg border border-border/60 bg-background/70 p-2 text-foreground transition-all hover:-translate-y-0.5 hover:bg-muted"
               aria-label={theme === "light" ? "Темна тема" : "Світла тема"}
               type="button"
             >
@@ -87,7 +94,7 @@ export function AppHeader() {
 
             <button
               onClick={() => setScanOpen(true)}
-              className="flex items-center gap-1.5 rounded-lg bg-brand-orange px-3 py-2 text-sm font-medium text-brand-navy transition-colors hover:opacity-90"
+              className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-brand-orange to-amber-300 px-3 py-2 text-sm font-semibold text-brand-navy shadow-sm transition-all hover:-translate-y-0.5 hover:shadow"
               aria-label="Сканувати QR код"
               type="button"
             >
@@ -104,7 +111,9 @@ export function AppHeader() {
                 aria-expanded={profileOpen}
                 type="button"
               >
-                <UserCircle className="h-5 w-5 text-muted-foreground" />
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
+                  {userInitials}
+                </div>
                 <span className="hidden max-w-[140px] truncate sm:inline">
                   {user?.firstName || user?.email || ""}
                 </span>

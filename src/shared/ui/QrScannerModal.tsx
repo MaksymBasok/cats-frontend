@@ -49,6 +49,7 @@ export function QrScannerModal({ open, onClose }: QrScannerModalProps) {
 
   const scannerRootRef = useRef<HTMLDivElement>(null);
   const qrInstanceRef = useRef<Html5QrInstance | null>(null);
+  const scannerStartedRef = useRef(false);
 
   const [manualCode, setManualCode] = useState("");
   const [showManual, setShowManual] = useState(false);
@@ -129,11 +130,20 @@ export function QrScannerModal({ open, onClose }: QrScannerModalProps) {
         // Ensure we stop previous instance if any
         if (qrInstanceRef.current) {
           try {
-            await qrInstanceRef.current.stop();
+            if (scannerStartedRef.current) {
+              await qrInstanceRef.current.stop();
+            }
+          } catch {
+            // Instance might not be running, that's ok
+          }
+
+          try {
             await qrInstanceRef.current.clear();
           } catch {
-            // Instance might not be running, just clear the ref
+            // ignore clear errors for stale instance
           }
+
+          scannerStartedRef.current = false;
           qrInstanceRef.current = null;
         }
 
@@ -154,10 +164,21 @@ export function QrScannerModal({ open, onClose }: QrScannerModalProps) {
           }
         );
 
+        scannerStartedRef.current = true;
+
         if (!cancelled) setScannerError(null);
-      } catch {
+      } catch (error) {
+        scannerStartedRef.current = false;
         if (!cancelled) {
-          setScannerError("Не вдалося запустити камеру. Введіть код вручну.");
+          const message = error instanceof Error ? error.message.toLowerCase() : "";
+          const blockedByPermissions =
+            message.includes("permission") || message.includes("denied") || message.includes("notallowed");
+
+          setScannerError(
+            blockedByPermissions
+              ? "Камера недоступна без дозволу. Надайте доступ або введіть код вручну."
+              : "Не вдалося запустити камеру. Введіть код вручну."
+          );
           setShowManual(true);
         }
       } finally {
@@ -172,12 +193,18 @@ export function QrScannerModal({ open, onClose }: QrScannerModalProps) {
       const instance = qrInstanceRef.current;
       if (instance) {
         // Try to stop, but don't throw if not running
-        instance.stop()
+        const stopPromise = scannerStartedRef.current ? instance.stop() : Promise.resolve();
+
+        stopPromise
+          .catch(() => {
+            // Scanner might not be running, that's ok
+          })
           .then(() => instance.clear())
           .catch(() => {
             // Scanner might not be running, that's ok
           })
           .finally(() => {
+            scannerStartedRef.current = false;
             qrInstanceRef.current = null;
           });
       }

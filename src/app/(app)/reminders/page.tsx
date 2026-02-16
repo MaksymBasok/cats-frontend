@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { BellRing, CalendarClock, TriangleAlert, ChevronDown, ChevronUp } from "lucide-react";
+import { TriangleAlert, ChevronDown, ChevronUp, Filter } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -27,6 +27,7 @@ export default function RemindersPage() {
   const [products, setProducts] = useState<ProductDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [openCardId, setOpenCardId] = useState<number | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const [selectedContainer, setSelectedContainer] = useState<string>("all");
   const [selectedProduct, setSelectedProduct] = useState<string>("all");
@@ -63,6 +64,7 @@ export default function RemindersPage() {
   }, [fills, selectedContainer, selectedProduct]);
 
   const expiredCount = filtered.filter((f) => isBefore(parseISO(f.expirationDate), new Date())).length;
+  const dueTodayCount = filtered.filter((f) => differenceInCalendarDays(parseISO(f.expirationDate), new Date()) === 0).length;
 
   return (
     <div className="space-y-6 pb-20 md:pb-6">
@@ -71,44 +73,63 @@ export default function RemindersPage() {
         <p className="text-muted-foreground">Моніторинг активних заповнень та контроль термінів придатності.</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard title="Активних заповнень" value={filtered.length} icon={BellRing} />
-        <StatCard title="Прострочено" value={expiredCount} icon={TriangleAlert} />
-        <StatCard
-          title="Заповниться / дозріє сьогодні"
-          value={filtered.filter((f) => differenceInCalendarDays(parseISO(f.expirationDate), new Date()) === 0).length}
-          icon={CalendarClock}
-        />
-      </div>
+      <Card className="border-primary/10 bg-gradient-to-r from-primary/5 to-transparent">
+        <CardContent className="grid gap-2 p-4 text-sm sm:grid-cols-3">
+          <p>
+            Активних заповнень: <span className="font-semibold text-foreground">{filtered.length}</span>
+          </p>
+          <p>
+            Прострочено: <span className="font-semibold text-destructive">{expiredCount}</span>
+          </p>
+          <p>
+            Дозріє сьогодні: <span className="font-semibold text-foreground">{dueTodayCount}</span>
+          </p>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Фільтри</CardTitle>
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle>Фільтри</CardTitle>
+            <Button type="button" variant="outline" size="sm" onClick={() => setFiltersOpen((v) => !v)}>
+              <Filter className="mr-2 h-4 w-4" /> {filtersOpen ? "Сховати" : "Відкрити"}
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-4">
-          <Select value={selectedContainer} onValueChange={setSelectedContainer}>
-            <SelectTrigger><SelectValue placeholder="Уся тара" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Уся тара</SelectItem>
-              {containers.map((c) => (
-                <SelectItem key={c.id} value={String(c.id)}>{c.code ?? `#${c.id}`}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {filtersOpen && (
+          <CardContent className="grid gap-3 md:grid-cols-4">
+            <Select value={selectedContainer} onValueChange={setSelectedContainer}>
+              <SelectTrigger>
+                <SelectValue placeholder="Уся тара" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Уся тара</SelectItem>
+                {containers.map((c) => (
+                  <SelectItem key={c.id} value={String(c.id)}>
+                    {c.code ?? `#${c.id}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <Select value={selectedProduct} onValueChange={setSelectedProduct}>
-            <SelectTrigger><SelectValue placeholder="Усі продукти" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Усі продукти</SelectItem>
-              {products.map((p) => (
-                <SelectItem key={p.id} value={String(p.id)}>{p.name ?? `#${p.id}`}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <Select value={selectedProduct} onValueChange={setSelectedProduct}>
+              <SelectTrigger>
+                <SelectValue placeholder="Усі продукти" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Усі продукти</SelectItem>
+                {products.map((p) => (
+                  <SelectItem key={p.id} value={String(p.id)}>
+                    {p.name ?? `#${p.id}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
-          <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
-        </CardContent>
+            <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+            <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+          </CardContent>
+        )}
       </Card>
 
       <Card>
@@ -189,6 +210,11 @@ export default function RemindersPage() {
                           <p>Обсяг: {row.quantity} {row.unit}</p>
                           <p>Дата наповнення: {format(parseISO(row.filledDate), "dd.MM.yyyy HH:mm")}</p>
                           <p>Термін придатності: {format(expires, "dd.MM.yyyy HH:mm")}</p>
+                          {expired && (
+                            <p className="inline-flex items-center gap-1 text-destructive">
+                              <TriangleAlert className="h-4 w-4" /> Партія прострочена
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
@@ -200,32 +226,5 @@ export default function RemindersPage() {
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-function StatCard({
-  title,
-  value,
-  icon: Icon,
-}: {
-  title: string;
-  value: number;
-  icon: React.ComponentType<{ className?: string }>;
-}) {
-  const isExpired = title.toLowerCase().includes("прострочено");
-  const isToday = title.toLowerCase().includes("сьогодні");
-
-  return (
-    <Card className="border-primary/10 bg-gradient-to-br from-primary/5 to-transparent transition-all hover:-translate-y-0.5 hover:shadow-lg">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className={`h-4 w-4 ${isExpired ? "text-destructive" : isToday ? "text-accent" : "text-muted-foreground"}`} />
-      </CardHeader>
-      <CardContent>
-        <div className={`text-2xl font-bold ${isExpired ? "text-destructive" : isToday ? "text-accent" : ""}`}>
-          {value}
-        </div>
-      </CardContent>
-    </Card>
   );
 }
