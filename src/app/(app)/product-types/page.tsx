@@ -116,24 +116,30 @@ export default function ProductTypesPage() {
   if (!isAdmin) return null;
 
   return (
-    <div className="space-y-4 pb-20 md:pb-6">
+    <div className="space-y-6 pb-20 md:pb-6">
       <div>
-        <h1 className="text-2xl font-semibold">Типи продуктів</h1>
-        <p className="text-sm text-muted-foreground">Повне CRUD керування довідником типів продуктів.</p>
+        <h1 className="text-3xl font-bold">Типи продуктів</h1>
+        <p className="text-muted-foreground">Керування довідником типів продуктів та термінами придатності.</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Кількість типів</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Кількість типів</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="text-2xl font-bold">{items.length}</CardContent>
+          <CardContent>
+            <div className="text-2xl font-bold">{items.length}</div>
+          </CardContent>
         </Card>
         <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Сумарний shelf-life (год)</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Сумарний shelf-life (год)</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="text-2xl font-bold">{totalShelfHours}</CardContent>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalShelfHours}</div>
+          </CardContent>
         </Card>
       </div>
 

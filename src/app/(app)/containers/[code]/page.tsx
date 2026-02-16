@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Download, Droplets, Edit, Package, Trash2, X } from "lucide-react";
 import { FillContainerDialog } from "@/shared/ui/containers/FillContainerDialog";
 import { EditFillDialog } from "@/shared/ui/containers/EditFillDialog";
+import { QrGeneratorDialog } from "@/shared/ui/QrGeneratorDialog";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -28,6 +29,7 @@ export default function ContainerDetailPage() {
   const [loading, setLoading] = useState(true);
   const [fillOpen, setFillOpen] = useState(false);
   const [editFillOpen, setEditFillOpen] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
 
   useEffect(() => {
     if (!code) return;
@@ -85,15 +87,14 @@ export default function ContainerDetailPage() {
   };
 
   const handleExportQR = () => {
-    if (!container) return;
-    const containerCode = container.code ?? code;
-    const qrUrl = `${window.location.origin}/containers/${encodeURIComponent(containerCode)}`;
-
-    navigator.clipboard
-      .writeText(qrUrl)
-      .then(() => toast.success("Посилання для QR скопійовано"))
-      .catch(() => toast.success("Посилання для QR: " + qrUrl));
+    setQrOpen(true);
   };
+
+  const qrUrl = useMemo(() => {
+    if (!container) return "";
+    const containerCode = container.code ?? code;
+    return `${window.location.origin}/containers/${encodeURIComponent(containerCode)}`;
+  }, [container, code]);
 
   const statusLabel = useMemo(() => {
     const s: ContainerStatus | null = container?.status ?? null;
@@ -194,7 +195,7 @@ export default function ContainerDetailPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Тип</CardTitle>
+            <CardTitle className="text-sm font-medium">��ип</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -310,6 +311,12 @@ export default function ContainerDetailPage() {
           onSuccess={fetchContainerData}
         />
       )}
+      <QrGeneratorDialog
+        open={qrOpen}
+        onClose={() => setQrOpen(false)}
+        url={qrUrl}
+        title={containerCode}
+      />
     </div>
   );
 }

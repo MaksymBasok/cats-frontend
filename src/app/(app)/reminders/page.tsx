@@ -56,10 +56,10 @@ export default function RemindersPage() {
   const expiredCount = filtered.filter((f) => isBefore(parseISO(f.expirationDate), new Date())).length;
 
   return (
-    <div className="space-y-4 pb-20 md:pb-6">
+    <div className="space-y-6 pb-20 md:pb-6">
       <div>
-        <h1 className="text-2xl font-semibold">Технологічні дати / нагадування</h1>
-        <p className="text-sm text-muted-foreground">Оперативний список активних заповнень з контролем термінів придатності.</p>
+        <h1 className="text-3xl font-bold">Технологічні дати</h1>
+        <p className="text-muted-foreground">Моніторинг активних заповнень та контроль термінів придатності.</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -147,14 +147,19 @@ function StatCard({
   value: number;
   icon: React.ComponentType<{ className?: string }>;
 }) {
+  const isExpired = title.toLowerCase().includes("прострочено");
+  const isToday = title.toLowerCase().includes("сьогодні");
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
+        <Icon className={`h-4 w-4 ${isExpired ? "text-destructive" : isToday ? "text-accent" : "text-muted-foreground"}`} />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+        <div className={`text-2xl font-bold ${isExpired ? "text-destructive" : isToday ? "text-accent" : ""}`}>
+          {value}
+        </div>
       </CardContent>
     </Card>
   );
