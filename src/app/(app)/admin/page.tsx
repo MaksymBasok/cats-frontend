@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, UserCheck, UserX, Shield, UserPlus, MailPlus, Users, UserCog } from "lucide-react";
+import { Search, UserCheck, UserX, Shield, UserPlus, MailPlus, Users, UserCog, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import type { UserDto, UserRole } from "@/shared/types";
@@ -41,6 +41,8 @@ export default function AdminPage() {
   const [createLastName, setCreateLastName] = useState("");
   const [createRole, setCreateRole] = useState<UserRole>("Operator");
   const [createLoading, setCreateLoading] = useState(false);
+  const [inviteOpenMobile, setInviteOpenMobile] = useState(false);
+  const [createOpenMobile, setCreateOpenMobile] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -166,7 +168,7 @@ export default function AdminPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="transition-shadow hover:shadow-lg">
+        <Card className="border-primary/10 bg-gradient-to-br from-primary/5 to-transparent transition-all hover:-translate-y-0.5 hover:shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Всього</CardTitle>
             <Users className="h-4 w-4 text-primary" />
@@ -175,7 +177,7 @@ export default function AdminPage() {
             <div className="text-2xl font-bold">{users.length}</div>
           </CardContent>
         </Card>
-        <Card className="transition-shadow hover:shadow-lg">
+        <Card className="border-primary/10 bg-gradient-to-br from-amber-500/10 to-transparent transition-all hover:-translate-y-0.5 hover:shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Очікують</CardTitle>
             <UserCog className="h-4 w-4 text-amber-500" />
@@ -184,7 +186,7 @@ export default function AdminPage() {
             <div className="text-2xl font-bold text-amber-600">{pendingUsers.length}</div>
           </CardContent>
         </Card>
-        <Card className="transition-shadow hover:shadow-lg">
+        <Card className="border-primary/10 bg-gradient-to-br from-emerald-500/10 to-transparent transition-all hover:-translate-y-0.5 hover:shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Активні</CardTitle>
             <UserCheck className="h-4 w-4 text-emerald-500" />
@@ -198,11 +200,14 @@ export default function AdminPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MailPlus className="h-5 w-5" /> Надіслати запрошення
+            <CardTitle className="flex items-center justify-between gap-2">
+              <span className="inline-flex items-center gap-2"><MailPlus className="h-5 w-5" /> Надіслати запрошення</span>
+              <Button type="button" size="sm" variant="outline" className="md:hidden" onClick={() => setInviteOpenMobile((v) => !v)}>
+                {inviteOpenMobile ? "Сховати" : "Відкрити"}
+              </Button>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className={inviteOpenMobile ? "block" : "hidden md:block"}>
             <form className="grid gap-3" onSubmit={handleInvite}>
               <Input placeholder="email@company.com" type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} />
               <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as UserRole)}>
@@ -223,11 +228,14 @@ export default function AdminPage() {
 
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserPlus className="h-5 w-5" /> Створити користувача
+            <CardTitle className="flex items-center justify-between gap-2">
+              <span className="inline-flex items-center gap-2"><UserPlus className="h-5 w-5" /> Створити користувача</span>
+              <Button type="button" size="sm" variant="outline" className="md:hidden" onClick={() => setCreateOpenMobile((v) => !v)}>
+                {createOpenMobile ? "Сховати" : "Відкрити"}
+              </Button>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className={createOpenMobile ? "block" : "hidden md:block"}>
             <form className="grid gap-3" onSubmit={handleCreateUser}>
               <Input placeholder="Email" type="email" value={createEmail} onChange={(e) => setCreateEmail(e.target.value)} />
               <div className="grid gap-3 sm:grid-cols-2">
@@ -304,7 +312,7 @@ export default function AdminPage() {
                 {/* Mobile Cards */}
                 <div className="grid gap-3 md:hidden">
                   {pendingUsers.map((u) => (
-                    <div key={u.id} className="rounded-lg border p-4">
+                    <div key={u.id} className="rounded-xl border bg-card p-4 shadow-sm">
                       <div className="font-medium">{(u.firstName ?? "—") + " " + (u.lastName ?? "")}</div>
                       <div className="text-sm text-muted-foreground">{u.email}</div>
                       <div className="mt-3 flex gap-2">
@@ -386,7 +394,7 @@ export default function AdminPage() {
                     </div>
                     {u.role !== "Admin" && (
                       <Button size="sm" variant="outline" onClick={() => handleMakeAdmin(u.id)} className="mt-3 w-full">
-                        <Shield className="mr-2 h-4 w-4" /> Зробити адміном
+                        <Sparkles className="mr-2 h-4 w-4" /> Зробити адміном
                       </Button>
                     )}
                   </div>

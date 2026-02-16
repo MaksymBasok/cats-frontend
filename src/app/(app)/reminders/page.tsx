@@ -3,21 +3,30 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { differenceInCalendarDays, format, isBefore, parseISO } from "date-fns";
 import { toast } from "sonner";
-import { searchContainerFills } from "@/shared/api/containers";
+import { getContainers, searchContainerFills } from "@/shared/api/containers";
 import { getProducts } from "@/shared/api/products";
-import { getContainers } from "@/shared/api/containers";
 import type { ContainerFillDto, ContainerDto, ProductDto } from "@/shared/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { BellRing, CalendarClock, TriangleAlert } from "lucide-react";
+import { BellRing, CalendarClock, TriangleAlert, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 
 export default function RemindersPage() {
   const [fills, setFills] = useState<ContainerFillDto[]>([]);
   const [containers, setContainers] = useState<ContainerDto[]>([]);
   const [products, setProducts] = useState<ProductDto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [openCardId, setOpenCardId] = useState<number | null>(null);
 
   const [selectedContainer, setSelectedContainer] = useState<string>("all");
   const [selectedProduct, setSelectedProduct] = useState<string>("all");
@@ -65,7 +74,11 @@ export default function RemindersPage() {
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard title="Активних заповнень" value={filtered.length} icon={BellRing} />
         <StatCard title="Прострочено" value={expiredCount} icon={TriangleAlert} />
-        <StatCard title="Заповниться / дозріє сьогодні" value={filtered.filter((f) => differenceInCalendarDays(parseISO(f.expirationDate), new Date()) === 0).length} icon={CalendarClock} />
+        <StatCard
+          title="Заповниться / дозріє сьогодні"
+          value={filtered.filter((f) => differenceInCalendarDays(parseISO(f.expirationDate), new Date()) === 0).length}
+          icon={CalendarClock}
+        />
       </div>
 
       <Card>
@@ -108,29 +121,81 @@ export default function RemindersPage() {
           ) : filtered.length === 0 ? (
             <p className="text-sm text-muted-foreground">Немає записів.</p>
           ) : (
-            filtered.map((row) => {
-              const expires = parseISO(row.expirationDate);
-              const daysLeft = differenceInCalendarDays(expires, new Date());
-              const expired = daysLeft < 0;
-              const soon = daysLeft >= 0 && daysLeft <= 3;
+            <>
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Тара / продукт</TableHead>
+                      <TableHead>Обсяг</TableHead>
+                      <TableHead>Дата наповнення</TableHead>
+                      <TableHead>Термін придатності</TableHead>
+                      <TableHead>Статус</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((row) => {
+                      const expires = parseISO(row.expirationDate);
+                      const daysLeft = differenceInCalendarDays(expires, new Date());
+                      const expired = daysLeft < 0;
+                      const soon = daysLeft >= 0 && daysLeft <= 3;
 
-              return (
-                <div key={row.id} className="rounded-lg border p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="font-medium">Тара {row.containerCode ?? `#${row.containerId}`} · {row.productName}</p>
-                    <Badge variant={expired ? "destructive" : soon ? "secondary" : "outline"}>
-                      {expired ? "Прострочено" : soon ? `Залишилось ${daysLeft} дн.` : "Нормально"}
-                    </Badge>
-                  </div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Обсяг: {row.quantity} {row.unit} · Дата наповнення: {format(parseISO(row.filledDate), "dd.MM.yyyy HH:mm")}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Термін придатності: {format(expires, "dd.MM.yyyy HH:mm")}
-                  </p>
-                </div>
-              );
-            })
+                      return (
+                        <TableRow key={row.id} className="transition-colors hover:bg-muted/50">
+                          <TableCell className="font-medium">Тара {row.containerCode ?? `#${row.containerId}`} · {row.productName}</TableCell>
+                          <TableCell>{row.quantity} {row.unit}</TableCell>
+                          <TableCell className="text-muted-foreground">{format(parseISO(row.filledDate), "dd.MM.yyyy HH:mm")}</TableCell>
+                          <TableCell className="text-muted-foreground">{format(expires, "dd.MM.yyyy HH:mm")}</TableCell>
+                          <TableCell>
+                            <Badge variant={expired ? "destructive" : soon ? "secondary" : "outline"}>
+                              {expired ? "Прострочено" : soon ? `Залишилось ${daysLeft} дн.` : "Нормально"}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="grid gap-3 md:hidden">
+                {filtered.map((row) => {
+                  const expires = parseISO(row.expirationDate);
+                  const daysLeft = differenceInCalendarDays(expires, new Date());
+                  const expired = daysLeft < 0;
+                  const soon = daysLeft >= 0 && daysLeft <= 3;
+                  const open = openCardId === row.id;
+
+                  return (
+                    <div key={row.id} className="rounded-xl border bg-card p-4 shadow-sm">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-medium">Тара {row.containerCode ?? `#${row.containerId}`}</p>
+                        <Badge variant={expired ? "destructive" : soon ? "secondary" : "outline"}>
+                          {expired ? "Прострочено" : soon ? `Залишилось ${daysLeft} дн.` : "Нормально"}
+                        </Badge>
+                      </div>
+                      <p className="mt-1 text-sm text-muted-foreground">{row.productName}</p>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="mt-2 h-8 px-2 text-xs"
+                        onClick={() => setOpenCardId((prev) => (prev === row.id ? null : row.id))}
+                      >
+                        {open ? <ChevronUp className="mr-1 h-4 w-4" /> : <ChevronDown className="mr-1 h-4 w-4" />}
+                        {open ? "Сховати деталі" : "Показати деталі"}
+                      </Button>
+                      {open && (
+                        <div className="mt-3 space-y-1 text-sm text-muted-foreground">
+                          <p>Обсяг: {row.quantity} {row.unit}</p>
+                          <p>Дата наповнення: {format(parseISO(row.filledDate), "dd.MM.yyyy HH:mm")}</p>
+                          <p>Термін придатності: {format(expires, "dd.MM.yyyy HH:mm")}</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -151,7 +216,7 @@ function StatCard({
   const isToday = title.toLowerCase().includes("сьогодні");
 
   return (
-    <Card>
+    <Card className="border-primary/10 bg-gradient-to-br from-primary/5 to-transparent transition-all hover:-translate-y-0.5 hover:shadow-lg">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
         <Icon className={`h-4 w-4 ${isExpired ? "text-destructive" : isToday ? "text-accent" : "text-muted-foreground"}`} />

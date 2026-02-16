@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/shared/auth/AuthProvider";
@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Save, Trash2, Package, Edit, Box } from "lucide-react";
+import { Plus, Save, Trash2, Boxes, Edit, Box, Sparkles } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -43,6 +43,7 @@ export default function ContainerTypesPage() {
 
   const [editingItem, setEditingItem] = useState<ContainerTypeDto | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [createOpenMobile, setCreateOpenMobile] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -62,6 +63,8 @@ export default function ContainerTypesPage() {
       setLoading(false);
     }
   };
+
+  const hasPrefixes = useMemo(() => items.filter((item) => item.codePrefix).length, [items]);
 
   const onCreate = async (e: FormEvent) => {
     e.preventDefault();
@@ -144,7 +147,7 @@ export default function ContainerTypesPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Card className="transition-shadow hover:shadow-lg">
+        <Card className="border-primary/10 bg-gradient-to-br from-primary/5 to-transparent transition-all hover:-translate-y-0.5 hover:shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Всього типів тари</CardTitle>
             <Box className="h-4 w-4 text-primary" />
@@ -153,25 +156,30 @@ export default function ContainerTypesPage() {
             <div className="text-2xl font-bold">{items.length}</div>
           </CardContent>
         </Card>
-        <Card className="transition-shadow hover:shadow-lg">
+        <Card className="border-primary/10 bg-gradient-to-br from-emerald-500/10 to-transparent transition-all hover:-translate-y-0.5 hover:shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Статус системи</CardTitle>
-            <Package className="h-4 w-4 text-emerald-500" />
+            <CardTitle className="text-sm font-medium">Типів з префіксом</CardTitle>
+            <Boxes className="h-4 w-4 text-emerald-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-emerald-600">Активна</div>
+            <div className="text-2xl font-bold text-emerald-600">{hasPrefixes}</div>
           </CardContent>
         </Card>
       </div>
 
       <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Plus className="h-5 w-5" />
-            Додати новий тип тари
+          <CardTitle className="flex items-center justify-between gap-2">
+            <span className="inline-flex items-center gap-2">
+              <Plus className="h-5 w-5" />
+              Додати новий тип тари
+            </span>
+            <Button type="button" size="sm" variant="outline" className="md:hidden" onClick={() => setCreateOpenMobile((v) => !v)}>
+              {createOpenMobile ? "Сховати" : "Відкрити"}
+            </Button>
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className={createOpenMobile ? "block" : "hidden md:block"}>
           <form onSubmit={onCreate} className="grid gap-3 md:grid-cols-5">
             <Input placeholder="Назва" value={name} onChange={(e) => setName(e.target.value)} required />
             <Input placeholder="Префікс коду" value={codePrefix} onChange={(e) => setCodePrefix(e.target.value)} />
@@ -197,7 +205,6 @@ export default function ContainerTypesPage() {
         </div>
       ) : (
         <>
-          {/* Desktop Table View */}
           <Card className="hidden md:block">
             <Table>
               <TableHeader>
@@ -240,16 +247,11 @@ export default function ContainerTypesPage() {
             </Table>
           </Card>
 
-          {/* Mobile Card View */}
           <div className="grid gap-3 md:hidden">
             {items.map((item) => (
-              <Card
-                key={item.id}
-                className="group cursor-pointer transition-all hover:shadow-md active:scale-[0.98]"
-                onClick={() => openEditDialog(item)}
-              >
+              <Card key={item.id} className="group transition-all hover:shadow-md active:scale-[0.98]">
                 <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <h3 className="font-semibold">{item.name}</h3>
@@ -264,12 +266,14 @@ export default function ContainerTypesPage() {
                         {item.defaultUnit && <span>{item.defaultUnit}</span>}
                       </div>
                       {item.allowedProductTypeNames && item.allowedProductTypeNames.length > 0 && (
-                        <p className="mt-2 text-xs text-muted-foreground">
+                        <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
                           Дозволені: {item.allowedProductTypeNames.join(", ")}
                         </p>
                       )}
                     </div>
-                    <Edit className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+                    <Button size="sm" variant="ghost" onClick={() => openEditDialog(item)} className="h-8 px-2">
+                      <Sparkles className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -278,7 +282,6 @@ export default function ContainerTypesPage() {
         </>
       )}
 
-      {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
