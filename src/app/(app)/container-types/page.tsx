@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Save, Trash2, Edit } from "lucide-react";
+import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import {
   Table,
   TableBody,
@@ -44,6 +45,8 @@ export default function ContainerTypesPage() {
   const [editingItem, setEditingItem] = useState<ContainerTypeDto | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [deleteItem, setDeleteItem] = useState<ContainerTypeDto | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -118,16 +121,21 @@ export default function ContainerTypesPage() {
     }
   };
 
-  const handleDelete = async (item: ContainerTypeDto) => {
-    if (!window.confirm(`Видалити тип "${item.name ?? `#${item.id}`}"?`)) return;
+  const handleDelete = async () => {
+    if (!deleteItem) return;
+
+    setDeleteLoading(true);
     try {
-      await deleteContainerType(String(item.id));
+      await deleteContainerType(String(deleteItem.id));
       toast.success("Тип тари видалено");
       setEditDialogOpen(false);
       setEditingItem(null);
+      setDeleteItem(null);
       await load();
     } catch {
       toast.error("Не вдалося видалити тип тари");
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -140,7 +148,7 @@ export default function ContainerTypesPage() {
 
   return (
     <div className="space-y-6 pb-20 md:pb-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-primary/10 bg-gradient-to-r from-primary/5 via-transparent to-transparent p-4 shadow-sm">
         <div>
           <h1 className="text-3xl font-bold">Типи тари</h1>
           <p className="text-muted-foreground">Керування типами контейнерів та обмеженнями на типи продуктів.</p>
@@ -156,7 +164,7 @@ export default function ContainerTypesPage() {
         </div>
       ) : (
         <>
-          <Card className="hidden md:block">
+          <Card className="hidden border-primary/10 shadow-sm md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -194,13 +202,14 @@ export default function ContainerTypesPage() {
                           Редагувати
                         </Button>
                         <Button
-                          size="icon"
+                          size="sm"
                           variant="destructive"
-                          onClick={() => handleDelete(item)}
-                          className="h-8 w-8"
+                          onClick={() => setDeleteItem(item)}
+                          className="h-8 gap-1.5"
                           aria-label="Видалити"
                         >
                           <Trash2 className="h-4 w-4" />
+                          Видалити
                         </Button>
                       </div>
                     </TableCell>
@@ -212,7 +221,7 @@ export default function ContainerTypesPage() {
 
           <div className="grid gap-3 md:hidden">
             {items.map((item) => (
-              <Card key={item.id} className="group transition-all hover:shadow-md active:scale-[0.98]">
+              <Card key={item.id} className="group border-primary/10 transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98]">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
@@ -243,7 +252,7 @@ export default function ContainerTypesPage() {
                       <Button
                         size="icon"
                         variant="ghost"
-                        onClick={() => handleDelete(item)}
+                        onClick={() => setDeleteItem(item)}
                         className="h-8 w-8 text-destructive hover:bg-destructive/10"
                         aria-label="Видалити"
                       >
@@ -339,6 +348,19 @@ export default function ContainerTypesPage() {
           )}
         </DialogContent>
       </Dialog>
+
+
+      <ConfirmDialog
+        open={!!deleteItem}
+        title="Видалити тип тари?"
+        description={`Тип тари "${deleteItem?.name?.trim() || `#${deleteItem?.id ?? ""}`}" буде видалено без можливості відновлення.`}
+        confirmLabel="Видалити"
+        cancelLabel="Скасувати"
+        variant="destructive"
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteItem(null)}
+        loading={deleteLoading}
+      />
     </div>
   );
 }

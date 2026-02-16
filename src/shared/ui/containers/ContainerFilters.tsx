@@ -81,7 +81,7 @@ export function ContainerFilters({
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card">
+    <div className="rounded-xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md">
       {/* Search bar */}
       <div className="flex items-center gap-2 p-3">
         <div className="relative flex-1">
@@ -98,10 +98,10 @@ export function ContainerFilters({
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+          className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm ${
             hasActiveFilters
-              ? "border-brand-orange bg-brand-orange/10 text-brand-orange"
-              : "border-border text-foreground hover:bg-muted"
+              ? "border-brand-orange bg-brand-orange/10 text-brand-orange hover:bg-brand-orange/15"
+              : "border-border text-foreground hover:border-brand-orange/40 hover:bg-brand-orange/10 hover:text-brand-orange"
           }`}
         >
           <Filter className="h-4 w-4" />
@@ -191,8 +191,8 @@ export function ContainerFilters({
               </select>
             </div>
 
-            <div className="flex items-end gap-3">
-              <label className="flex items-center gap-2 text-sm text-foreground">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 lg:col-span-2">
+              <label className="inline-flex items-center gap-2 rounded-md border border-transparent px-2 py-1 text-sm text-foreground transition-colors hover:border-border hover:bg-muted/50">
                 <input
                   type="checkbox"
                   checked={!!filters.showExpired}
@@ -202,7 +202,7 @@ export function ContainerFilters({
                 Прострочені
               </label>
 
-              <label className="flex items-center gap-2 text-sm text-foreground">
+              <label className="inline-flex items-center gap-2 rounded-md border border-transparent px-2 py-1 text-sm text-foreground transition-colors hover:border-border hover:bg-muted/50">
                 <input
                   type="checkbox"
                   checked={filledTodayChecked}
