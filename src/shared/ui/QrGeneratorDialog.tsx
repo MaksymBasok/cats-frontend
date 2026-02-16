@@ -2,6 +2,7 @@
 "use client";
 
 import { useRef } from "react";
+import Image from "next/image";
 import { QRCodeSVG } from "qrcode.react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -121,20 +122,16 @@ export function QrGeneratorDialog({ open, onClose, url, title }: QrGeneratorDial
                 includeMargin
                 bgColor={qrBackground}
                 fgColor={qrForeground}
-                imageSettings={{
-                  src: QR_LOGO_SRC,
-                  height: LOGO_SIZE,
-                  width: LOGO_SIZE,
-                  excavate: true,
-                }}
               />
               <div
-                className="pointer-events-none absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full border"
+                className="pointer-events-none absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border"
                 style={{
                   backgroundColor: logoBadgeBackground,
                   borderColor: logoBadgeBorder,
                 }}
-              />
+              >
+                <Image src={QR_LOGO_SRC} alt="CATS" width={52} height={52} className="object-contain" />
+              </div>
             </div>
           </div>
 
