@@ -11,13 +11,13 @@ import {
   getContainerTypes,
   updateContainerType,
 } from "@/shared/api/container-types";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Save, Trash2, Boxes, Edit, Box, Sparkles } from "lucide-react";
+import { Plus, Save, Trash2, Edit } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -43,7 +43,7 @@ export default function ContainerTypesPage() {
 
   const [editingItem, setEditingItem] = useState<ContainerTypeDto | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [createOpenMobile, setCreateOpenMobile] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -94,6 +94,7 @@ export default function ContainerTypesPage() {
       setDefaultUnit("");
       setAllowedTypeIds("");
       setMeta("");
+      setCreateDialogOpen(false);
       await load();
     } catch {
       toast.error("Не вдалося створити тип тари");
@@ -141,63 +142,28 @@ export default function ContainerTypesPage() {
 
   return (
     <div className="space-y-6 pb-20 md:pb-6">
-      <div>
-        <h1 className="text-3xl font-bold">Типи тари</h1>
-        <p className="text-muted-foreground">Керування типами контейнерів та обмеженнями на типи продуктів.</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold">Типи тари</h1>
+          <p className="text-muted-foreground">Керування типами контейнерів та обмеженнями на типи продуктів.</p>
+        </div>
+        <Button type="button" onClick={() => setCreateDialogOpen(true)} className="gap-2">
+          <Plus className="h-4 w-4" /> Додати тип
+        </Button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card className="border-primary/10 bg-gradient-to-br from-primary/5 to-transparent transition-all hover:-translate-y-0.5 hover:shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Всього типів тари</CardTitle>
-            <Box className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{items.length}</div>
+      {!loading && (
+        <Card className="border-primary/10 bg-gradient-to-r from-primary/5 to-transparent">
+          <CardContent className="grid gap-2 p-4 text-sm sm:grid-cols-2">
+            <p>
+              Всього типів тари: <span className="font-semibold text-foreground">{items.length}</span>
+            </p>
+            <p>
+              Типів з префіксом: <span className="font-semibold text-foreground">{hasPrefixes}</span>
+            </p>
           </CardContent>
         </Card>
-        <Card className="border-primary/10 bg-gradient-to-br from-emerald-500/10 to-transparent transition-all hover:-translate-y-0.5 hover:shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Типів з префіксом</CardTitle>
-            <Boxes className="h-4 w-4 text-emerald-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-emerald-600">{hasPrefixes}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between gap-2">
-            <span className="inline-flex items-center gap-2">
-              <Plus className="h-5 w-5" />
-              Додати новий тип тари
-            </span>
-            <Button type="button" size="sm" variant="outline" className="md:hidden" onClick={() => setCreateOpenMobile((v) => !v)}>
-              {createOpenMobile ? "Сховати" : "Відкрити"}
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className={createOpenMobile ? "block" : "hidden md:block"}>
-          <form onSubmit={onCreate} className="grid gap-3 md:grid-cols-5">
-            <Input placeholder="Назва" value={name} onChange={(e) => setName(e.target.value)} required />
-            <Input placeholder="Префікс коду" value={codePrefix} onChange={(e) => setCodePrefix(e.target.value)} />
-            <Input placeholder="Одиниця" value={defaultUnit} onChange={(e) => setDefaultUnit(e.target.value)} />
-            <Input
-              placeholder="ID типів продукту (1,2,3)"
-              value={allowedTypeIds}
-              onChange={(e) => setAllowedTypeIds(e.target.value)}
-            />
-            <Button disabled={creating} type="submit" className="transition-all hover:shadow-md active:scale-[0.98]">
-              <Plus className="mr-2 h-4 w-4" /> Додати
-            </Button>
-            <div className="md:col-span-5">
-              <Textarea placeholder="Meta / примітки" value={meta} onChange={(e) => setMeta(e.target.value)} rows={2} />
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+      )}
 
       {loading ? (
         <div className="flex min-h-[200px] items-center justify-center">
@@ -255,7 +221,9 @@ export default function ContainerTypesPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <h3 className="font-semibold">{item.name}</h3>
-                        <Badge variant="secondary" className="text-xs">#{item.id}</Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          #{item.id}
+                        </Badge>
                       </div>
                       <div className="mt-2 flex flex-wrap gap-2 text-sm text-muted-foreground">
                         {item.codePrefix && (
@@ -272,7 +240,7 @@ export default function ContainerTypesPage() {
                       )}
                     </div>
                     <Button size="sm" variant="ghost" onClick={() => openEditDialog(item)} className="h-8 px-2">
-                      <Sparkles className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+                      <Edit className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
                     </Button>
                   </div>
                 </CardContent>
@@ -281,6 +249,30 @@ export default function ContainerTypesPage() {
           </div>
         </>
       )}
+
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Додати новий тип тари</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={onCreate} className="grid gap-3">
+            <Input placeholder="Назва" value={name} onChange={(e) => setName(e.target.value)} required />
+            <div className="grid grid-cols-2 gap-3">
+              <Input placeholder="Префікс коду" value={codePrefix} onChange={(e) => setCodePrefix(e.target.value)} />
+              <Input placeholder="Одиниця" value={defaultUnit} onChange={(e) => setDefaultUnit(e.target.value)} />
+            </div>
+            <Input
+              placeholder="ID типів продукту (1,2,3)"
+              value={allowedTypeIds}
+              onChange={(e) => setAllowedTypeIds(e.target.value)}
+            />
+            <Textarea placeholder="Meta / примітки" value={meta} onChange={(e) => setMeta(e.target.value)} rows={3} />
+            <Button disabled={creating} type="submit" className="gap-2">
+              <Plus className="h-4 w-4" /> Додати
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="max-w-md">
@@ -316,7 +308,7 @@ export default function ContainerTypesPage() {
                 </div>
               </div>
               <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
-                Дозволені типи продуктів:{" "}
+                Дозволені типи продуктів: {" "}
                 {editingItem.allowedProductTypeNames?.length
                   ? editingItem.allowedProductTypeNames.join(", ")
                   : "усі"}

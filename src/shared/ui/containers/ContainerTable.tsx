@@ -2,6 +2,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { ContainerDto } from "@/shared/types";
 
 interface ContainerTableProps {
@@ -9,6 +10,8 @@ interface ContainerTableProps {
 }
 
 export function ContainerTable({ containers }: ContainerTableProps) {
+  const router = useRouter();
+
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
       <div className="overflow-x-auto">
@@ -37,12 +40,17 @@ export function ContainerTable({ containers }: ContainerTableProps) {
               return (
                 <tr
                   key={c.id}
-                  className="border-b border-border transition-colors last:border-b-0 hover:bg-muted/30"
+                  onClick={() => {
+                    if (c.code) {
+                      router.push(`/containers/${encodeURIComponent(c.code)}`);
+                    }
+                  }}
+                  className="cursor-pointer border-b border-border transition-colors last:border-b-0 hover:bg-muted/30"
                 >
                   <td className="px-4 py-3">
                     <Link
                       href={`/containers/${c.code ?? ""}`}
-                      className="font-medium text-brand-navy hover:underline"
+                      className="font-semibold text-blue-600 hover:underline dark:text-sky-300"
                     >
                       {c.code ?? "—"}
                     </Link>
