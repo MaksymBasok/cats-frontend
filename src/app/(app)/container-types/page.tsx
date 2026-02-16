@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Save, Trash2 } from "lucide-react";
+import { Plus, Save, Trash2, Package } from "lucide-react";
 
 export default function ContainerTypesPage() {
   const { isAdmin } = useAuth();
