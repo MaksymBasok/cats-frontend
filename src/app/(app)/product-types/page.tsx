@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Save, Trash2, Package, Edit, Clock } from "lucide-react";
+import { Plus, Save, Trash2, Boxes, Edit, Clock, Sparkles } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -42,6 +42,7 @@ export default function ProductTypesPage() {
 
   const [editingItem, setEditingItem] = useState<ProductTypeDto | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [createOpenMobile, setCreateOpenMobile] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -140,16 +141,16 @@ export default function ProductTypesPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Card className="transition-shadow hover:shadow-lg">
+        <Card className="border-primary/10 bg-gradient-to-br from-primary/5 to-transparent transition-all hover:-translate-y-0.5 hover:shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Кількість типів</CardTitle>
-            <Package className="h-4 w-4 text-primary" />
+            <Boxes className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{items.length}</div>
           </CardContent>
         </Card>
-        <Card className="transition-shadow hover:shadow-lg">
+        <Card className="border-primary/10 bg-gradient-to-br from-sky-500/5 to-transparent transition-all hover:-translate-y-0.5 hover:shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Сумарний shelf-life (год)</CardTitle>
             <Clock className="h-4 w-4 text-primary" />
@@ -162,12 +163,14 @@ export default function ProductTypesPage() {
 
       <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Plus className="h-5 w-5" />
-            Створити тип продукту
+          <CardTitle className="flex items-center gap-2 justify-between">
+            <span className="inline-flex items-center gap-2"><Plus className="h-5 w-5" />Створити тип продукту</span>
+            <Button type="button" size="sm" variant="outline" className="md:hidden" onClick={() => setCreateOpenMobile((v) => !v)}>
+              {createOpenMobile ? "Сховати" : "Відкрити"}
+            </Button>
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className={createOpenMobile ? "block" : "hidden md:block"}>
           <form onSubmit={onCreate} className="grid gap-3 md:grid-cols-4">
             <Input placeholder="Назва" value={name} onChange={(e) => setName(e.target.value)} required />
             <Input placeholder="Дні" value={days} onChange={(e) => setDays(e.target.value)} type="number" min="0" />
@@ -232,11 +235,7 @@ export default function ProductTypesPage() {
           {/* Mobile Card View */}
           <div className="grid gap-3 md:hidden">
             {items.map((item) => (
-              <Card
-                key={item.id}
-                className="group cursor-pointer transition-all hover:shadow-md active:scale-[0.98]"
-                onClick={() => openEditDialog(item)}
-              >
+              <Card key={item.id} className="group transition-all hover:shadow-md active:scale-[0.98]">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -254,7 +253,9 @@ export default function ProductTypesPage() {
                         <p className="mt-2 text-xs text-muted-foreground line-clamp-2">{item.meta}</p>
                       )}
                     </div>
-                    <Edit className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+                    <Button size="sm" variant="ghost" onClick={() => openEditDialog(item)} className="h-8 px-2">
+                      <Sparkles className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
