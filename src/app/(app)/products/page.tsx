@@ -44,7 +44,7 @@ export default function ProductsPage() {
 
   useEffect(() => {
     Promise.all([fetchProducts(), getProductTypes()])
-      .then(([_, types]) => setProductTypes(types))
+      .then(([, types]) => setProductTypes(types))
       .catch(() => {});
   }, [fetchProducts]);
 

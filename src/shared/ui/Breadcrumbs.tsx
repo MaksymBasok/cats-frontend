@@ -25,18 +25,14 @@ export function Breadcrumbs() {
 
   if (parts.length === 0) return null;
 
-  let acc = "";
-  const items = parts.map((p) => {
-    acc += `/${p}`;
-    return { href: acc, label: labelOf(p) };
-  });
+  const items = parts.map((part, index) => ({
+    href: `/${parts.slice(0, index + 1).join("/")}`,
+    label: labelOf(part),
+  }));
 
   return (
     <nav aria-label="Навігаційна стежка" className="flex items-center gap-1 text-sm">
-      <Link
-        className="flex items-center text-muted-foreground hover:text-foreground transition-colors"
-        href="/"
-      >
+      <Link className="flex items-center text-muted-foreground hover:text-foreground transition-colors" href="/">
         <Home className="h-3.5 w-3.5" />
         <span className="sr-only">Головна</span>
       </Link>
@@ -48,10 +44,7 @@ export function Breadcrumbs() {
             {isLast ? (
               <span className="font-medium text-foreground">{it.label}</span>
             ) : (
-              <Link
-                className="text-muted-foreground hover:text-foreground transition-colors"
-                href={it.href}
-              >
+              <Link className="text-muted-foreground hover:text-foreground transition-colors" href={it.href}>
                 {it.label}
               </Link>
             )}

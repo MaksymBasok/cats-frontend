@@ -2,15 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Box,
-  Users,
-  Package,
-  Tags,
-  Container,
-  Clock,
-  User,
-} from "lucide-react";
+import { Box, Users, Package, User, Shapes, FlaskConical, BellRing } from "lucide-react";
 import { useAuth } from "@/shared/auth/AuthProvider";
 import { cn } from "@/lib/utils";
 
@@ -23,15 +15,16 @@ interface NavItem {
 const mainLinks: NavItem[] = [
   { href: "/", label: "Тара", icon: Box },
   { href: "/products", label: "Продукти", icon: Package },
+  { href: "/reminders", label: "Технологічні дати", icon: BellRing },
 ];
 
 const adminLinks: NavItem[] = [
   { href: "/admin", label: "Користувачі", icon: Users },
+  { href: "/product-types", label: "Типи продуктів", icon: FlaskConical },
+  { href: "/container-types", label: "Типи тари", icon: Shapes },
 ];
 
-const bottomLinks: NavItem[] = [
-  { href: "/profile", label: "Профіль", icon: User },
-];
+const bottomLinks: NavItem[] = [{ href: "/profile", label: "Профіль", icon: User }];
 
 function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
   const isActive =

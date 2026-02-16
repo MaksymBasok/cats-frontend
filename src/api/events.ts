@@ -7,7 +7,7 @@ export interface Event {
   userId: string
   userName?: string
   timestamp: string
-  data?: Record<string, any>
+  data?: Record<string, unknown>
 }
 
 export const eventsApi = {

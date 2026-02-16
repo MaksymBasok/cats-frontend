@@ -1,4 +1,3 @@
-// src/shared/api/client.ts
 import { getAccessToken } from "@/shared/auth/token";
 
 export class ApiError extends Error {
@@ -20,8 +19,9 @@ type RequestOptions = {
   headers?: Record<string, string>;
 };
 
-const API_BASE =
-  (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5208").replace(/\/+$/, "");
+const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5208").replace(/\/+$/, "");
+
+type ErrorPayload = { message?: string; title?: string; raw?: string };
 
 export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T> {
   const { method = "GET", body, signal, auth = true, headers: extraHeaders } = opts;
@@ -48,14 +48,15 @@ export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T
       body: body !== undefined && body !== null ? JSON.stringify(body) : undefined,
       signal,
     });
-  } catch (e: any) {
-    throw new ApiError(e?.message || "Network error", 0, { cause: e });
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Network error";
+    throw new ApiError(message, 0, { cause: e });
   }
 
   const contentType = res.headers.get("content-type") || "";
   const raw = await res.text();
 
-  const data =
+  const data: unknown =
     raw.length === 0
       ? null
       : contentType.includes("application/json") || contentType.includes("text/json")
@@ -63,19 +64,15 @@ export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T
         : { raw };
 
   if (!res.ok) {
-    const message =
-      (data && typeof data === "object" && "message" in data && (data as any).message) ||
-      (data && typeof data === "object" && "title" in data && (data as any).title) ||
-      (typeof data === "string" ? data : null) ||
-      `Request failed: ${res.status}`;
-
+    const details = (data ?? {}) as ErrorPayload;
+    const message = details.message || details.title || (typeof data === "string" ? data : null) || `Request failed: ${res.status}`;
     throw new ApiError(String(message), res.status, data);
   }
 
   return data as T;
 }
 
-function safeJsonParse(text: string): any {
+function safeJsonParse(text: string): unknown {
   try {
     return JSON.parse(text);
   } catch {

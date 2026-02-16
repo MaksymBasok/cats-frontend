@@ -2,21 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Box, Package, Shield, User } from "lucide-react";
+import { Box, Package, Shield, User, BellRing, Shapes, FlaskConical } from "lucide-react";
 import { useAuth } from "@/shared/auth/AuthProvider";
 import { cn } from "@/lib/utils";
 
 const operatorLinks = [
   { href: "/", label: "Тара", icon: Box },
   { href: "/products", label: "Продукти", icon: Package },
+  { href: "/reminders", label: "Дати", icon: BellRing },
   { href: "/profile", label: "Профіль", icon: User },
 ];
 
 const adminLinks = [
   { href: "/", label: "Тара", icon: Box },
   { href: "/products", label: "Продукти", icon: Package },
+  { href: "/reminders", label: "Дати", icon: BellRing },
   { href: "/admin", label: "Адмін", icon: Shield },
-  { href: "/profile", label: "Профіль", icon: User },
+  { href: "/container-types", label: "Тара+", icon: Shapes },
+  { href: "/product-types", label: "Типи", icon: FlaskConical },
 ];
 
 export function BottomNav() {
@@ -38,13 +41,11 @@ export function BottomNav() {
               key={link.href}
               href={link.href}
               className={cn(
-                "flex flex-1 flex-col items-center gap-0.5 py-2 text-xs transition-colors",
-                isActive
-                  ? "text-brand-navy font-medium"
-                  : "text-muted-foreground"
+                "flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] transition-colors",
+                isActive ? "text-brand-navy font-medium" : "text-muted-foreground"
               )}
             >
-              <link.icon className="h-5 w-5" />
+              <link.icon className="h-4 w-4" />
               <span>{link.label}</span>
             </Link>
           );
