@@ -16,7 +16,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Save, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Plus, Save, Trash2, Package, Edit, Clock } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default function ProductTypesPage() {
   const { isAdmin } = useAuth();
@@ -25,12 +34,14 @@ export default function ProductTypesPage() {
   const [items, setItems] = useState<ProductTypeDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
 
   const [name, setName] = useState("");
   const [days, setDays] = useState("");
   const [hours, setHours] = useState("");
   const [meta, setMeta] = useState("");
+
+  const [editingItem, setEditingItem] = useState<ProductTypeDto | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -85,7 +96,6 @@ export default function ProductTypesPage() {
   };
 
   const handleUpdate = async (item: ProductTypeDto) => {
-    setEditingId(item.id);
     try {
       await updateProductType(String(item.id), {
         name: item.name,
@@ -94,11 +104,11 @@ export default function ProductTypesPage() {
         meta: item.meta,
       });
       toast.success("Тип продукту оновлено");
+      setEditDialogOpen(false);
+      setEditingItem(null);
       await load();
     } catch {
       toast.error("Не вдалося оновити тип продукту");
-    } finally {
-      setEditingId(null);
     }
   };
 
@@ -107,10 +117,17 @@ export default function ProductTypesPage() {
     try {
       await deleteProductType(String(item.id));
       toast.success("Тип продукту видалено");
+      setEditDialogOpen(false);
+      setEditingItem(null);
       await load();
     } catch {
       toast.error("Не вдалося видалити тип продукту");
     }
+  };
+
+  const openEditDialog = (item: ProductTypeDto) => {
+    setEditingItem({ ...item });
+    setEditDialogOpen(true);
   };
 
   if (!isAdmin) return null;
@@ -123,19 +140,19 @@ export default function ProductTypesPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
+        <Card className="transition-shadow hover:shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Кількість типів</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
+            <Package className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{items.length}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="transition-shadow hover:shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Сумарний shelf-life (год)</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
+            <Clock className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalShelfHours}</div>
@@ -143,94 +160,168 @@ export default function ProductTypesPage() {
         </Card>
       </div>
 
-      <Card>
+      <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle>Створити тип продукту</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Plus className="h-5 w-5" />
+            Створити тип продукту
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={onCreate} className="grid gap-3 md:grid-cols-4">
-            <Input placeholder="Назва" value={name} onChange={(e) => setName(e.target.value)} />
+            <Input placeholder="Назва" value={name} onChange={(e) => setName(e.target.value)} required />
             <Input placeholder="Дні" value={days} onChange={(e) => setDays(e.target.value)} type="number" min="0" />
             <Input placeholder="Години" value={hours} onChange={(e) => setHours(e.target.value)} type="number" min="0" />
-            <Button disabled={creating} type="submit">
+            <Button disabled={creating} type="submit" className="transition-all hover:shadow-md active:scale-[0.98]">
               <Plus className="mr-2 h-4 w-4" /> Додати
             </Button>
             <div className="md:col-span-4">
-              <Textarea placeholder="Meta / коментар" value={meta} onChange={(e) => setMeta(e.target.value)} />
+              <Textarea placeholder="Meta / коментар" value={meta} onChange={(e) => setMeta(e.target.value)} rows={2} />
             </div>
           </form>
         </CardContent>
       </Card>
 
-      <div className="space-y-3">
-        {loading ? (
-          <p className="text-sm text-muted-foreground">Завантаження...</p>
-        ) : (
-          items.map((item) => (
-            <EditableProductTypeRow
-              key={`${item.id}-${item.name ?? ""}-${item.shelfLifeDays ?? ""}-${item.shelfLifeHours ?? ""}-${item.meta ?? ""}`}
-              initial={item}
-              onSave={handleUpdate}
-              onDelete={handleDelete}
-              saving={editingId === item.id}
-            />
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
-
-function EditableProductTypeRow({
-  initial,
-  onSave,
-  onDelete,
-  saving,
-}: {
-  initial: ProductTypeDto;
-  onSave: (value: ProductTypeDto) => Promise<void>;
-  onDelete: (value: ProductTypeDto) => Promise<void>;
-  saving: boolean;
-}) {
-  const [draft, setDraft] = useState<ProductTypeDto>(initial);
-
-
-  return (
-    <Card>
-      <CardContent className="grid gap-3 p-4 md:grid-cols-6 md:items-center">
-        <Input
-          className="md:col-span-2"
-          value={draft.name ?? ""}
-          onChange={(e) => setDraft((prev) => ({ ...prev, name: e.target.value }))}
-        />
-        <Input
-          type="number"
-          min="0"
-          value={draft.shelfLifeDays ?? ""}
-          onChange={(e) => setDraft((prev) => ({ ...prev, shelfLifeDays: Number(e.target.value) || 0 }))}
-        />
-        <Input
-          type="number"
-          min="0"
-          value={draft.shelfLifeHours ?? ""}
-          onChange={(e) => setDraft((prev) => ({ ...prev, shelfLifeHours: Number(e.target.value) || 0 }))}
-        />
-        <Badge variant="secondary" className="w-fit">ID #{draft.id}</Badge>
-        <div className="flex gap-2">
-          <Button size="sm" onClick={() => void onSave(draft)} disabled={saving}>
-            <Save className="mr-2 h-4 w-4" /> Зберегти
-          </Button>
-          <Button size="sm" variant="destructive" onClick={() => void onDelete(draft)}>
-            <Trash2 className="mr-2 h-4 w-4" />
-          </Button>
+      {loading ? (
+        <div className="flex min-h-[200px] items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
         </div>
-        <Textarea
-          className="md:col-span-6"
-          value={draft.meta ?? ""}
-          onChange={(e) => setDraft((prev) => ({ ...prev, meta: e.target.value }))}
-          placeholder="Meta"
-        />
-      </CardContent>
-    </Card>
+      ) : (
+        <>
+          {/* Desktop Table View */}
+          <Card className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Назва</TableHead>
+                  <TableHead>Дні</TableHead>
+                  <TableHead>Години</TableHead>
+                  <TableHead>Meta</TableHead>
+                  <TableHead className="w-[100px]">Дії</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.map((item) => (
+                  <TableRow key={item.id} className="transition-colors hover:bg-muted/50">
+                    <TableCell>
+                      <Badge variant="outline">#{item.id}</Badge>
+                    </TableCell>
+                    <TableCell className="font-medium">{item.name ?? "—"}</TableCell>
+                    <TableCell>{item.shelfLifeDays ?? 0}</TableCell>
+                    <TableCell>{item.shelfLifeHours ?? 0}</TableCell>
+                    <TableCell className="max-w-[200px] truncate text-muted-foreground">
+                      {item.meta || "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => openEditDialog(item)}
+                        className="h-8 transition-colors hover:bg-primary hover:text-primary-foreground"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+
+          {/* Mobile Card View */}
+          <div className="grid gap-3 md:hidden">
+            {items.map((item) => (
+              <Card
+                key={item.id}
+                className="group cursor-pointer transition-all hover:shadow-md active:scale-[0.98]"
+                onClick={() => openEditDialog(item)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold">{item.name}</h3>
+                        <Badge variant="secondary" className="text-xs">#{item.id}</Badge>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2 text-sm text-muted-foreground">
+                        <span className="inline-flex items-center gap-1">
+                          <Clock className="h-3.5 w-3.5" />
+                          {item.shelfLifeDays ?? 0}д {item.shelfLifeHours ?? 0}г
+                        </span>
+                      </div>
+                      {item.meta && (
+                        <p className="mt-2 text-xs text-muted-foreground line-clamp-2">{item.meta}</p>
+                      )}
+                    </div>
+                    <Edit className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Редагувати тип продукту</DialogTitle>
+          </DialogHeader>
+          {editingItem && (
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Назва</label>
+                <Input
+                  value={editingItem.name ?? ""}
+                  onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
+                  className="mt-1.5"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium">Дні</label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={editingItem.shelfLifeDays ?? ""}
+                    onChange={(e) => setEditingItem({ ...editingItem, shelfLifeDays: Number(e.target.value) || 0 })}
+                    className="mt-1.5"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Години</label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={editingItem.shelfLifeHours ?? ""}
+                    onChange={(e) => setEditingItem({ ...editingItem, shelfLifeHours: Number(e.target.value) || 0 })}
+                    className="mt-1.5"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Meta</label>
+                <Textarea
+                  value={editingItem.meta ?? ""}
+                  onChange={(e) => setEditingItem({ ...editingItem, meta: e.target.value })}
+                  className="mt-1.5"
+                  rows={3}
+                />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button onClick={() => handleUpdate(editingItem)} className="flex-1">
+                  <Save className="mr-2 h-4 w-4" /> Зберегти
+                </Button>
+                <Button variant="destructive" onClick={() => handleDelete(editingItem)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

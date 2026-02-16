@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, UserCheck, UserX, Shield, UserPlus, MailPlus } from "lucide-react";
+import { Search, UserCheck, UserX, Shield, UserPlus, MailPlus, Users, UserCog } from "lucide-react";
 import { toast } from "sonner";
 
 import type { UserDto, UserRole } from "@/shared/types";
@@ -15,6 +15,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default function AdminPage() {
   const { isAdmin } = useAuth();
@@ -157,35 +165,67 @@ export default function AdminPage() {
         <p className="text-muted-foreground">Керування акаунтами, ролями, інвайтами та активаціями.</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <StatCard title="Всього" value={users.length} />
-        <StatCard title="Очікують" value={pendingUsers.length} />
-        <StatCard title="Активні" value={activeUsers.length} />
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card className="transition-shadow hover:shadow-lg">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Всього</CardTitle>
+            <Users className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{users.length}</div>
+          </CardContent>
+        </Card>
+        <Card className="transition-shadow hover:shadow-lg">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Очікують</CardTitle>
+            <UserCog className="h-4 w-4 text-amber-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-amber-600">{pendingUsers.length}</div>
+          </CardContent>
+        </Card>
+        <Card className="transition-shadow hover:shadow-lg">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Активні</CardTitle>
+            <UserCheck className="h-4 w-4 text-emerald-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-emerald-600">{activeUsers.length}</div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
+        <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><MailPlus className="h-4 w-4" /> Надіслати запрошення</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <MailPlus className="h-5 w-5" /> Надіслати запрошення
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <form className="grid gap-3" onSubmit={handleInvite}>
               <Input placeholder="email@company.com" type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} />
               <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as UserRole)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Operator">Operator</SelectItem>
                   <SelectItem value="Admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
-              <Button disabled={inviteLoading} type="submit">Створити запрошення</Button>
+              <Button disabled={inviteLoading} type="submit" className="transition-all hover:shadow-md active:scale-[0.98]">
+                Створити запрошення
+              </Button>
             </form>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><UserPlus className="h-4 w-4" /> Створити користувача</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5" /> Створити користувача
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <form className="grid gap-3" onSubmit={handleCreateUser}>
@@ -195,13 +235,17 @@ export default function AdminPage() {
                 <Input placeholder="Прізвище" value={createLastName} onChange={(e) => setCreateLastName(e.target.value)} />
               </div>
               <Select value={createRole} onValueChange={(v) => setCreateRole(v as UserRole)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Operator">Operator</SelectItem>
                   <SelectItem value="Admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
-              <Button disabled={createLoading} type="submit">Створити користувача</Button>
+              <Button disabled={createLoading} type="submit" className="transition-all hover:shadow-md active:scale-[0.98]">
+                Створити користувача
+              </Button>
             </form>
           </CardContent>
         </Card>
@@ -223,24 +267,57 @@ export default function AdminPage() {
               <CardHeader>
                 <CardTitle>Очікують підтвердження ({pendingUsers.length})</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {pendingUsers.map((u) => (
-                  <div key={u.id} className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex-1">
+              <CardContent>
+                {/* Desktop Table */}
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Користувач</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead className="w-[200px]">Дії</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {pendingUsers.map((u) => (
+                        <TableRow key={u.id}>
+                          <TableCell className="font-medium">
+                            {(u.firstName ?? "—") + " " + (u.lastName ?? "")}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{u.email}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button size="sm" onClick={() => handleApprove(u.id)} className="transition-all hover:shadow-md">
+                                <UserCheck className="mr-2 h-4 w-4" /> Підтвердити
+                              </Button>
+                              <Button size="sm" variant="destructive" onClick={() => handleReject(u.id)}>
+                                <UserX className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile Cards */}
+                <div className="grid gap-3 md:hidden">
+                  {pendingUsers.map((u) => (
+                    <div key={u.id} className="rounded-lg border p-4">
                       <div className="font-medium">{(u.firstName ?? "—") + " " + (u.lastName ?? "")}</div>
                       <div className="text-sm text-muted-foreground">{u.email}</div>
+                      <div className="mt-3 flex gap-2">
+                        <Button size="sm" onClick={() => handleApprove(u.id)} className="flex-1">
+                          <UserCheck className="mr-2 h-4 w-4" /> Підтвердити
+                        </Button>
+                        <Button size="sm" variant="destructive" onClick={() => handleReject(u.id)}>
+                          <UserX className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={() => handleApprove(u.id)}>
-                        <UserCheck className="mr-2 h-4 w-4" /> Підтвердити
-                      </Button>
-                      <Button size="sm" variant="destructive" onClick={() => handleReject(u.id)}>
-                        <UserX className="mr-2 h-4 w-4" /> Відхилити
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </CardContent>
             </Card>
           )}
@@ -249,48 +326,80 @@ export default function AdminPage() {
             <CardHeader>
               <CardTitle>Активні користувачі ({activeUsers.length})</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {activeUsers.map((u) => (
-                <div key={u.id} className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <div className="font-medium">{(u.firstName ?? "—") + " " + (u.lastName ?? "")}</div>
+            <CardContent>
+              {/* Desktop Table */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Користувач</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Роль</TableHead>
+                      <TableHead className="w-[150px]">Дії</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {activeUsers.map((u) => (
+                      <TableRow key={u.id}>
+                        <TableCell className="font-medium">
+                          {(u.firstName ?? "—") + " " + (u.lastName ?? "")}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{u.email}</TableCell>
+                        <TableCell>
+                          {u.role === "Admin" ? (
+                            <Badge variant="secondary" className="bg-primary/10 text-primary">
+                              <Shield className="mr-1 h-3 w-3" /> Адмін
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline">Operator</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {u.role !== "Admin" && (
+                            <Button size="sm" variant="outline" onClick={() => handleMakeAdmin(u.id)} className="transition-all hover:shadow-md">
+                              <Shield className="mr-2 h-4 w-4" /> Адмін
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
 
-                      {u.role === "Admin" && (
-                        <Badge variant="secondary">
-                          <Shield className="mr-1 h-3 w-3" /> Адмін
-                        </Badge>
-                      )}
+              {/* Mobile Cards */}
+              <div className="grid gap-3 md:hidden">
+                {activeUsers.map((u) => (
+                  <div key={u.id} className="rounded-lg border p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <div className="font-medium">{(u.firstName ?? "—") + " " + (u.lastName ?? "")}</div>
+                          {u.role === "Admin" && (
+                            <Badge variant="secondary" className="bg-primary/10 text-primary text-xs">
+                              <Shield className="mr-1 h-3 w-3" /> Адмін
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-sm text-muted-foreground">{u.email}</div>
+                      </div>
                     </div>
-                    <div className="text-sm text-muted-foreground">{u.email}</div>
+                    {u.role !== "Admin" && (
+                      <Button size="sm" variant="outline" onClick={() => handleMakeAdmin(u.id)} className="mt-3 w-full">
+                        <Shield className="mr-2 h-4 w-4" /> Зробити адміном
+                      </Button>
+                    )}
                   </div>
+                ))}
+              </div>
 
-                  {u.role !== "Admin" && (
-                    <Button size="sm" variant="outline" onClick={() => handleMakeAdmin(u.id)}>
-                      <Shield className="mr-2 h-4 w-4" /> Зробити адміном
-                    </Button>
-                  )}
-                </div>
-              ))}
-
-              {activeUsers.length === 0 && <p className="py-8 text-center text-muted-foreground">Немає активних користувачів</p>}
+              {activeUsers.length === 0 && (
+                <p className="py-8 text-center text-muted-foreground">Немає активних користувачів</p>
+              )}
             </CardContent>
           </Card>
         </>
       )}
     </div>
-  );
-}
-
-function StatCard({ title, value }: { title: string; value: number }) {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-      </CardContent>
-    </Card>
   );
 }
