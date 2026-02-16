@@ -245,15 +245,21 @@ export default function ContainerTypesPage() {
                         </p>
                       )}
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Button size="icon" variant="ghost" onClick={() => openEditDialog(item)} className="h-8 w-8">
-                        <Edit className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() => openEditDialog(item)}
+                        aria-label="Редагувати"
+                        className="h-8 w-8"
+                      >
+                        <Edit className="h-4 w-4" />
                       </Button>
                       <Button
                         size="icon"
-                        variant="ghost"
+                        variant="destructive"
                         onClick={() => setDeleteItem(item)}
-                        className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                        className="h-8 w-8"
                         aria-label="Видалити"
                       >
                         <Trash2 className="h-4 w-4" />
