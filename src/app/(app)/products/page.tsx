@@ -94,7 +94,7 @@ export default function ProductsPage() {
 
   return (
     <div className="flex flex-col gap-6 pb-20 md:pb-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Продукти</h1>
           <p className="text-sm text-muted-foreground">Управління асортиментом та типами продукції</p>
@@ -113,7 +113,7 @@ export default function ProductsPage() {
 
       {/* Filters row (simple search like before) */}
       <div className="flex items-center gap-3">
-        <div className="w-full max-w-sm">
+        <div className="w-full md:max-w-xl">
           <input
             value={searchUi}
             onChange={(e) => setSearchUi(e.target.value)}

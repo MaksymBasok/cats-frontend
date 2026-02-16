@@ -139,7 +139,7 @@ export default function ProductTypesPage() {
 
   return (
     <div className="space-y-6 pb-20 md:pb-6">
-      <div className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-primary/10 bg-gradient-to-r from-primary/5 via-transparent to-transparent p-4 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold">Типи продуктів</h1>
           <p className="text-muted-foreground">Керування довідником типів продуктів та термінами придатності.</p>
@@ -155,7 +155,7 @@ export default function ProductTypesPage() {
         </div>
       ) : (
         <>
-          <Card className="hidden border-primary/10 shadow-sm md:block">
+          <Card className="hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>

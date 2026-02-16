@@ -65,6 +65,7 @@ export default function RemindersPage() {
 
   const expiredCount = filtered.filter((f) => isBefore(parseISO(f.expirationDate), new Date())).length;
   const dueTodayCount = filtered.filter((f) => differenceInCalendarDays(parseISO(f.expirationDate), new Date()) === 0).length;
+  const nearestExpiration = filtered[0] ? parseISO(filtered[0].expirationDate) : null;
   const hasActiveFilters =
     selectedContainer !== "all" ||
     selectedProduct !== "all" ||
@@ -85,19 +86,6 @@ export default function RemindersPage() {
         <p className="text-muted-foreground">Моніторинг активних заповнень та контроль термінів придатності.</p>
       </div>
 
-      <Card className="border-primary/10 bg-gradient-to-r from-primary/5 to-transparent">
-        <CardContent className="grid gap-2 p-4 text-sm sm:grid-cols-3">
-          <p>
-            Активних заповнень: <span className="font-semibold text-foreground">{filtered.length}</span>
-          </p>
-          <p>
-            Прострочено: <span className="font-semibold text-destructive">{expiredCount}</span>
-          </p>
-          <p>
-            Дозріє сьогодні: <span className="font-semibold text-foreground">{dueTodayCount}</span>
-          </p>
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0">
@@ -159,6 +147,31 @@ export default function RemindersPage() {
           </div>
         )}
         <CardContent className="space-y-3 pt-0">
+          <div className="overflow-hidden rounded-lg border bg-muted/20">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-1/4">В роботі</TableHead>
+                  <TableHead className="w-1/4">Прострочено</TableHead>
+                  <TableHead className="w-1/4">Сьогодні</TableHead>
+                  <TableHead className="w-1/4">Найближчий дедлайн</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow className="text-sm">
+                  <TableCell className="font-semibold">{filtered.length}</TableCell>
+                  <TableCell>
+                    <span className="font-semibold text-destructive">{expiredCount}</span>
+                  </TableCell>
+                  <TableCell className="font-semibold">{dueTodayCount}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {nearestExpiration ? format(nearestExpiration, "dd.MM.yyyy HH:mm") : "—"}
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+
           {loading ? (
             <p className="text-sm text-muted-foreground">Завантаження...</p>
           ) : filtered.length === 0 ? (
@@ -170,9 +183,10 @@ export default function RemindersPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Тара / продукт</TableHead>
-                      <TableHead>Обсяг</TableHead>
+                      <TableHead>Партія</TableHead>
                       <TableHead>Дата наповнення</TableHead>
                       <TableHead>Термін придатності</TableHead>
+                      <TableHead className="text-right">Залишок</TableHead>
                       <TableHead>Статус</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -189,9 +203,10 @@ export default function RemindersPage() {
                           <TableCell>{row.quantity} {row.unit}</TableCell>
                           <TableCell className="text-muted-foreground">{format(parseISO(row.filledDate), "dd.MM.yyyy HH:mm")}</TableCell>
                           <TableCell className="text-muted-foreground">{format(expires, "dd.MM.yyyy HH:mm")}</TableCell>
+                          <TableCell className="text-right font-medium">{daysLeft < 0 ? `${Math.abs(daysLeft)} дн. тому` : `${daysLeft} дн.`}</TableCell>
                           <TableCell>
                             <Badge variant={expired ? "destructive" : soon ? "secondary" : "outline"}>
-                              {expired ? "Прострочено" : soon ? `Залишилось ${daysLeft} дн.` : "Нормально"}
+                              {expired ? "Прострочено" : soon ? "Термін скоро" : "Нормально"}
                             </Badge>
                           </TableCell>
                         </TableRow>

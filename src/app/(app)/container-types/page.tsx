@@ -148,7 +148,7 @@ export default function ContainerTypesPage() {
 
   return (
     <div className="space-y-6 pb-20 md:pb-6">
-      <div className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-primary/10 bg-gradient-to-r from-primary/5 via-transparent to-transparent p-4 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold">Типи тари</h1>
           <p className="text-muted-foreground">Керування типами контейнерів та обмеженнями на типи продуктів.</p>
@@ -164,7 +164,7 @@ export default function ContainerTypesPage() {
         </div>
       ) : (
         <>
-          <Card className="hidden border-primary/10 shadow-sm md:block">
+          <Card className="hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>
