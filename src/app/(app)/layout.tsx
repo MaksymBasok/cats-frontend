@@ -12,8 +12,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <AppHeader />
         <div className="flex flex-1">
           <Sidebar />
-          <main className="flex-1 overflow-y-auto px-4 py-4 pb-20 md:pb-4">
-            <div className="mx-auto max-w-6xl">{children}</div>
+          <main className="flex-1 overflow-y-auto px-4 py-4 pb-20 md:px-6 md:pb-4 xl:px-8">
+            <div className="w-full">{children}</div>
           </main>
         </div>
         <BottomNav />
