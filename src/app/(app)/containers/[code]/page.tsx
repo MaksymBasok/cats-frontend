@@ -6,8 +6,9 @@ import { useParams, useRouter } from "next/navigation";
 import type { ContainerDto, ContainerFillDto, ContainerStatus } from "@/shared/types";
 import * as containersApi from "@/shared/api/containers";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Download, Droplets, Edit, Package, Trash2, X } from "lucide-react";
+import { ArrowLeft, Download, Droplets, Edit, Trash2, X } from "lucide-react";
 import { FillContainerDialog } from "@/shared/ui/containers/FillContainerDialog";
 import { EditFillDialog } from "@/shared/ui/containers/EditFillDialog";
 import { QrGeneratorDialog } from "@/shared/ui/QrGeneratorDialog";
@@ -146,8 +147,14 @@ export default function ContainerDetailPage() {
           <Button variant="outline" size="icon" onClick={() => router.push("/containers")}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold">{containerCode}</h1>
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-bold">{containerCode}</h1>
+              <Badge variant="secondary" className="gap-2 px-3 py-1 text-sm font-semibold">
+                <span className={`h-2 w-2 rounded-full ${statusDotClass}`} />
+                {statusLabel}
+              </Badge>
+            </div>
             <p className="text-sm text-muted-foreground">
               Створено {format(new Date(container.createdAt), "dd.MM.yyyy")}
             </p>
@@ -183,32 +190,6 @@ export default function ContainerDetailPage() {
             Видалити
           </Button>
         </div>
-      </div>
-
-      {/* Overview Cards */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Статус</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <div className={`h-2 w-2 rounded-full ${statusDotClass}`} />
-              <span className="text-2xl font-bold">{statusLabel}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Тип</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{container.containerTypeName ?? "—"}</div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Details Card */}
