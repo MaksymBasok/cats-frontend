@@ -4,7 +4,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { ScanLine, LogOut, UserCircle, ChevronDown, Moon, Sun } from "lucide-react";
 import { useAuth } from "@/shared/auth/AuthProvider";
 import { useTheme } from "@/lib/ThemeProvider";
@@ -15,7 +15,6 @@ export function AppHeader() {
   const { user, logout, isAdmin } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const router = useRouter();
-  const pathname = usePathname();
 
   const [scanOpen, setScanOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -28,11 +27,6 @@ export function AppHeader() {
     logout();
     router.push("/login");
   };
-
-  // Close profile menu on route change
-  useEffect(() => {
-    setProfileOpen(false);
-  }, [pathname]);
 
   // Close profile menu on ESC / outside click
   useEffect(() => {

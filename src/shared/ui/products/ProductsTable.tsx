@@ -1,7 +1,6 @@
 // src/shared/ui/products/ProductsTable.tsx
 "use client";
 
-import Link from "next/link";
 import type { ProductDto } from "@/shared/types";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2 } from "lucide-react";
