@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { TriangleAlert, ChevronDown, ChevronUp, Filter, X } from "lucide-react";
+import { TriangleAlert, Filter, X } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -26,7 +26,6 @@ export default function RemindersPage() {
   const [containers, setContainers] = useState<ContainerDto[]>([]);
   const [products, setProducts] = useState<ProductDto[]>([]);
   const [loading, setLoading] = useState(true);
-  const [openCardId, setOpenCardId] = useState<number | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const [selectedContainer, setSelectedContainer] = useState<string>("all");
@@ -147,7 +146,7 @@ export default function RemindersPage() {
           </div>
         )}
         <CardContent className="space-y-3 pt-0">
-          <div className="overflow-hidden rounded-lg border bg-muted/20">
+          <div className="hidden overflow-hidden rounded-lg border bg-muted/20 md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -170,6 +169,21 @@ export default function RemindersPage() {
                 </TableRow>
               </TableBody>
             </Table>
+          </div>
+
+          <div className="space-y-1 rounded-lg border bg-muted/20 px-4 py-3 text-sm md:hidden">
+            <p>
+              В роботі: <span className="font-semibold text-foreground">{filtered.length}</span>
+            </p>
+            <p>
+              Прострочено: <span className="font-semibold text-destructive">{expiredCount}</span>
+            </p>
+            <p>
+              Сьогодні: <span className="font-semibold text-foreground">{dueTodayCount}</span>
+            </p>
+            <p className="text-muted-foreground">
+              Найближчий дедлайн: {nearestExpiration ? format(nearestExpiration, "dd.MM.yyyy HH:mm") : "—"}
+            </p>
           </div>
 
           {loading ? (
@@ -222,37 +236,23 @@ export default function RemindersPage() {
                   const daysLeft = differenceInCalendarDays(expires, new Date());
                   const expired = daysLeft < 0;
                   const soon = daysLeft >= 0 && daysLeft <= 3;
-                  const open = openCardId === row.id;
 
                   return (
-                    <div key={row.id} className="rounded-xl border bg-card p-4 shadow-sm">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="font-medium">Тара {row.containerCode ?? `#${row.containerId}`}</p>
+                    <div key={row.id} className="space-y-1 rounded-xl border bg-card p-4 text-sm shadow-sm">
+                      <p className="font-medium">Тара {row.containerCode ?? `#${row.containerId}`} · {row.productName}</p>
+                      <p className="text-muted-foreground">Партія: {row.quantity} {row.unit}</p>
+                      <p className="text-muted-foreground">Дата наповнення: {format(parseISO(row.filledDate), "dd.MM.yyyy HH:mm")}</p>
+                      <p className="text-muted-foreground">Термін придатності: {format(expires, "dd.MM.yyyy HH:mm")}</p>
+                      <p className="font-medium">Залишок: {daysLeft < 0 ? `${Math.abs(daysLeft)} дн. тому` : `${daysLeft} дн.`}</p>
+                      <div>
                         <Badge variant={expired ? "destructive" : soon ? "secondary" : "outline"}>
-                          {expired ? "Прострочено" : soon ? `Залишилось ${daysLeft} дн.` : "Нормально"}
+                          {expired ? "Прострочено" : soon ? "Термін скоро" : "Нормально"}
                         </Badge>
                       </div>
-                      <p className="mt-1 text-sm text-muted-foreground">{row.productName}</p>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="mt-2 h-8 px-2 text-xs"
-                        onClick={() => setOpenCardId((prev) => (prev === row.id ? null : row.id))}
-                      >
-                        {open ? <ChevronUp className="mr-1 h-4 w-4" /> : <ChevronDown className="mr-1 h-4 w-4" />}
-                        {open ? "Сховати деталі" : "Показати деталі"}
-                      </Button>
-                      {open && (
-                        <div className="mt-3 space-y-1 text-sm text-muted-foreground">
-                          <p>Обсяг: {row.quantity} {row.unit}</p>
-                          <p>Дата наповнення: {format(parseISO(row.filledDate), "dd.MM.yyyy HH:mm")}</p>
-                          <p>Термін придатності: {format(expires, "dd.MM.yyyy HH:mm")}</p>
-                          {expired && (
-                            <p className="inline-flex items-center gap-1 text-destructive">
-                              <TriangleAlert className="h-4 w-4" /> Партія прострочена
-                            </p>
-                          )}
-                        </div>
+                      {expired && (
+                        <p className="inline-flex items-center gap-1 text-destructive">
+                          <TriangleAlert className="h-4 w-4" /> Партія прострочена
+                        </p>
                       )}
                     </div>
                   );

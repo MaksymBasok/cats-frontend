@@ -178,7 +178,22 @@ export default function AdminPage() {
     <div className="space-y-6 pb-20 md:pb-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold">Користувачі та доступ</h1>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <h1 className="text-3xl font-bold">Користувачі та доступ</h1>
+            {!loading && (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                <span>
+                  Всього: <span className="font-semibold text-foreground">{users.length}</span>
+                </span>
+                <span>
+                  Очікують: <span className="font-semibold text-foreground">{pendingUsers.length}</span>
+                </span>
+                <span>
+                  Активні: <span className="font-semibold text-foreground">{activeUsers.length}</span>
+                </span>
+              </div>
+            )}
+          </div>
           <p className="text-muted-foreground">Керування акаунтами, ролями, інвайтами та активаціями.</p>
         </div>
 
@@ -191,22 +206,6 @@ export default function AdminPage() {
           </Button>
         </div>
       </div>
-
-      {!loading && (
-        <Card className="border-primary/10 bg-gradient-to-r from-primary/5 to-transparent">
-          <CardContent className="grid gap-2 p-4 text-sm sm:grid-cols-3">
-            <p>
-              Всього: <span className="font-semibold text-foreground">{users.length}</span>
-            </p>
-            <p>
-              Очікують: <span className="font-semibold text-foreground">{pendingUsers.length}</span>
-            </p>
-            <p>
-              Активні: <span className="font-semibold text-foreground">{activeUsers.length}</span>
-            </p>
-          </CardContent>
-        </Card>
-      )}
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

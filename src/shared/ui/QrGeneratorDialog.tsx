@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Download, Copy } from "lucide-react";
 import { toast } from "sonner";
+import { useTheme } from "@/lib/ThemeProvider";
 
 interface QrGeneratorDialogProps {
   open: boolean;
@@ -15,8 +16,18 @@ interface QrGeneratorDialogProps {
   title?: string;
 }
 
+const QR_LOGO_SRC = "/images/cats-logo.png";
+const QR_SIZE = 256;
+const LOGO_SIZE = 52;
+
 export function QrGeneratorDialog({ open, onClose, url, title }: QrGeneratorDialogProps) {
   const qrRef = useRef<HTMLDivElement>(null);
+  const { theme } = useTheme();
+
+  const qrBackground = theme === "dark" ? "#0b1220" : "#ffffff";
+  const qrForeground = theme === "dark" ? "#f8fafc" : "#0f172a";
+  const logoBadgeBackground = theme === "dark" ? "#111827" : "#ffffff";
+  const logoBadgeBorder = theme === "dark" ? "#334155" : "#cbd5e1";
 
   const handleCopyUrl = async () => {
     try {
@@ -34,38 +45,60 @@ export function QrGeneratorDialog({ open, onClose, url, title }: QrGeneratorDial
     if (!svg) return;
 
     try {
-      // Create a canvas to convert SVG to PNG
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
       const svgData = new XMLSerializer().serializeToString(svg);
       const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
-      const url = URL.createObjectURL(svgBlob);
+      const objectUrl = URL.createObjectURL(svgBlob);
 
       const img = new Image();
       img.onload = () => {
         canvas.width = img.width;
         canvas.height = img.height;
-        ctx.fillStyle = "white";
+        ctx.fillStyle = qrBackground;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0);
 
-        canvas.toBlob((blob) => {
-          if (!blob) return;
-          const downloadUrl = URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.href = downloadUrl;
-          link.download = `${title || "qr-code"}.png`;
-          link.click();
-          URL.revokeObjectURL(downloadUrl);
-          toast.success("QR код завантажено");
-        });
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const badgeRadius = LOGO_SIZE / 2 + 6;
 
-        URL.revokeObjectURL(url);
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, badgeRadius, 0, Math.PI * 2);
+        ctx.fillStyle = logoBadgeBackground;
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = logoBadgeBorder;
+        ctx.stroke();
+
+        const logoImg = new Image();
+        logoImg.onload = () => {
+          const logoX = centerX - LOGO_SIZE / 2;
+          const logoY = centerY - LOGO_SIZE / 2;
+          ctx.drawImage(logoImg, logoX, logoY, LOGO_SIZE, LOGO_SIZE);
+
+          canvas.toBlob((blob) => {
+            if (!blob) return;
+            const downloadUrl = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = downloadUrl;
+            link.download = `${title || "qr-code"}.png`;
+            link.click();
+            URL.revokeObjectURL(downloadUrl);
+            toast.success("QR код завантажено");
+          });
+        };
+        logoImg.onerror = () => {
+          toast.error("Не вдалося додати логотип до QR");
+        };
+        logoImg.src = QR_LOGO_SRC;
+
+        URL.revokeObjectURL(objectUrl);
       };
 
-      img.src = url;
+      img.src = objectUrl;
     } catch {
       toast.error("Не вдалося завантажити QR код");
     }
@@ -79,17 +112,36 @@ export function QrGeneratorDialog({ open, onClose, url, title }: QrGeneratorDial
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* QR Code Display */}
-          <div className="flex justify-center rounded-lg bg-white p-6" ref={qrRef}>
-            <QRCodeSVG value={url} size={256} level="H" includeMargin />
+          <div className="flex justify-center rounded-lg p-6" style={{ backgroundColor: qrBackground }} ref={qrRef}>
+            <div className="relative inline-flex">
+              <QRCodeSVG
+                value={url}
+                size={QR_SIZE}
+                level="H"
+                includeMargin
+                bgColor={qrBackground}
+                fgColor={qrForeground}
+                imageSettings={{
+                  src: QR_LOGO_SRC,
+                  height: LOGO_SIZE,
+                  width: LOGO_SIZE,
+                  excavate: true,
+                }}
+              />
+              <div
+                className="pointer-events-none absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full border"
+                style={{
+                  backgroundColor: logoBadgeBackground,
+                  borderColor: logoBadgeBorder,
+                }}
+              />
+            </div>
           </div>
 
-          {/* URL Display */}
           <div className="rounded-lg bg-muted p-3">
             <p className="break-all text-sm text-muted-foreground">{url}</p>
           </div>
 
-          {/* Action Buttons */}
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button onClick={handleCopyUrl} variant="outline" className="flex-1">
               <Copy className="mr-2 h-4 w-4" />
