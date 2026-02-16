@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { TriangleAlert, Filter, X } from "lucide-react";
+import { Filter, X } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -81,7 +81,28 @@ export default function RemindersPage() {
   return (
     <div className="space-y-6 pb-20 md:pb-6">
       <div>
-        <h1 className="text-3xl font-bold">Технологічні дати</h1>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <h1 className="text-3xl font-bold">Технологічні дати</h1>
+          {!loading && (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+              <span>
+                В роботі: <span className="font-semibold text-foreground">{filtered.length}</span>
+              </span>
+              <span>
+                Прострочено: <span className="font-semibold text-destructive">{expiredCount}</span>
+              </span>
+              <span>
+                Сьогодні: <span className="font-semibold text-foreground">{dueTodayCount}</span>
+              </span>
+              <span>
+                Найближчий дедлайн:{" "}
+                <span className="font-semibold text-foreground">
+                  {nearestExpiration ? format(nearestExpiration, "dd.MM.yyyy HH:mm") : "—"}
+                </span>
+              </span>
+            </div>
+          )}
+        </div>
         <p className="text-muted-foreground">Моніторинг активних заповнень та контроль термінів придатності.</p>
       </div>
 
@@ -96,7 +117,8 @@ export default function RemindersPage() {
             onClick={() => setFiltersOpen((v) => !v)}
             className={hasActiveFilters ? "border-brand-orange text-brand-orange dark:border-brand-orange dark:text-brand-orange" : ""}
           >
-            <Filter className="mr-2 h-4 w-4" /> {filtersOpen ? "Сховати" : "Фільтри"}
+            <Filter className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">{filtersOpen ? "Сховати" : "Фільтри"}</span>
           </Button>
         </CardHeader>
         {filtersOpen && (
@@ -146,46 +168,6 @@ export default function RemindersPage() {
           </div>
         )}
         <CardContent className="space-y-3 pt-0">
-          <div className="hidden overflow-hidden rounded-lg border bg-muted/20 md:block">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-1/4">В роботі</TableHead>
-                  <TableHead className="w-1/4">Прострочено</TableHead>
-                  <TableHead className="w-1/4">Сьогодні</TableHead>
-                  <TableHead className="w-1/4">Найближчий дедлайн</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow className="text-sm">
-                  <TableCell className="font-semibold">{filtered.length}</TableCell>
-                  <TableCell>
-                    <span className="font-semibold text-destructive">{expiredCount}</span>
-                  </TableCell>
-                  <TableCell className="font-semibold">{dueTodayCount}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {nearestExpiration ? format(nearestExpiration, "dd.MM.yyyy HH:mm") : "—"}
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </div>
-
-          <div className="space-y-1 rounded-lg border bg-muted/20 px-4 py-3 text-sm md:hidden">
-            <p>
-              В роботі: <span className="font-semibold text-foreground">{filtered.length}</span>
-            </p>
-            <p>
-              Прострочено: <span className="font-semibold text-destructive">{expiredCount}</span>
-            </p>
-            <p>
-              Сьогодні: <span className="font-semibold text-foreground">{dueTodayCount}</span>
-            </p>
-            <p className="text-muted-foreground">
-              Найближчий дедлайн: {nearestExpiration ? format(nearestExpiration, "dd.MM.yyyy HH:mm") : "—"}
-            </p>
-          </div>
-
           {loading ? (
             <p className="text-sm text-muted-foreground">Завантаження...</p>
           ) : filtered.length === 0 ? (
@@ -239,21 +221,16 @@ export default function RemindersPage() {
 
                   return (
                     <div key={row.id} className="space-y-1 rounded-xl border bg-card p-4 text-sm shadow-sm">
-                      <p className="font-medium">Тара {row.containerCode ?? `#${row.containerId}`} · {row.productName}</p>
-                      <p className="text-muted-foreground">Партія: {row.quantity} {row.unit}</p>
-                      <p className="text-muted-foreground">Дата наповнення: {format(parseISO(row.filledDate), "dd.MM.yyyy HH:mm")}</p>
-                      <p className="text-muted-foreground">Термін придатності: {format(expires, "dd.MM.yyyy HH:mm")}</p>
-                      <p className="font-medium">Залишок: {daysLeft < 0 ? `${Math.abs(daysLeft)} дн. тому` : `${daysLeft} дн.`}</p>
-                      <div>
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="font-medium">Тара {row.containerCode ?? `#${row.containerId}`} · {row.productName}</p>
                         <Badge variant={expired ? "destructive" : soon ? "secondary" : "outline"}>
                           {expired ? "Прострочено" : soon ? "Термін скоро" : "Нормально"}
                         </Badge>
                       </div>
-                      {expired && (
-                        <p className="inline-flex items-center gap-1 text-destructive">
-                          <TriangleAlert className="h-4 w-4" /> Партія прострочена
-                        </p>
-                      )}
+                      <p className="text-muted-foreground">Партія: {row.quantity} {row.unit}</p>
+                      <p className="text-muted-foreground">Дата наповнення: {format(parseISO(row.filledDate), "dd.MM.yyyy HH:mm")}</p>
+                      <p className="text-muted-foreground">Термін придатності: {format(expires, "dd.MM.yyyy HH:mm")}</p>
+                      <p className="font-medium">Залишок: {daysLeft < 0 ? `${Math.abs(daysLeft)} дн. тому` : `${daysLeft} дн.`}</p>
                     </div>
                   );
                 })}
