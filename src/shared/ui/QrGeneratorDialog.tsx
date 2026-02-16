@@ -2,7 +2,7 @@
 "use client";
 
 import { useRef } from "react";
-import Image from "next/image";
+import NextImage from "next/image";
 import { QRCodeSVG } from "qrcode.react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,8 @@ interface QrGeneratorDialogProps {
 
 const QR_LOGO_SRC = "/images/cats-logo.png";
 const QR_SIZE = 256;
-const LOGO_SIZE = 52;
+const LOGO_SIZE = 60;
+const LOGO_BADGE_PADDING = 8;
 
 export function QrGeneratorDialog({ open, onClose, url, title }: QrGeneratorDialogProps) {
   const qrRef = useRef<HTMLDivElement>(null);
@@ -54,7 +55,7 @@ export function QrGeneratorDialog({ open, onClose, url, title }: QrGeneratorDial
       const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
       const objectUrl = URL.createObjectURL(svgBlob);
 
-      const img = new Image();
+      const img = new window.Image();
       img.onload = () => {
         canvas.width = img.width;
         canvas.height = img.height;
@@ -64,7 +65,7 @@ export function QrGeneratorDialog({ open, onClose, url, title }: QrGeneratorDial
 
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
-        const badgeRadius = LOGO_SIZE / 2 + 6;
+        const badgeRadius = LOGO_SIZE / 2 + LOGO_BADGE_PADDING;
 
         ctx.beginPath();
         ctx.arc(centerX, centerY, badgeRadius, 0, Math.PI * 2);
@@ -74,7 +75,7 @@ export function QrGeneratorDialog({ open, onClose, url, title }: QrGeneratorDial
         ctx.strokeStyle = logoBadgeBorder;
         ctx.stroke();
 
-        const logoImg = new Image();
+        const logoImg = new window.Image();
         logoImg.onload = () => {
           const logoX = centerX - LOGO_SIZE / 2;
           const logoY = centerY - LOGO_SIZE / 2;
@@ -92,6 +93,7 @@ export function QrGeneratorDialog({ open, onClose, url, title }: QrGeneratorDial
           });
         };
         logoImg.onerror = () => {
+          URL.revokeObjectURL(objectUrl);
           toast.error("Не вдалося додати логотип до QR");
         };
         logoImg.src = QR_LOGO_SRC;
@@ -124,13 +126,13 @@ export function QrGeneratorDialog({ open, onClose, url, title }: QrGeneratorDial
                 fgColor={qrForeground}
               />
               <div
-                className="pointer-events-none absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border"
+                className="pointer-events-none absolute left-1/2 top-1/2 flex h-20 w-20 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border"
                 style={{
                   backgroundColor: logoBadgeBackground,
                   borderColor: logoBadgeBorder,
                 }}
               >
-                <Image src={QR_LOGO_SRC} alt="CATS" width={52} height={52} className="object-contain" />
+                <NextImage src={QR_LOGO_SRC} alt="CATS" width={60} height={60} className="object-contain" />
               </div>
             </div>
           </div>
