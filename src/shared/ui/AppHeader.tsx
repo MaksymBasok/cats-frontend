@@ -63,16 +63,16 @@ export function AppHeader() {
       <header className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur supports-[backdrop-filter]:bg-card/70">
         <div className="flex h-14 items-center justify-between px-4">
           <div className="flex min-w-0 items-center gap-3">
-            <Link href="/" className="flex items-center gap-2">
+            <Link href="/" className="cats-logo-wrap flex items-center gap-2 rounded-xl px-1.5 py-1 transition-all hover:-translate-y-0.5">
               <Image
                 src="/images/cats-logo.png"
                 alt="CATS"
                 width={32}
                 height={32}
-                className="h-auto w-auto rounded-md"
+                className="cats-logo-glow h-auto w-auto rounded-md"
                 priority
               />
-              <span className="hidden text-lg font-semibold tracking-tight text-brand-navy sm:inline">
+              <span className="hidden text-lg font-semibold tracking-tight text-brand-navy dark:text-brand-orange sm:inline">
                 CATS
               </span>
             </Link>
@@ -132,7 +132,7 @@ export function AppHeader() {
                         : "Користувач"}
                     </p>
                     <p className="truncate text-xs text-muted-foreground">{user?.email ?? ""}</p>
-                    <span className="mt-1 inline-block rounded-full bg-brand-navy/10 px-2 py-0.5 text-xs font-medium text-brand-navy">
+                    <span className="mt-1 inline-block rounded-full border border-primary/30 bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">
                       {roleName}
                     </span>
                   </div>

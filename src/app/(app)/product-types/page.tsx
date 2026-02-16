@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/shared/auth/AuthProvider";
@@ -62,11 +62,6 @@ export default function ProductTypesPage() {
       setLoading(false);
     }
   };
-
-  const totalShelfHours = useMemo(
-    () => items.reduce((acc, i) => acc + (i.shelfLifeDays ?? 0) * 24 + (i.shelfLifeHours ?? 0), 0),
-    [items]
-  );
 
   const onCreate = async (e: FormEvent) => {
     e.preventDefault();
@@ -146,19 +141,6 @@ export default function ProductTypesPage() {
         </Button>
       </div>
 
-      {!loading && (
-        <Card className="border-primary/10 bg-gradient-to-r from-primary/5 to-transparent">
-          <CardContent className="grid gap-2 p-4 text-sm sm:grid-cols-2">
-            <p>
-              Всього типів: <span className="font-semibold text-foreground">{items.length}</span>
-            </p>
-            <p>
-              Сумарний shelf-life: <span className="font-semibold text-foreground">{totalShelfHours} год</span>
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
       {loading ? (
         <div className="flex min-h-[200px] items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
@@ -192,11 +174,12 @@ export default function ProductTypesPage() {
                     <TableCell>
                       <Button
                         size="sm"
-                        variant="ghost"
+                        variant="outline"
                         onClick={() => openEditDialog(item)}
-                        className="h-8 transition-colors hover:bg-primary hover:text-primary-foreground"
+                        className="h-8"
                       >
-                        <Edit className="h-4 w-4" />
+                        <Edit className="mr-2 h-4 w-4" />
+                        Редагувати
                       </Button>
                     </TableCell>
                   </TableRow>

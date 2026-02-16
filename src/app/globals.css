@@ -130,3 +130,29 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .cats-logo-wrap {
+    border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+    background: color-mix(in oklab, var(--card) 88%, transparent);
+  }
+
+  .cats-logo-glow {
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, var(--brand-orange, #F0A050) 40%, transparent),
+      0 0 22px color-mix(in oklab, var(--brand-orange, #F0A050) 30%, transparent);
+    animation: logoPulse 2.8s ease-in-out infinite;
+  }
+}
+
+@keyframes logoPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: saturate(1);
+  }
+  50% {
+    transform: scale(1.03);
+    filter: saturate(1.1);
+  }
+}

@@ -31,7 +31,7 @@ export function ProductCard({
   const hasShelf = shelfLabel != null;
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4 transition-all hover:border-brand-navy/20 hover:shadow-sm active:scale-[0.99]">
+    <div className="rounded-xl border border-border bg-card p-3 transition-all hover:border-brand-navy/20 hover:shadow-sm active:scale-[0.99]">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
@@ -58,12 +58,12 @@ export function ProductCard({
       </div>
 
       {product.description ? (
-        <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+        <p className="mt-1.5 line-clamp-2 text-xs text-muted-foreground">
           {product.description}
         </p>
       ) : null}
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
         {days != null && (
           <span className="inline-flex items-center gap-1">
             <CalendarDays className="h-3.5 w-3.5" />
@@ -79,14 +79,12 @@ export function ProductCard({
       </div>
 
       {isAdmin && (
-        <div className="mt-3 flex gap-2">
-          <Button size="sm" variant="outline" onClick={onEdit} className="flex-1">
-            <Pencil className="mr-2 h-4 w-4" />
-            Редагувати
+        <div className="mt-2.5 flex gap-2">
+          <Button size="icon" variant="outline" onClick={onEdit} aria-label="Редагувати продукт" className="h-8 w-8">
+            <Pencil className="h-4 w-4" />
           </Button>
-          <Button size="sm" variant="destructive" onClick={onDelete} className="flex-1">
-            <Trash2 className="mr-2 h-4 w-4" />
-            Видалити
+          <Button size="icon" variant="destructive" onClick={onDelete} aria-label="Видалити продукт" className="h-8 w-8">
+            <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       )}
