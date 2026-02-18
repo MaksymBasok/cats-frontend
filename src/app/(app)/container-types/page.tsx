@@ -1,7 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
-import Link from "next/link";
+import { FormEvent, MouseEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/shared/auth/AuthProvider";
@@ -19,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Save, Trash2, Edit } from "lucide-react";
+import { Check, ChevronDown, Plus, Save, Trash2, Edit } from "lucide-react";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { MEASUREMENT_UNITS, normalizeUnit } from "@/shared/constants/units";
 import { showErrorToast } from "@/shared/utils/errors";
@@ -44,8 +43,9 @@ export default function ContainerTypesPage() {
   const [name, setName] = useState("");
   const [codePrefix, setCodePrefix] = useState("");
   const [defaultUnit, setDefaultUnit] = useState("");
-  const [allowedTypeIds, setAllowedTypeIds] = useState("");
   const [selectedTypeIds, setSelectedTypeIds] = useState<number[]>([]);
+  const [allTypesSelected, setAllTypesSelected] = useState(true);
+  const [typePickerOpen, setTypePickerOpen] = useState(false);
   const [meta, setMeta] = useState("");
 
   const [editingItem, setEditingItem] = useState<ContainerTypeDto | null>(null);
@@ -78,13 +78,39 @@ export default function ContainerTypesPage() {
   };
 
   const autoCodePrefix = (value: string) => {
-    const onlyLetters = value
-      .toUpperCase()
-      .replace(/[^A-ZА-ЯІЇЄҐ]/g, "")
-      .slice(0, 2);
+    const words = value
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((word) => word.replace(/[^A-Za-zА-Яа-яІіЇїЄєҐґ]/g, ""))
+      .filter(Boolean);
+
+    const onlyLetters =
+      words.length > 1
+        ? words
+            .slice(0, 2)
+            .map((word) => word[0])
+            .join("")
+            .toUpperCase()
+        : (words[0] || "").slice(0, 2).toUpperCase();
 
     setCodePrefix((prev) => (prev.trim().length > 0 ? prev : onlyLetters));
   };
+
+  const selectedTypeNames = useMemo(() => {
+    if (allTypesSelected) {
+      return "Усі типи продуктів";
+    }
+
+    if (!selectedTypeIds.length) {
+      return "Типи не вибрані";
+    }
+
+    return productTypes
+      .filter((type) => selectedTypeIds.includes(type.id))
+      .map((type) => type.name)
+      .join(", ");
+  }, [allTypesSelected, productTypes, selectedTypeIds]);
 
   const onCreate = async (e: FormEvent) => {
     e.preventDefault();
@@ -95,33 +121,23 @@ export default function ContainerTypesPage() {
 
     setCreating(true);
     try {
-      const idCandidates = allowedTypeIds
-        .split(",")
-        .map((v) => v.trim())
-        .filter(Boolean);
-
-      const idsFromInput = idCandidates.map((value) => Number(value));
-      const ids = Array.from(new Set([...selectedTypeIds, ...idsFromInput]));
-      const hasInvalidIds = ids.some((value) => !Number.isInteger(value) || value <= 0);
-      if (hasInvalidIds) {
-        toast.error("ID типів продукту мають бути додатними цілими числами через кому");
-        return;
-      }
+      const ids = allTypesSelected ? [] : Array.from(new Set(selectedTypeIds));
 
       await createContainerType({
         name: name.trim(),
         codePrefix: codePrefix.trim() || null,
         defaultUnit: normalizeUnit(defaultUnit),
         meta: meta.trim() || null,
-        allowedProductTypeIds: ids.length ? ids : null,
+        allowedProductTypeIds: allTypesSelected ? null : ids,
       });
 
       toast.success("Тип тари створено");
       setName("");
       setCodePrefix("");
       setDefaultUnit("");
-      setAllowedTypeIds("");
       setSelectedTypeIds([]);
+      setAllTypesSelected(true);
+      setTypePickerOpen(false);
       setMeta("");
       setCreateDialogOpen(false);
       await load();
@@ -173,11 +189,20 @@ export default function ContainerTypesPage() {
   };
 
   const handleTypeToggle = (typeId: number, checked: boolean) => {
+    setAllTypesSelected(false);
     if (checked) {
       setSelectedTypeIds((prev) => Array.from(new Set([...prev, typeId])));
       return;
     }
     setSelectedTypeIds((prev) => prev.filter((id) => id !== typeId));
+  };
+
+  const handleRowNavigation = (event: MouseEvent<HTMLElement>, href: string) => {
+    const target = event.target as HTMLElement;
+    if (target.closest("button") || target.closest("a") || target.closest("input") || target.closest("label")) {
+      return;
+    }
+    router.push(href);
   };
 
   if (!isAdmin) return null;
@@ -214,11 +239,15 @@ export default function ContainerTypesPage() {
               </TableHeader>
               <TableBody>
                 {items.map((item) => (
-                  <TableRow key={item.id} className="transition-colors hover:bg-muted/50">
+                  <TableRow
+                    key={item.id}
+                    className="cursor-pointer transition-colors hover:bg-muted/50"
+                    onClick={(event) => handleRowNavigation(event, `/container-types/${item.id}`)}
+                  >
                     <TableCell>
                       <Badge variant="outline">#{item.id}</Badge>
                     </TableCell>
-                    <TableCell className="font-medium"><Link href={`/container-types/${item.id}`} className="underline-offset-2 hover:underline">{item.name ?? "—"}</Link></TableCell>
+                    <TableCell className="font-medium">{item.name ?? "—"}</TableCell>
                     <TableCell>
                       <Badge variant="secondary">{item.codePrefix || "—"}</Badge>
                     </TableCell>
@@ -257,12 +286,16 @@ export default function ContainerTypesPage() {
 
           <div className="grid gap-3 md:hidden">
             {items.map((item) => (
-              <Card key={item.id} className="group border-primary/10 transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98]">
+              <Card
+                key={item.id}
+                className="group border-primary/10 transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98]"
+                onClick={(event) => handleRowNavigation(event, `/container-types/${item.id}`)}
+              >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-semibold"><Link href={`/container-types/${item.id}`} className="underline-offset-2 hover:underline">{item.name}</Link></h3>
+                        <h3 className="font-semibold">{item.name}</h3>
                         <Badge variant="secondary" className="text-xs">
                           #{item.id}
                         </Badge>
@@ -338,28 +371,53 @@ export default function ContainerTypesPage() {
                 ))}
               </select>
             </div>
-            <Input
-              placeholder="ID типів продукту (1,2,3)"
-              value={allowedTypeIds}
-              onChange={(e) => setAllowedTypeIds(e.target.value)}
-            />
-            <div className="rounded-md border p-3">
-              <p className="mb-2 text-sm font-medium">Оберіть типи продукту зі списку</p>
-              <div className="max-h-40 space-y-2 overflow-auto pr-1 text-sm">
-                {productTypes.length === 0 ? (
-                  <p className="text-muted-foreground">Типи продуктів не знайдені</p>
-                ) : (
-                  productTypes.map((type) => (
-                    <label key={type.id} className="flex items-center gap-2">
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Дозволені типи продуктів</p>
+              <div className="relative">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-between"
+                  onClick={() => setTypePickerOpen((prev) => !prev)}
+                >
+                  <span className="line-clamp-1 text-left">{selectedTypeNames}</span>
+                  <ChevronDown className="ml-2 h-4 w-4 shrink-0" />
+                </Button>
+                {typePickerOpen && (
+                  <div className="absolute z-20 mt-2 w-full rounded-md border bg-background p-3 shadow-lg">
+                    <label className="mb-2 flex cursor-pointer items-center gap-2 rounded px-1 py-1.5 hover:bg-muted/60">
                       <input
                         type="checkbox"
-                        checked={selectedTypeIds.includes(type.id)}
-                        onChange={(e) => handleTypeToggle(type.id, e.target.checked)}
+                        checked={allTypesSelected}
+                        onChange={(e) => {
+                          setAllTypesSelected(e.target.checked);
+                          if (e.target.checked) {
+                            setSelectedTypeIds([]);
+                          }
+                        }}
                       />
-                      <span>{type.name}</span>
-                      <span className="text-xs text-muted-foreground">#{type.id}</span>
+                      <span className="font-medium">Усі типи</span>
                     </label>
-                  ))
+
+                    <div className="max-h-40 space-y-1 overflow-auto pr-1 text-sm">
+                      {productTypes.length === 0 ? (
+                        <p className="px-1 py-1 text-muted-foreground">Типи продуктів не знайдені</p>
+                      ) : (
+                        productTypes.map((type) => (
+                          <label key={type.id} className="flex cursor-pointer items-center gap-2 rounded px-1 py-1.5 hover:bg-muted/60">
+                            <input
+                              type="checkbox"
+                              checked={!allTypesSelected && selectedTypeIds.includes(type.id)}
+                              onChange={(e) => handleTypeToggle(type.id, e.target.checked)}
+                            />
+                            <span className="flex-1">{type.name}</span>
+                            <span className="text-xs text-muted-foreground">#{type.id}</span>
+                            {!allTypesSelected && selectedTypeIds.includes(type.id) && <Check className="h-3.5 w-3.5 text-primary" />}
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
             </div>

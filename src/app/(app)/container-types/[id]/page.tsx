@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ function safeParam(p: string | string[] | undefined): string {
 
 export default function ContainerTypeDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const id = safeParam(params.id as unknown);
 
   const [item, setItem] = useState<ContainerTypeDto | null>(null);
@@ -82,8 +83,12 @@ export default function ContainerTypeDetailPage() {
               <TableHeader><TableRow><TableHead>Код</TableHead><TableHead>Назва</TableHead><TableHead>Обʼєм</TableHead><TableHead>Статус</TableHead></TableRow></TableHeader>
               <TableBody>
                 {containers.map((container) => (
-                  <TableRow key={container.id}>
-                    <TableCell><Link href={`/containers/${encodeURIComponent(container.code ?? String(container.id))}`} className="underline">{container.code ?? `#${container.id}`}</Link></TableCell>
+                  <TableRow
+                    key={container.id}
+                    className="cursor-pointer transition-colors hover:bg-muted/50"
+                    onClick={() => router.push(`/containers/${encodeURIComponent(container.code ?? String(container.id))}`)}
+                  >
+                    <TableCell>{container.code ?? `#${container.id}`}</TableCell>
                     <TableCell>{container.name || "—"}</TableCell>
                     <TableCell>{container.volume} {container.unit || ""}</TableCell>
                     <TableCell>{container.status || "—"}</TableCell>
