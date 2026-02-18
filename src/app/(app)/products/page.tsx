@@ -14,6 +14,7 @@ import { ProductsTable } from "@/shared/ui/products/ProductsTable";
 import { ProductCard } from "@/shared/ui/products/ProductCard";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/shared/utils/errors";
 
 export default function ProductsPage() {
   const { isAdmin } = useAuth();
@@ -38,8 +39,8 @@ export default function ProductsPage() {
     try {
       const data = await getProducts();
       setProducts(data);
-    } catch {
-      toast.error("Не вдалося завантажити продукти");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не вдалося завантажити продукти"));
     } finally {
       setLoading(false);
     }
@@ -84,8 +85,8 @@ export default function ProductsPage() {
       await deleteProduct(deleteProductItem.id);
       toast.success("Продукт видалено");
       await refresh();
-    } catch {
-      toast.error("Не вдалося видалити продукт");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не вдалося видалити продукт"));
     } finally {
       setDeleteLoading(false);
       setDeleteProductItem(null);

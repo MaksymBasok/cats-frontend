@@ -14,6 +14,7 @@ import { ContainerCard } from "@/shared/ui/containers/ContainerCard";
 import { ContainerTable } from "@/shared/ui/containers/ContainerTable";
 import { CreateContainerDialog } from "@/shared/ui/containers/CreateContainerDialog";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/shared/utils/errors";
 
 export default function ContainersPage() {
   const { isAdmin } = useAuth();
@@ -43,8 +44,8 @@ export default function ContainersPage() {
       try {
         const data = await searchContainers(f);
         setContainers(data);
-      } catch {
-        toast.error("Не вдалося завантажити тару");
+      } catch (error) {
+        toast.error(getErrorMessage(error, "Не вдалося завантажити тару"));
       } finally {
         setLoading(false);
       }

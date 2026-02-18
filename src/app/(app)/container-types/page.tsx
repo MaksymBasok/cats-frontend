@@ -19,6 +19,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Save, Trash2, Edit } from "lucide-react";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
+import { MEASUREMENT_UNITS, normalizeUnit } from "@/shared/constants/units";
+import { getErrorMessage } from "@/shared/utils/errors";
 import {
   Table,
   TableBody,
@@ -60,8 +62,8 @@ export default function ContainerTypesPage() {
     setLoading(true);
     try {
       setItems(await getContainerTypes());
-    } catch {
-      toast.error("Не вдалося завантажити типи тари");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не вдалося завантажити типи тари"));
     } finally {
       setLoading(false);
     }
@@ -76,15 +78,22 @@ export default function ContainerTypesPage() {
 
     setCreating(true);
     try {
-      const ids = allowedTypeIds
+      const idCandidates = allowedTypeIds
         .split(",")
-        .map((v) => Number(v.trim()))
-        .filter((v) => Number.isFinite(v));
+        .map((v) => v.trim())
+        .filter(Boolean);
+
+      const ids = idCandidates.map((value) => Number(value));
+      const hasInvalidIds = ids.some((value) => !Number.isInteger(value) || value <= 0);
+      if (hasInvalidIds) {
+        toast.error("ID типів продукту мають бути додатними цілими числами через кому");
+        return;
+      }
 
       await createContainerType({
         name: name.trim(),
         codePrefix: codePrefix.trim() || null,
-        defaultUnit: defaultUnit.trim() || null,
+        defaultUnit: normalizeUnit(defaultUnit),
         meta: meta.trim() || null,
         allowedProductTypeIds: ids.length ? ids : null,
       });
@@ -97,8 +106,8 @@ export default function ContainerTypesPage() {
       setMeta("");
       setCreateDialogOpen(false);
       await load();
-    } catch {
-      toast.error("Не вдалося створити тип тари");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не вдалося створити тип тари"));
     } finally {
       setCreating(false);
     }
@@ -109,15 +118,15 @@ export default function ContainerTypesPage() {
       await updateContainerType(String(item.id), {
         name: item.name,
         codePrefix: item.codePrefix,
-        defaultUnit: item.defaultUnit,
+        defaultUnit: normalizeUnit(item.defaultUnit),
         meta: item.meta,
       });
       toast.success("Тип тари оновлено");
       setEditDialogOpen(false);
       setEditingItem(null);
       await load();
-    } catch {
-      toast.error("Не вдалося оновити тип тари");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не вдалося оновити тип тари"));
     }
   };
 
@@ -132,8 +141,8 @@ export default function ContainerTypesPage() {
       setEditingItem(null);
       setDeleteItem(null);
       await load();
-    } catch {
-      toast.error("Не вдалося видалити тип тари");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не вдалося видалити тип тари"));
     } finally {
       setDeleteLoading(false);
     }
@@ -282,7 +291,17 @@ export default function ContainerTypesPage() {
             <Input placeholder="Назва" value={name} onChange={(e) => setName(e.target.value)} required />
             <div className="grid grid-cols-2 gap-3">
               <Input placeholder="Префікс коду" value={codePrefix} onChange={(e) => setCodePrefix(e.target.value)} />
-              <Input placeholder="Одиниця" value={defaultUnit} onChange={(e) => setDefaultUnit(e.target.value)} />
+              <select
+                value={normalizeUnit(defaultUnit)}
+                onChange={(e) => setDefaultUnit(e.target.value)}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                {MEASUREMENT_UNITS.map((unit) => (
+                  <option key={unit} value={unit}>
+                    {unit}
+                  </option>
+                ))}
+              </select>
             </div>
             <Input
               placeholder="ID типів продукту (1,2,3)"
@@ -323,11 +342,17 @@ export default function ContainerTypesPage() {
                 </div>
                 <div>
                   <label className="text-sm font-medium">Одиниця</label>
-                  <Input
-                    value={editingItem.defaultUnit ?? ""}
+                  <select
+                    value={normalizeUnit(editingItem.defaultUnit)}
                     onChange={(e) => setEditingItem({ ...editingItem, defaultUnit: e.target.value })}
-                    className="mt-1.5"
-                  />
+                    className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  >
+                    {MEASUREMENT_UNITS.map((unit) => (
+                      <option key={unit} value={unit}>
+                        {unit}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
               <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">

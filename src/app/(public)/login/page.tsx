@@ -6,6 +6,7 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { useAuth } from "@/shared/auth/AuthProvider";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { getErrorMessage } from "@/shared/utils/errors";
 
 declare global {
   interface Window {
@@ -58,9 +59,7 @@ export default function LoginPage() {
         toast.success("Успішний вхід!");
         router.push("/");
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Помилка входу";
-        toast.error(message);
+        toast.error(getErrorMessage(err, "Помилка входу"));
       } finally {
         setLoginLoading(false);
       }
@@ -74,6 +73,7 @@ export default function LoginPage() {
 
     function tryInit() {
       if (!window.google || !googleButtonRef.current) return;
+      googleButtonRef.current.innerHTML = "";
       window.google.accounts.id.initialize({
         client_id: clientId!,
         callback: handleCredentialResponse,
@@ -89,6 +89,11 @@ export default function LoginPage() {
     }
 
     tryInit();
+    const failTimer = setTimeout(() => {
+      if (!window.google) {
+        toast.error("Google Sign-In не завантажився. Оновіть сторінку або перевірте блокувальники скриптів");
+      }
+    }, 4000);
     // If not loaded yet, wait for the script
     const timer = setInterval(() => {
       if (window.google) {
@@ -97,7 +102,10 @@ export default function LoginPage() {
       }
     }, 200);
 
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      clearTimeout(failTimer);
+    };
   }, [handleCredentialResponse]);
 
   if (authLoading) {

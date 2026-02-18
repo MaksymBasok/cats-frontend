@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/shared/utils/errors";
 import { useAuth } from "@/shared/auth/AuthProvider";
 import type { ProductTypeDto } from "@/shared/types";
 import {
@@ -59,8 +60,8 @@ export default function ProductTypesPage() {
     setLoading(true);
     try {
       setItems(await getProductTypes());
-    } catch {
-      toast.error("Не вдалося завантажити типи продуктів");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не вдалося завантажити типи продуктів"));
     } finally {
       setLoading(false);
     }
@@ -88,8 +89,8 @@ export default function ProductTypesPage() {
       setMeta("");
       setCreateDialogOpen(false);
       await load();
-    } catch {
-      toast.error("Не вдалося створити тип продукту");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не вдалося створити тип продукту"));
     } finally {
       setCreating(false);
     }
@@ -107,8 +108,8 @@ export default function ProductTypesPage() {
       setEditDialogOpen(false);
       setEditingItem(null);
       await load();
-    } catch {
-      toast.error("Не вдалося оновити тип продукту");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не вдалося оновити тип продукту"));
     }
   };
 
@@ -123,8 +124,8 @@ export default function ProductTypesPage() {
       setEditingItem(null);
       setDeleteItem(null);
       await load();
-    } catch {
-      toast.error("Не вдалося видалити тип продукту");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не вдалося видалити тип продукту"));
     } finally {
       setDeleteLoading(false);
     }

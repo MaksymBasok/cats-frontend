@@ -11,6 +11,13 @@ export class ApiError extends Error {
   }
 }
 
+type ValidationErrorShape = {
+  errors?: Record<string, string[] | undefined>;
+  detail?: string;
+  title?: string;
+  message?: string;
+};
+
 type RequestOptions = {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
@@ -65,11 +72,58 @@ export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T
 
   if (!res.ok) {
     const details = (data ?? {}) as ErrorPayload;
-    const message = details.message || details.title || (typeof data === "string" ? data : null) || `Request failed: ${res.status}`;
+    const message =
+      extractValidationMessage(data) ||
+      details.message ||
+      details.title ||
+      statusMessage(res.status) ||
+      (typeof data === "string" ? data : null) ||
+      `Request failed: ${res.status}`;
+
     throw new ApiError(String(message), res.status, data);
   }
 
   return data as T;
+}
+
+function extractValidationMessage(payload: unknown): string | null {
+  if (!payload || typeof payload !== "object") return null;
+
+  const typed = payload as ValidationErrorShape;
+  const errors = typed.errors;
+  if (!errors || typeof errors !== "object") return null;
+
+  const firstMessage = Object.values(errors)
+    .flatMap((arr) => (Array.isArray(arr) ? arr : []))
+    .find((value) => typeof value === "string" && value.trim().length > 0);
+
+  return firstMessage?.trim() ?? null;
+}
+
+function statusMessage(status: number): string | null {
+  switch (status) {
+    case 400:
+      return "Некоректні дані запиту";
+    case 401:
+      return "Потрібно авторизуватися повторно";
+    case 403:
+      return "Недостатньо прав для цієї дії";
+    case 404:
+      return "Запис не знайдено або вже видалено";
+    case 409:
+      return "Конфлікт даних. Запис може вже існувати";
+    case 422:
+      return "Помилка валідації даних";
+    case 429:
+      return "Забагато запитів. Спробуйте трохи пізніше";
+    case 500:
+    case 502:
+    case 503:
+    case 504:
+      return "Сервер тимчасово недоступний. Спробуйте пізніше";
+    default:
+      return null;
+  }
 }
 
 function safeJsonParse(text: string): unknown {

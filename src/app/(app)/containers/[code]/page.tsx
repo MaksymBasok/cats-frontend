@@ -15,6 +15,7 @@ import { QrGeneratorDialog } from "@/shared/ui/QrGeneratorDialog";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/shared/utils/errors";
 
 function safeParam(p: string | string[] | undefined): string {
   if (!p) return "";
@@ -55,8 +56,8 @@ export default function ContainerDetailPage() {
       } catch {
         setHistory([]);
       }
-    } catch {
-      toast.error("Не вдалося завантажити дані контейнера");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не вдалося завантажити дані контейнера"));
       router.push("/containers");
     } finally {
       setLoading(false);
@@ -71,8 +72,8 @@ export default function ContainerDetailPage() {
       await containersApi.deleteContainer(container.id);
       toast.success("Контейнер видалено");
       router.push("/containers");
-    } catch {
-      toast.error("Не вдалося видалити контейнер");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не вдалося видалити контейнер"));
     } finally {
       setActionLoading(false);
       setDeleteConfirmOpen(false);
@@ -86,8 +87,8 @@ export default function ContainerDetailPage() {
       await containersApi.emptyContainer(container.id);
       toast.success("Контейнер спорожнено");
       await fetchContainerData();
-    } catch {
-      toast.error("Не вдалося спорожнити контейнер");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не вдалося спорожнити контейнер"));
     } finally {
       setActionLoading(false);
       setEmptyConfirmOpen(false);

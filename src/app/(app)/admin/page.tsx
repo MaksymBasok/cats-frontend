@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, UserCheck, UserX, Shield, UserPlus, MailPlus, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/shared/utils/errors";
 
 import type { UserDto, UserRole } from "@/shared/types";
 import * as usersApi from "@/shared/api/users";
@@ -69,8 +70,8 @@ export default function AdminPage() {
       setLoading(true);
       const data = await usersApi.getUsers();
       setUsers(data);
-    } catch {
-      toast.error("Не вдалося завантажити користувачів");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не вдалося завантажити користувачів"));
     } finally {
       setLoading(false);
     }
@@ -81,8 +82,8 @@ export default function AdminPage() {
       await usersApi.activateUser(userId);
       toast.success("Користувача підтверджено");
       await fetchUsers();
-    } catch {
-      toast.error("Не вдалося підтвердити користувача");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не вдалося підтвердити користувача"));
     }
   };
 
@@ -93,8 +94,8 @@ export default function AdminPage() {
       await usersApi.deactivateUser(userId);
       toast.success("Користувача відхилено");
       await fetchUsers();
-    } catch {
-      toast.error("Не вдалося відхилити користувача");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не вдалося відхилити користувача"));
     }
   };
 
@@ -105,8 +106,8 @@ export default function AdminPage() {
       await usersApi.updateUser(userId, { role: "Admin" });
       toast.success("Користувач тепер адміністратор");
       await fetchUsers();
-    } catch {
-      toast.error("Не вдалося оновити роль користувача");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не вдалося оновити роль користувача"));
     }
   };
 
@@ -122,8 +123,8 @@ export default function AdminPage() {
       toast.success("Запрошення створено");
       setInviteEmail("");
       setInviteDialogOpen(false);
-    } catch {
-      toast.error("Не вдалося створити запрошення");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не вдалося створити запрошення"));
     } finally {
       setInviteLoading(false);
     }
@@ -151,8 +152,8 @@ export default function AdminPage() {
       setCreateLastName("");
       setCreateDialogOpen(false);
       await fetchUsers();
-    } catch {
-      toast.error("Не вдалося створити користувача");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не вдалося створити користувача"));
     } finally {
       setCreateLoading(false);
     }
