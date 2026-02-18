@@ -15,7 +15,9 @@ import { QrGeneratorDialog } from "@/shared/ui/QrGeneratorDialog";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { getErrorMessage } from "@/shared/utils/errors";
+import { showErrorToast } from "@/shared/utils/errors";
+import { eventsApi, type Event } from "@/api/events";
+import { ContainerTimeline } from "@/shared/ui/containers/ContainerTimeline";
 
 function safeParam(p: string | string[] | undefined): string {
   if (!p) return "";
@@ -29,6 +31,7 @@ export default function ContainerDetailPage() {
 
   const [container, setContainer] = useState<ContainerDto | null>(null);
   const [history, setHistory] = useState<ContainerFillDto[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [fillOpen, setFillOpen] = useState(false);
   const [editFillOpen, setEditFillOpen] = useState(false);
@@ -56,8 +59,15 @@ export default function ContainerDetailPage() {
       } catch {
         setHistory([]);
       }
+
+      try {
+        const eventItems = await eventsApi.getByContainer(containerData.code ?? code);
+        setEvents(eventItems);
+      } catch {
+        setEvents([]);
+      }
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не вдалося завантажити дані контейнера"));
+      showErrorToast(error, "Не вдалося завантажити дані контейнера");
       router.push("/containers");
     } finally {
       setLoading(false);
@@ -73,7 +83,7 @@ export default function ContainerDetailPage() {
       toast.success("Контейнер видалено");
       router.push("/containers");
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не вдалося видалити контейнер"));
+      showErrorToast(error, "Не вдалося видалити контейнер");
     } finally {
       setActionLoading(false);
       setDeleteConfirmOpen(false);
@@ -88,7 +98,7 @@ export default function ContainerDetailPage() {
       toast.success("Контейнер спорожнено");
       await fetchContainerData();
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не вдалося спорожнити контейнер"));
+      showErrorToast(error, "Не вдалося спорожнити контейнер");
     } finally {
       setActionLoading(false);
       setEmptyConfirmOpen(false);
@@ -292,6 +302,24 @@ export default function ContainerDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Аудит дій</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ContainerTimeline
+            events={events.map((event) => ({
+              id: event.id,
+              type: event.type,
+              timestamp: event.timestamp,
+              description: event.data ? JSON.stringify(event.data) : undefined,
+              metadata: event.data,
+              performedBy: { id: event.userId, name: event.userName },
+            }))}
+          />
+        </CardContent>
+      </Card>
 
       {/* Dialogs */}
       {isEmpty && (

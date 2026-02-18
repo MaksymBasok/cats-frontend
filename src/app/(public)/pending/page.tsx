@@ -6,7 +6,7 @@ import { useAuth } from "@/shared/auth/AuthProvider";
 import { Clock, LogOut, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { getErrorMessage } from "@/shared/utils/errors";
+import { showErrorToast } from "@/shared/utils/errors";
 
 export default function PendingPage() {
   const { logout, refreshProfile } = useAuth();
@@ -25,7 +25,7 @@ export default function PendingPage() {
       toast.success("Перевірено! Перенаправляємо...");
       router.push("/");
     } catch (error) {
-      toast.error(getErrorMessage(error, "Обліковий запис ще не активовано"));
+      showErrorToast(error, "Обліковий запис ще не активовано");
     } finally {
       setChecking(false);
     }

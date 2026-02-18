@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { getErrorMessage } from "@/shared/utils/errors";
+import { showErrorToast } from "@/shared/utils/errors";
 import Image from "next/image";
 import { Save, LogOut, UserCircle } from "lucide-react";
 
@@ -59,7 +59,7 @@ export default function ProfilePage() {
       await refreshProfile();
       toast.success("Профіль оновлено");
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не вдалося оновити профіль"));
+      showErrorToast(error, "Не вдалося оновити профіль");
     } finally {
       setSaving(false);
     }

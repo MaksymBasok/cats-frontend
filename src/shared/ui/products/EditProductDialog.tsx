@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { updateProduct } from "@/shared/api/products";
 import type { ProductDto, UpdateProductDto, ProductTypeDto } from "@/shared/types";
 import { toast } from "sonner";
-import { getErrorMessage } from "@/shared/utils/errors";
+import { showErrorToast } from "@/shared/utils/errors";
 
 interface EditProductDialogProps {
   product: ProductDto;
@@ -114,7 +114,7 @@ export function EditProductDialog({
       onUpdated();
       onClose();
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не вдалося оновити продукт"));
+      showErrorToast(error, "Не вдалося оновити продукт");
     } finally {
       setLoading(false);
     }

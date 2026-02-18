@@ -7,7 +7,7 @@ import type { ContainerTypeDto, CreateContainerDto } from "@/shared/types";
 import { createContainer } from "@/shared/api/containers";
 import { toast } from "sonner";
 import { MEASUREMENT_UNITS, normalizeUnit } from "@/shared/constants/units";
-import { getErrorMessage } from "@/shared/utils/errors";
+import { showErrorToast } from "@/shared/utils/errors";
 
 interface CreateContainerDialogProps {
   open: boolean;
@@ -105,7 +105,7 @@ export function CreateContainerDialog({
       onClose();
       setForm(initialForm);
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не вдалося створити тару"));
+      showErrorToast(error, "Не вдалося створити тару");
     } finally {
       setSaving(false);
     }

@@ -23,7 +23,7 @@ import { getProducts } from "@/shared/api/products";
 import type { ContainerDto, ProductDto, UpdateContainerFillDto } from "@/shared/types";
 import { toast } from "sonner";
 import { MEASUREMENT_UNITS, normalizeUnit } from "@/shared/constants/units";
-import { getErrorMessage } from "@/shared/utils/errors";
+import { showErrorToast } from "@/shared/utils/errors";
 
 interface EditFillDialogProps {
   container: ContainerDto;
@@ -112,7 +112,7 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
 
     getProducts()
       .then(setProducts)
-      .catch((error) => toast.error(getErrorMessage(error, "Не вдалося завантажити продукти")));
+      .catch((error) => showErrorToast(error, "Не вдалося завантажити продукти"));
   }, [
     open,
     container.currentProductId,
@@ -189,7 +189,7 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
       onSuccess();
       onClose();
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не вдалося оновити вміст контейнера"));
+      showErrorToast(error, "Не вдалося оновити вміст контейнера");
     } finally {
       setLoading(false);
     }
