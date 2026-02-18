@@ -22,7 +22,7 @@ import { updateContainerFill } from "@/shared/api/containers";
 import { getProducts } from "@/shared/api/products";
 import type { ContainerDto, ProductDto, UpdateContainerFillDto } from "@/shared/types";
 import { toast } from "sonner";
-import { MEASUREMENT_UNITS, normalizeUnit } from "@/shared/constants/units";
+import { normalizeUnit } from "@/shared/constants/units";
 import { showErrorToast } from "@/shared/utils/errors";
 
 interface EditFillDialogProps {
@@ -87,7 +87,7 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
     String(container.currentQuantity ?? container.volume ?? "")
   );
 
-  const [unit, setUnit] = useState<string>(normalizeUnit(container.unit));
+  const unit = normalizeUnit(container.unit);
 
   const [productionDate, setProductionDate] = useState<string>(
     toYmd(container.currentProductionDate) || todayYmd()
@@ -106,7 +106,6 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
 
     setProductIdStr(container.currentProductId != null ? String(container.currentProductId) : "");
     setQuantityStr(String(container.currentQuantity ?? container.volume ?? ""));
-    setUnit(normalizeUnit(container.unit));
     setProductionDate(toYmd(container.currentProductionDate) || todayYmd());
     setExpirationDate(toYmd(container.currentExpirationDate) || "");
 
@@ -158,11 +157,6 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
       return;
     }
 
-    if (!unit.trim()) {
-      toast.error("Вкажіть одиницю виміру");
-      return;
-    }
-
     if (!productionDate) {
       toast.error("Вкажіть дату виробництва");
       return;
@@ -177,7 +171,7 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
       // в твоїх типах productId опціональний, але для edit ми все одно шлемо
       productId: pid,
       quantity,
-      unit: normalizeUnit(unit),
+      unit,
       productionDate,  // YYYY-MM-DD
       expirationDate,  // YYYY-MM-DD (required)
     };
@@ -238,18 +232,7 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
             </div>
             <div className="space-y-2">
               <Label htmlFor="unit">Одиниця</Label>
-              <select
-                id="unit"
-                value={unit}
-                onChange={(e) => setUnit(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              >
-                {MEASUREMENT_UNITS.map((unitOption) => (
-                  <option key={unitOption} value={unitOption}>
-                    {unitOption}
-                  </option>
-                ))}
-              </select>
+              <Input id="unit" value={unit || "—"} readOnly className="bg-muted text-muted-foreground" />
             </div>
           </div>
 
@@ -278,6 +261,7 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
                 Автоматично розраховано з терміну придатності продукту (можна змінити вручну).
               </p>
             ) : null}
+            <p className="text-xs text-muted-foreground">Одиниця виміру фіксована та береться з налаштувань тари.</p>
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
