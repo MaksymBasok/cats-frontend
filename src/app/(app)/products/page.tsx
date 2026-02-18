@@ -47,9 +47,27 @@ export default function ProductsPage() {
   }, []);
 
   useEffect(() => {
-    Promise.all([fetchProducts(), getProductTypes()])
-      .then(([, types]) => setProductTypes(types))
-      .catch(() => {});
+    let cancelled = false;
+
+    const loadProductTypes = async () => {
+      try {
+        const types = await getProductTypes();
+        if (!cancelled) {
+          setProductTypes(types);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          showErrorToast(error, "Не вдалося завантажити типи продуктів");
+        }
+      }
+    };
+
+    void fetchProducts();
+    void loadProductTypes();
+
+    return () => {
+      cancelled = true;
+    };
   }, [fetchProducts]);
 
   // Debounced search (similar behavior to containers page)

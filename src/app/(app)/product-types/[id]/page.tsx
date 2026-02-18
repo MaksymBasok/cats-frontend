@@ -21,18 +21,25 @@ function safeParam(p: string | string[] | undefined): string {
 export default function ProductTypeDetailPage() {
   const params = useParams();
   const id = safeParam(params.id as string | string[] | undefined);
+  const parsedId = Number(id);
+  const hasValidId = Number.isInteger(parsedId) && parsedId > 0;
 
   const [item, setItem] = useState<ProductTypeDto | null>(null);
   const [products, setProducts] = useState<ProductDto[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    if (!id) return;
+    if (!hasValidId) {
+      setItem(null);
+      setProducts([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const [typeItem, productsByType] = await Promise.all([
-        getProductType(id),
-        searchProducts({ productTypeId: Number(id) }),
+        getProductType(String(parsedId)),
+        searchProducts({ productTypeId: parsedId }),
       ]);
       setItem(typeItem);
       setProducts(productsByType);
@@ -41,11 +48,15 @@ export default function ProductTypeDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [hasValidId, parsedId]);
 
   useEffect(() => {
+    if (!hasValidId) {
+      setLoading(false);
+      return;
+    }
     void load();
-  }, [load]);
+  }, [hasValidId, load]);
 
   if (loading) return <p className="text-sm text-muted-foreground">Завантаження...</p>;
   if (!item) return <p className="text-sm text-muted-foreground">Тип продукту не знайдено.</p>;

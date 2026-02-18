@@ -1,5 +1,7 @@
 import { getAccessToken } from "@/shared/auth/token";
 
+export const AUTH_EXPIRED_EVENT = "cats:auth-expired";
+
 export class ApiError extends Error {
   status: number;
   details?: unknown;
@@ -71,6 +73,10 @@ export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T
         : { raw };
 
   if (!res.ok) {
+    if (res.status === 401 && auth && typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT));
+    }
+
     const details = (data ?? {}) as ErrorPayload;
     const message =
       extractValidationMessage(data) ||

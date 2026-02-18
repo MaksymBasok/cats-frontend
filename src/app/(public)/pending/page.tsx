@@ -21,11 +21,16 @@ export default function PendingPage() {
   const handleRetry = async () => {
     setChecking(true);
     try {
-      await refreshProfile();
-      toast.success("Перевірено! Перенаправляємо...");
-      router.push("/");
+      const profile = await refreshProfile();
+      if (profile?.isActive) {
+        toast.success("Доступ підтверджено. Перенаправляємо...");
+        router.push("/");
+        return;
+      }
+      toast.error("Обліковий запис ще очікує підтвердження адміністратора.");
+      return;
     } catch (error) {
-      showErrorToast(error, "Обліковий запис ще не активовано");
+      showErrorToast(error, "Не вдалося перевірити статус доступу");
     } finally {
       setChecking(false);
     }

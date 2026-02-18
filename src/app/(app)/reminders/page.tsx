@@ -21,6 +21,18 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 
+function toApiDateTime(dateValue: string, endOfDay = false): string | undefined {
+  if (!dateValue) return undefined;
+  const parsed = new Date(`${dateValue}T${endOfDay ? "23:59:59.999" : "00:00:00.000"}`);
+  if (Number.isNaN(parsed.getTime())) return undefined;
+  return parsed.toISOString();
+}
+
+function parseIsoSafely(value: string): Date | null {
+  const parsed = parseISO(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 export default function RemindersPage() {
   const [fills, setFills] = useState<ContainerFillDto[]>([]);
   const [containers, setContainers] = useState<ContainerDto[]>([]);
@@ -33,11 +45,25 @@ export default function RemindersPage() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
+  const isDateRangeInvalid = useMemo(() => {
+    return Boolean(fromDate && toDate && fromDate > toDate);
+  }, [fromDate, toDate]);
+
   const load = useCallback(async () => {
+    if (isDateRangeInvalid) {
+      setFills([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const [fillsData, containersData, productsData] = await Promise.all([
-        searchContainerFills({ onlyActive: true, fromDate: fromDate || undefined, toDate: toDate || undefined }),
+        searchContainerFills({
+          onlyActive: true,
+          fromDate: toApiDateTime(fromDate),
+          toDate: toApiDateTime(toDate, true),
+        }),
         getContainers(),
         getProducts(),
       ]);
@@ -49,7 +75,7 @@ export default function RemindersPage() {
     } finally {
       setLoading(false);
     }
-  }, [fromDate, toDate]);
+  }, [fromDate, isDateRangeInvalid, toDate]);
 
   useEffect(() => {
     void load();
@@ -59,12 +85,35 @@ export default function RemindersPage() {
     return fills
       .filter((f) => (selectedContainer === "all" ? true : String(f.containerId) === selectedContainer))
       .filter((f) => (selectedProduct === "all" ? true : String(f.productId) === selectedProduct))
-      .sort((a, b) => +new Date(a.expirationDate) - +new Date(b.expirationDate));
+      .sort((a, b) => {
+        const first = parseIsoSafely(a.expirationDate)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+        const second = parseIsoSafely(b.expirationDate)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+        return first - second;
+      });
   }, [fills, selectedContainer, selectedProduct]);
 
-  const expiredCount = filtered.filter((f) => isBefore(parseISO(f.expirationDate), new Date())).length;
-  const dueTodayCount = filtered.filter((f) => differenceInCalendarDays(parseISO(f.expirationDate), new Date()) === 0).length;
-  const nearestExpiration = filtered[0] ? parseISO(filtered[0].expirationDate) : null;
+  const expiredCount = useMemo(() => {
+    return filtered.reduce((acc, item) => {
+      const expiresAt = parseIsoSafely(item.expirationDate);
+      if (!expiresAt) return acc;
+      return isBefore(expiresAt, new Date()) ? acc + 1 : acc;
+    }, 0);
+  }, [filtered]);
+
+  const dueTodayCount = useMemo(() => {
+    return filtered.reduce((acc, item) => {
+      const expiresAt = parseIsoSafely(item.expirationDate);
+      if (!expiresAt) return acc;
+      return differenceInCalendarDays(expiresAt, new Date()) === 0 ? acc + 1 : acc;
+    }, 0);
+  }, [filtered]);
+
+  const nearestExpiration = useMemo(() => {
+    const dates = filtered
+      .map((item) => parseIsoSafely(item.expirationDate))
+      .filter((value): value is Date => value !== null);
+    return dates.length > 0 ? dates[0] : null;
+  }, [filtered]);
   const hasActiveFilters =
     selectedContainer !== "all" ||
     selectedProduct !== "all" ||
@@ -156,6 +205,12 @@ export default function RemindersPage() {
             <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
             </div>
 
+            {isDateRangeInvalid && (
+              <p className="mt-2 text-sm text-destructive">
+                Дата &quot;Від&quot; не може бути пізніше за дату &quot;До&quot;.
+              </p>
+            )}
+
             {hasActiveFilters && (
               <button
                 type="button"
@@ -170,6 +225,8 @@ export default function RemindersPage() {
         <CardContent className="space-y-3 pt-0">
           {loading ? (
             <p className="text-sm text-muted-foreground">Завантаження...</p>
+          ) : isDateRangeInvalid ? (
+            <p className="text-sm text-destructive">Виправте діапазон дат, щоб побачити записи.</p>
           ) : filtered.length === 0 ? (
             <p className="text-sm text-muted-foreground">Немає записів.</p>
           ) : (
@@ -188,18 +245,21 @@ export default function RemindersPage() {
                   </TableHeader>
                   <TableBody>
                     {filtered.map((row) => {
-                      const expires = parseISO(row.expirationDate);
-                      const daysLeft = differenceInCalendarDays(expires, new Date());
-                      const expired = daysLeft < 0;
-                      const soon = daysLeft >= 0 && daysLeft <= 3;
+                      const expires = parseIsoSafely(row.expirationDate);
+                      const filledAt = parseIsoSafely(row.filledDate);
+                      const daysLeft = expires ? differenceInCalendarDays(expires, new Date()) : null;
+                      const expired = daysLeft != null && daysLeft < 0;
+                      const soon = daysLeft != null && daysLeft >= 0 && daysLeft <= 3;
 
                       return (
                         <TableRow key={row.id} className="transition-colors hover:bg-muted/50">
                           <TableCell className="font-medium">Тара {row.containerCode ?? `#${row.containerId}`} · {row.productName}</TableCell>
                           <TableCell>{row.quantity} {row.unit}</TableCell>
-                          <TableCell className="text-muted-foreground">{format(parseISO(row.filledDate), "dd.MM.yyyy HH:mm")}</TableCell>
-                          <TableCell className="text-muted-foreground">{format(expires, "dd.MM.yyyy HH:mm")}</TableCell>
-                          <TableCell className="text-right font-medium">{daysLeft < 0 ? `${Math.abs(daysLeft)} дн. тому` : `${daysLeft} дн.`}</TableCell>
+                          <TableCell className="text-muted-foreground">{filledAt ? format(filledAt, "dd.MM.yyyy HH:mm") : "—"}</TableCell>
+                          <TableCell className="text-muted-foreground">{expires ? format(expires, "dd.MM.yyyy HH:mm") : "—"}</TableCell>
+                          <TableCell className="text-right font-medium">
+                            {daysLeft == null ? "—" : daysLeft < 0 ? `${Math.abs(daysLeft)} дн. тому` : `${daysLeft} дн.`}
+                          </TableCell>
                           <TableCell>
                             <Badge variant={expired ? "destructive" : soon ? "secondary" : "outline"}>
                               {expired ? "Прострочено" : soon ? "Термін скоро" : "Нормально"}
@@ -214,10 +274,11 @@ export default function RemindersPage() {
 
               <div className="grid gap-3 md:hidden">
                 {filtered.map((row) => {
-                  const expires = parseISO(row.expirationDate);
-                  const daysLeft = differenceInCalendarDays(expires, new Date());
-                  const expired = daysLeft < 0;
-                  const soon = daysLeft >= 0 && daysLeft <= 3;
+                  const expires = parseIsoSafely(row.expirationDate);
+                  const filledAt = parseIsoSafely(row.filledDate);
+                  const daysLeft = expires ? differenceInCalendarDays(expires, new Date()) : null;
+                  const expired = daysLeft != null && daysLeft < 0;
+                  const soon = daysLeft != null && daysLeft >= 0 && daysLeft <= 3;
 
                   return (
                     <div key={row.id} className="space-y-1 rounded-xl border bg-card p-4 text-sm shadow-sm">
@@ -228,9 +289,11 @@ export default function RemindersPage() {
                         </Badge>
                       </div>
                       <p className="text-muted-foreground">Партія: {row.quantity} {row.unit}</p>
-                      <p className="text-muted-foreground">Дата наповнення: {format(parseISO(row.filledDate), "dd.MM.yyyy HH:mm")}</p>
-                      <p className="text-muted-foreground">Термін придатності: {format(expires, "dd.MM.yyyy HH:mm")}</p>
-                      <p className="font-medium">Залишок: {daysLeft < 0 ? `${Math.abs(daysLeft)} дн. тому` : `${daysLeft} дн.`}</p>
+                      <p className="text-muted-foreground">Дата наповнення: {filledAt ? format(filledAt, "dd.MM.yyyy HH:mm") : "—"}</p>
+                      <p className="text-muted-foreground">Термін придатності: {expires ? format(expires, "dd.MM.yyyy HH:mm") : "—"}</p>
+                      <p className="font-medium">
+                        Залишок: {daysLeft == null ? "—" : daysLeft < 0 ? `${Math.abs(daysLeft)} дн. тому` : `${daysLeft} дн.`}
+                      </p>
                     </div>
                   );
                 })}

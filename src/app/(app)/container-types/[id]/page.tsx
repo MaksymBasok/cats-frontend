@@ -22,18 +22,25 @@ export default function ContainerTypeDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = safeParam(params.id as string | string[] | undefined);
+  const parsedId = Number(id);
+  const hasValidId = Number.isInteger(parsedId) && parsedId > 0;
 
   const [item, setItem] = useState<ContainerTypeDto | null>(null);
   const [containers, setContainers] = useState<ContainerDto[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    if (!id) return;
+    if (!hasValidId) {
+      setItem(null);
+      setContainers([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const [typeItem, typeContainers] = await Promise.all([
-        getContainerType(id),
-        searchContainers({ containerTypeId: Number(id) }),
+        getContainerType(String(parsedId)),
+        searchContainers({ containerTypeId: parsedId }),
       ]);
       setItem(typeItem);
       setContainers(typeContainers);
@@ -42,11 +49,15 @@ export default function ContainerTypeDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [hasValidId, parsedId]);
 
   useEffect(() => {
+    if (!hasValidId) {
+      setLoading(false);
+      return;
+    }
     void load();
-  }, [load]);
+  }, [hasValidId, load]);
 
   if (loading) return <p className="text-sm text-muted-foreground">Завантаження...</p>;
   if (!item) return <p className="text-sm text-muted-foreground">Тип тари не знайдено.</p>;

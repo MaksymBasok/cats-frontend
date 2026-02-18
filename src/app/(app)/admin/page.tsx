@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import {
   Table,
   TableBody,
@@ -56,6 +57,11 @@ export default function AdminPage() {
 
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [rejectUser, setRejectUser] = useState<UserDto | null>(null);
+  const [promoteUser, setPromoteUser] = useState<UserDto | null>(null);
+  const [actionUserId, setActionUserId] = useState<string | null>(null);
+
+  const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
   useEffect(() => {
     if (!isAdmin) {
@@ -78,36 +84,55 @@ export default function AdminPage() {
   };
 
   const handleApprove = async (userId: string) => {
+    setActionUserId(userId);
     try {
       await usersApi.activateUser(userId);
       toast.success("Користувача підтверджено");
       await fetchUsers();
     } catch (error) {
       showErrorToast(error, "Не вдалося підтвердити користувача");
+    } finally {
+      setActionUserId(null);
     }
   };
 
-  const handleReject = async (userId: string) => {
-    if (!window.confirm("Відхилити цього користувача?")) return;
+  const handleReject = (user: UserDto) => {
+    setRejectUser(user);
+  };
+
+  const confirmReject = async () => {
+    if (!rejectUser) return;
+    setActionUserId(rejectUser.id);
 
     try {
-      await usersApi.deactivateUser(userId);
+      await usersApi.deactivateUser(rejectUser.id);
       toast.success("Користувача відхилено");
       await fetchUsers();
+      setRejectUser(null);
     } catch (error) {
       showErrorToast(error, "Не вдалося відхилити користувача");
+    } finally {
+      setActionUserId(null);
     }
   };
 
-  const handleMakeAdmin = async (userId: string) => {
-    if (!window.confirm("Надати цьому користувачу права адміністратора?")) return;
+  const handleMakeAdmin = (user: UserDto) => {
+    setPromoteUser(user);
+  };
+
+  const confirmMakeAdmin = async () => {
+    if (!promoteUser) return;
+    setActionUserId(promoteUser.id);
 
     try {
-      await usersApi.updateUser(userId, { role: "Admin" });
-      toast.success("Користувач тепер адміністратор");
+      await usersApi.updateUser(promoteUser.id, { role: "Admin" });
+      toast.success("Роль користувача оновлено");
       await fetchUsers();
+      setPromoteUser(null);
     } catch (error) {
       showErrorToast(error, "Не вдалося оновити роль користувача");
+    } finally {
+      setActionUserId(null);
     }
   };
 
@@ -115,6 +140,10 @@ export default function AdminPage() {
     e.preventDefault();
     if (!inviteEmail.trim()) {
       toast.error("Вкажіть email");
+      return;
+    }
+    if (!isValidEmail(inviteEmail)) {
+      toast.error("Вкажіть коректний email");
       return;
     }
     setInviteLoading(true);
@@ -137,6 +166,10 @@ export default function AdminPage() {
       return;
     }
 
+    if (!isValidEmail(createEmail)) {
+      toast.error("Вкажіть коректний email");
+      return;
+    }
     setCreateLoading(true);
     try {
       await usersApi.createUser({
@@ -231,10 +264,10 @@ export default function AdminPage() {
                       <div className="font-medium">{(u.firstName ?? "—") + " " + (u.lastName ?? "")}</div>
                       <div className="text-sm text-muted-foreground">{u.email}</div>
                       <div className="mt-3 flex gap-2">
-                        <Button size="sm" onClick={() => handleApprove(u.id)} className="flex-1">
+                        <Button size="sm" onClick={() => handleApprove(u.id)} className="flex-1" disabled={actionUserId === u.id}>
                           <UserCheck className="mr-2 h-4 w-4" /> Підтвердити
                         </Button>
-                        <Button size="sm" variant="destructive" onClick={() => handleReject(u.id)}>
+                        <Button size="sm" variant="destructive" onClick={() => handleReject(u)} disabled={actionUserId === u.id}>
                           <UserX className="h-4 w-4" />
                         </Button>
                       </div>
@@ -258,10 +291,10 @@ export default function AdminPage() {
                           <TableCell className="text-muted-foreground">{u.email}</TableCell>
                           <TableCell>
                             <div className="flex gap-2">
-                              <Button size="sm" onClick={() => handleApprove(u.id)}>
+                              <Button size="sm" onClick={() => handleApprove(u.id)} disabled={actionUserId === u.id}>
                                 <UserCheck className="mr-2 h-4 w-4" /> Підтвердити
                               </Button>
-                              <Button size="sm" variant="destructive" onClick={() => handleReject(u.id)}>
+                              <Button size="sm" variant="destructive" onClick={() => handleReject(u)} disabled={actionUserId === u.id}>
                                 <UserX className="h-4 w-4" />
                               </Button>
                             </div>
@@ -300,7 +333,7 @@ export default function AdminPage() {
                       </div>
                     </div>
                     {u.role !== "Admin" && (
-                      <Button size="sm" variant="outline" onClick={() => handleMakeAdmin(u.id)} className="mt-3 w-full">
+                      <Button size="sm" variant="outline" onClick={() => handleMakeAdmin(u)} className="mt-3 w-full" disabled={actionUserId === u.id}>
                         <Sparkles className="mr-2 h-4 w-4" /> Зробити адміном
                       </Button>
                     )}
@@ -341,7 +374,7 @@ export default function AdminPage() {
                         </TableCell>
                         <TableCell>
                           {u.role !== "Admin" && (
-                            <Button size="sm" variant="outline" onClick={() => handleMakeAdmin(u.id)}>
+                            <Button size="sm" variant="outline" onClick={() => handleMakeAdmin(u)} disabled={actionUserId === u.id}>
                               <Shield className="mr-2 h-4 w-4" /> Адмін
                             </Button>
                           )}
@@ -409,6 +442,30 @@ export default function AdminPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!rejectUser}
+        title="Відхилити користувача?"
+        description={`Користувача ${rejectUser?.email ?? "—"} буде деактивовано.`}
+        confirmLabel="Відхилити"
+        cancelLabel="Скасувати"
+        variant="destructive"
+        onConfirm={confirmReject}
+        onCancel={() => setRejectUser(null)}
+        loading={!!actionUserId && actionUserId === rejectUser?.id}
+      />
+
+      <ConfirmDialog
+        open={!!promoteUser}
+        title="Надати роль адміністратора?"
+        description={`Користувач ${promoteUser?.email ?? "—"} отримає права адміністратора.`}
+        confirmLabel="Надати"
+        cancelLabel="Скасувати"
+        variant="default"
+        onConfirm={confirmMakeAdmin}
+        onCancel={() => setPromoteUser(null)}
+        loading={!!actionUserId && actionUserId === promoteUser?.id}
+      />
     </div>
   );
 }

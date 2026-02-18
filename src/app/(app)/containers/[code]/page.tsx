@@ -28,6 +28,7 @@ export default function ContainerDetailPage() {
   const params = useParams();
   const router = useRouter();
   const code = safeParam(params.code as string | string[] | undefined);
+  const hasCode = code.trim().length > 0;
 
   const [container, setContainer] = useState<ContainerDto | null>(null);
   const [history, setHistory] = useState<ContainerFillDto[]>([]);
@@ -41,10 +42,16 @@ export default function ContainerDetailPage() {
   const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
-    if (!code) return;
+    if (!hasCode) {
+      setLoading(false);
+      setContainer(null);
+      setHistory([]);
+      setEvents([]);
+      return;
+    }
     void fetchContainerData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code]);
+  }, [code, hasCode]);
 
   const fetchContainerData = async () => {
     try {
@@ -68,7 +75,9 @@ export default function ContainerDetailPage() {
       }
     } catch (error) {
       showErrorToast(error, "Не вдалося завантажити дані контейнера");
-      router.push("/containers");
+      setContainer(null);
+      setHistory([]);
+      setEvents([]);
     } finally {
       setLoading(false);
     }
@@ -137,7 +146,29 @@ export default function ContainerDetailPage() {
     );
   }
 
-  if (!container) return null;
+  if (!hasCode) {
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-muted-foreground">Некоректний код контейнера.</p>
+        <Button variant="outline" onClick={() => router.push("/containers")}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          До списку тари
+        </Button>
+      </div>
+    );
+  }
+
+  if (!container) {
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-muted-foreground">Контейнер не знайдено або недоступний.</p>
+        <Button variant="outline" onClick={() => router.push("/containers")}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          До списку тари
+        </Button>
+      </div>
+    );
+  }
 
   const isFull = container.status === "Full";
   const isEmpty = !isFull;

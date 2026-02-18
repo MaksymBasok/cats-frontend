@@ -16,8 +16,11 @@ function extractErrorDetails(error: unknown): string | null {
     }
   }
 
-  if (error instanceof Error && error.stack) {
-    return error.stack;
+  if (error instanceof Error && error.message.trim()) {
+    if (process.env.NODE_ENV !== "production" && error.stack) {
+      return error.stack;
+    }
+    return error.message.trim();
   }
 
   return null;

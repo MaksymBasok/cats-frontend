@@ -12,6 +12,6 @@ export interface Event {
 
 export const eventsApi = {
   getByContainer: async (containerCode: string): Promise<Event[]> => {
-    return api<Event[]>(`/containers/code/${containerCode}/events`)
+    return api<Event[]>(`/containers/code/${encodeURIComponent(containerCode)}/events`)
   }
 }

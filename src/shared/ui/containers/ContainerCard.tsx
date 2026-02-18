@@ -11,15 +11,13 @@ interface ContainerCardProps {
 
 export function ContainerCard({ container }: ContainerCardProps) {
   const isFull = container.status === "Full";
+  const containerHref = container.code ? `/containers/${encodeURIComponent(container.code)}` : null;
 
   const productName = isFull ? container.currentProductName : null;
   const prodDate = isFull ? container.currentProductionDate : null;
 
-  return (
-    <Link
-      href={`/containers/${container.code ?? ""}`}
-      className="group block rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/30 hover:shadow-md active:scale-[0.98]"
-    >
+  const content = (
+    <>
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <div
@@ -68,6 +66,23 @@ export function ContainerCard({ container }: ContainerCardProps) {
           </span>
         )}
       </div>
+    </>
+  );
+
+  if (!containerHref) {
+    return (
+      <div className="group block rounded-xl border border-border bg-card p-4">
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      href={containerHref}
+      className="group block rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/30 hover:shadow-md active:scale-[0.98]"
+    >
+      {content}
     </Link>
   );
 }

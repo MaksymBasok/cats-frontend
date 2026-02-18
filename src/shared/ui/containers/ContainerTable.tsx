@@ -32,6 +32,7 @@ export function ContainerTable({ containers }: ContainerTableProps) {
           <tbody>
             {containers.map((c) => {
               const isFull = c.status === "Full";
+              const containerHref = c.code ? `/containers/${encodeURIComponent(c.code)}` : null;
 
               const product = isFull ? c.currentProductName : null;
               const prodDate = isFull ? c.currentProductionDate : null;
@@ -41,15 +42,22 @@ export function ContainerTable({ containers }: ContainerTableProps) {
                 <tr
                   key={c.id}
                   onClick={() => {
-                    if (c.code) {
-                      router.push(`/containers/${encodeURIComponent(c.code)}`);
+                    if (containerHref) {
+                      router.push(containerHref);
                     }
                   }}
-                  className="cursor-pointer border-b border-border transition-colors last:border-b-0 hover:bg-muted/30"
+                  className={`border-b border-border transition-colors last:border-b-0 ${
+                    containerHref ? "cursor-pointer hover:bg-muted/30" : ""
+                  }`}
                 >
                   <td className="px-4 py-3">
                     <Link
-                      href={`/containers/${c.code ?? ""}`}
+                      href={containerHref ?? "#"}
+                      onClick={(event) => {
+                        if (!containerHref) {
+                          event.preventDefault();
+                        }
+                      }}
                       className="font-semibold text-blue-600 hover:underline dark:text-sky-300"
                     >
                       {c.code ?? "—"}

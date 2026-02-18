@@ -7,6 +7,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -14,6 +15,8 @@ import { useRouter } from "next/navigation";
 import { clearAccessToken, getAccessToken, setAccessToken } from "./token";
 import { getProfile } from "@/shared/api/users";
 import type { UserDto } from "@/shared/types";
+import { AUTH_EXPIRED_EVENT } from "@/shared/api/client";
+import { toast } from "sonner";
 
 interface AuthContextValue {
   user: UserDto | null;
@@ -35,7 +38,7 @@ interface AuthContextValue {
   /**
    * Refetch /profile
    */
-  refreshProfile: () => Promise<void>;
+  refreshProfile: () => Promise<UserDto | null>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -55,6 +58,7 @@ function pickTokenFromSearch(params: URLSearchParams): string | null {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const lastSessionToastAtRef = useRef(0);
 
   const [user, setUser] = useState<UserDto | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -131,10 +135,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [router]
   );
 
+  useEffect(() => {
+    const onAuthExpired = () => {
+      clearAccessToken();
+      setUser(null);
+
+      const now = Date.now();
+      if (now - lastSessionToastAtRef.current > 5000) {
+        toast.error("Сесію завершено. Увійдіть повторно.");
+        lastSessionToastAtRef.current = now;
+      }
+
+      if (window.location.pathname !== "/login") {
+        router.replace("/login");
+      }
+    };
+
+    window.addEventListener(AUTH_EXPIRED_EVENT, onAuthExpired);
+    return () => {
+      window.removeEventListener(AUTH_EXPIRED_EVENT, onAuthExpired);
+    };
+  }, [router]);
+
   const refreshProfile = useCallback(async () => {
     setIsLoading(true);
     try {
-      await fetchProfile();
+      return await fetchProfile();
     } finally {
       setIsLoading(false);
     }

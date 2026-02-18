@@ -54,12 +54,26 @@ export default function ContainersPage() {
 
   // Initial load of filters options
   useEffect(() => {
-    Promise.all([getContainerTypes(), getProductTypes()])
-      .then(([cts, pts]) => {
+    let cancelled = false;
+
+    const loadFilterOptions = async () => {
+      try {
+        const [cts, pts] = await Promise.all([getContainerTypes(), getProductTypes()]);
+        if (cancelled) return;
         setContainerTypes(cts);
         setProductTypes(pts);
-      })
-      .catch(() => {});
+      } catch (error) {
+        if (!cancelled) {
+          showErrorToast(error, "Не вдалося завантажити довідники для фільтрів");
+        }
+      }
+    };
+
+    void loadFilterOptions();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Debounced fetch on any filter change
