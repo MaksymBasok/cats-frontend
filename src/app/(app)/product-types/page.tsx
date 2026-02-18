@@ -1,7 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
-import Link from "next/link";
+import { FormEvent, MouseEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { showErrorToast } from "@/shared/utils/errors";
@@ -137,6 +136,15 @@ export default function ProductTypesPage() {
     setEditDialogOpen(true);
   };
 
+
+  const handleRowNavigation = (event: MouseEvent<HTMLElement>, href: string) => {
+    const target = event.target as HTMLElement;
+    if (target.closest("button") || target.closest("a") || target.closest("input") || target.closest("label")) {
+      return;
+    }
+    router.push(href);
+  };
+
   if (!isAdmin) return null;
 
   return (
@@ -171,11 +179,15 @@ export default function ProductTypesPage() {
               </TableHeader>
               <TableBody>
                 {items.map((item) => (
-                  <TableRow key={item.id} className="transition-colors hover:bg-muted/50">
+                  <TableRow
+                    key={item.id}
+                    className="cursor-pointer transition-colors hover:bg-muted/50"
+                    onClick={(event) => handleRowNavigation(event, `/product-types/${item.id}`)}
+                  >
                     <TableCell>
                       <Badge variant="outline">#{item.id}</Badge>
                     </TableCell>
-                    <TableCell className="font-medium"><Link href={`/product-types/${item.id}`} className="underline-offset-2 hover:underline">{item.name ?? "—"}</Link></TableCell>
+                    <TableCell className="font-medium">{item.name ?? "—"}</TableCell>
                     <TableCell>{item.shelfLifeDays ?? 0}</TableCell>
                     <TableCell>{item.shelfLifeHours ?? 0}</TableCell>
                     <TableCell className="max-w-[240px] truncate text-muted-foreground">
@@ -212,12 +224,16 @@ export default function ProductTypesPage() {
 
           <div className="grid gap-3 md:hidden">
             {items.map((item) => (
-              <Card key={item.id} className="group border-primary/10 transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98]">
+              <Card
+                key={item.id}
+                className="group border-primary/10 transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98]"
+                onClick={(event) => handleRowNavigation(event, `/product-types/${item.id}`)}
+              >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-semibold"><Link href={`/product-types/${item.id}`} className="underline-offset-2 hover:underline">{item.name}</Link></h3>
+                        <h3 className="font-semibold">{item.name}</h3>
                         <Badge variant="secondary" className="text-xs">
                           #{item.id}
                         </Badge>

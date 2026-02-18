@@ -24,6 +24,42 @@ function extractErrorDetails(error: unknown): string | null {
   return null;
 }
 
+function humanizeErrorDetails(error: unknown): string | null {
+  if (error instanceof ApiError) {
+    const details = error.details;
+
+    if (details && typeof details === "object") {
+      const detailValue = (details as { detail?: unknown; message?: unknown; title?: unknown }).detail;
+      if (typeof detailValue === "string" && detailValue.trim()) {
+        return detailValue.trim();
+      }
+
+      const messageValue = (details as { message?: unknown }).message;
+      if (typeof messageValue === "string" && messageValue.trim()) {
+        return messageValue.trim();
+      }
+
+      const titleValue = (details as { title?: unknown }).title;
+      if (typeof titleValue === "string" && titleValue.trim()) {
+        return titleValue.trim();
+      }
+
+      const errors = (details as { errors?: Record<string, string[] | string> }).errors;
+      if (errors && typeof errors === "object") {
+        const firstError = Object.values(errors)
+          .flatMap((entry) => (Array.isArray(entry) ? entry : [entry]))
+          .find((entry) => typeof entry === "string" && entry.trim().length > 0);
+
+        if (typeof firstError === "string") {
+          return firstError.trim();
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
 export function getErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof ApiError) {
     if (error.status === 0) {
@@ -41,15 +77,16 @@ export function getErrorMessage(error: unknown, fallback: string): string {
 }
 
 export function showErrorToast(error: unknown, fallbackTitle: string): void {
-  const title = getErrorMessage(error, fallbackTitle);
   const details = extractErrorDetails(error);
+  const shortReason = humanizeErrorDetails(error);
+  const title = shortReason || getErrorMessage(error, fallbackTitle);
 
   toast.error(title, {
     description: details
       ? createElement(
           "details",
           { className: "mt-1 cursor-pointer text-xs text-muted-foreground" },
-          createElement("summary", { className: "outline-none" }, "Показати більше"),
+          createElement("summary", { className: "outline-none" }, "Показати деталі"),
           createElement(
             "pre",
             {
