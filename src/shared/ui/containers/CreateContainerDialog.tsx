@@ -6,7 +6,7 @@ import { X } from "lucide-react";
 import type { ContainerTypeDto, CreateContainerDto } from "@/shared/types";
 import { createContainer } from "@/shared/api/containers";
 import { toast } from "sonner";
-import { MEASUREMENT_UNITS, normalizeUnit } from "@/shared/constants/units";
+import { normalizeUnit } from "@/shared/constants/units";
 import { showErrorToast } from "@/shared/utils/errors";
 
 interface CreateContainerDialogProps {
@@ -51,6 +51,13 @@ export function CreateContainerDialog({
     return map;
   }, [containerTypes]);
 
+  const selectedTypeUnit = useMemo(() => {
+    const typeId = Number(form.containerTypeId);
+    if (!Number.isFinite(typeId)) return "";
+    const foundUnit = defaultUnitByTypeId.get(typeId);
+    return foundUnit ? normalizeUnit(foundUnit) : "";
+  }, [defaultUnitByTypeId, form.containerTypeId]);
+
   useEffect(() => {
     if (!open) return;
     // reset when opening
@@ -84,7 +91,7 @@ export function CreateContainerDialog({
       ...(code ? { code } : {}),
       name,
       volume: volumeNum,
-      unit: normalizeUnit(form.unit),
+      unit: selectedTypeUnit || normalizeUnit(form.unit),
       containerTypeId: containerTypeIdNum,
       meta: meta ? meta : null,
     };
@@ -171,18 +178,11 @@ export function CreateContainerDialog({
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-card-foreground">Одиниця *</label>
-              <select
-                value={form.unit}
-                onChange={(e) => setForm((p) => ({ ...p, unit: e.target.value }))}
-                required
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                {MEASUREMENT_UNITS.map((unit) => (
-                  <option key={unit} value={unit}>
-                    {unit}
-                  </option>
-                ))}
-              </select>
+              <input
+                value={selectedTypeUnit || "—"}
+                readOnly
+                className="w-full rounded-lg border border-input bg-muted px-3 py-2 text-sm text-muted-foreground"
+              />
             </div>
           </div>
 
@@ -200,7 +200,7 @@ export function CreateContainerDialog({
                 setForm((p) => ({
                   ...p,
                   containerTypeId: v,
-                  unit: suggestedUnit ?? p.unit,
+                  unit: suggestedUnit ? normalizeUnit(suggestedUnit) : p.unit,
                 }));
               }}
               required
@@ -214,6 +214,10 @@ export function CreateContainerDialog({
               ))}
             </select>
           </div>
+
+          <p className="-mt-2 text-xs text-muted-foreground">
+            Одиниця підтягується автоматично з типу тари та не редагується вручну.
+          </p>
 
           <div>
             <label className="mb-1 block text-sm font-medium text-card-foreground">Примітки</label>

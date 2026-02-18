@@ -22,7 +22,7 @@ import { fillContainer } from "@/shared/api/containers";
 import { getProducts } from "@/shared/api/products";
 import type { ContainerDto, FillContainerDto, ProductDto } from "@/shared/types";
 import { toast } from "sonner";
-import { MEASUREMENT_UNITS, normalizeUnit } from "@/shared/constants/units";
+import { normalizeUnit } from "@/shared/constants/units";
 import { showErrorToast } from "@/shared/utils/errors";
 
 interface FillContainerDialogProps {
@@ -66,7 +66,7 @@ export function FillContainerDialog({
 
   const [productIdStr, setProductIdStr] = useState<string>("");
   const [quantityStr, setQuantityStr] = useState<string>("");
-  const [unit, setUnit] = useState<string>(normalizeUnit(container.unit));
+  const unit = normalizeUnit(container.unit);
   const [productionDate, setProductionDate] = useState<string>(todayYmd());
   const [expirationDate, setExpirationDate] = useState<string>(""); // empty => null
 
@@ -78,7 +78,6 @@ export function FillContainerDialog({
     setProducts([]);
     setProductIdStr("");
     setQuantityStr(String(container.volume ?? ""));
-    setUnit(normalizeUnit(container.unit));
     setProductionDate(todayYmd());
     setExpirationDate("");
 
@@ -122,11 +121,6 @@ export function FillContainerDialog({
       return;
     }
 
-    if (!unit.trim()) {
-      toast.error("Вкажіть одиницю виміру");
-      return;
-    }
-
     if (!productionDate) {
       toast.error("Вкажіть дату виробництва");
       return;
@@ -135,7 +129,7 @@ export function FillContainerDialog({
     const payload: FillContainerDto = {
       productId: pid,
       quantity,
-      unit: normalizeUnit(unit),
+      unit,
       productionDate, // YYYY-MM-DD
       expirationDate: expirationDate ? expirationDate : null, // YYYY-MM-DD | null
     };
@@ -197,18 +191,7 @@ export function FillContainerDialog({
 
             <div className="space-y-2">
               <Label htmlFor="unit">Одиниця</Label>
-              <select
-                id="unit"
-                value={unit}
-                onChange={(e) => setUnit(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              >
-                {MEASUREMENT_UNITS.map((unitOption) => (
-                  <option key={unitOption} value={unitOption}>
-                    {unitOption}
-                  </option>
-                ))}
-              </select>
+              <Input id="unit" value={unit || "—"} readOnly className="bg-muted text-muted-foreground" />
             </div>
           </div>
 
@@ -236,6 +219,7 @@ export function FillContainerDialog({
                 Автоматично розраховано з терміну придатності продукту (можна змінити вручну).
               </p>
             ) : null}
+            <p className="text-xs text-muted-foreground">Одиниця виміру фіксована та береться з налаштувань тари.</p>
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
