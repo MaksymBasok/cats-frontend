@@ -27,7 +27,7 @@ function safeParam(p: string | string[] | undefined): string {
 export default function ContainerDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const code = safeParam(params.code as unknown);
+  const code = safeParam(params.code as string | string[] | undefined);
 
   const [container, setContainer] = useState<ContainerDto | null>(null);
   const [history, setHistory] = useState<ContainerFillDto[]>([]);

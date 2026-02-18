@@ -20,7 +20,7 @@ function safeParam(p: string | string[] | undefined): string {
 
 export default function ProductTypeDetailPage() {
   const params = useParams();
-  const id = safeParam(params.id as unknown);
+  const id = safeParam(params.id as string | string[] | undefined);
 
   const [item, setItem] = useState<ProductTypeDto | null>(null);
   const [products, setProducts] = useState<ProductDto[]>([]);

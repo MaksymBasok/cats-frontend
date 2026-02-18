@@ -10,7 +10,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { clearAccessToken, getAccessToken, setAccessToken } from "./token";
 import { getProfile } from "@/shared/api/users";
 import type { UserDto } from "@/shared/types";
@@ -55,7 +55,6 @@ function pickTokenFromSearch(params: URLSearchParams): string | null {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const [user, setUser] = useState<UserDto | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -84,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // 2) oauth redirect case: token in query string
       // NOTE: backend (or your auth flow) must actually put token into query
-      const tokenFromUrl = pickTokenFromSearch(searchParams);
+      const tokenFromUrl = pickTokenFromSearch(new URLSearchParams(window.location.search));
       if (tokenFromUrl) {
         setAccessToken(tokenFromUrl);
         // remove token from URL (avoid leaking via screenshots/history)
@@ -101,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [fetchProfile, searchParams]);
+  }, [fetchProfile]);
 
   useEffect(() => {
     void bootstrap();

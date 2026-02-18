@@ -20,7 +20,8 @@ import {
 } from "@/components/ui/select";
 import { fillContainer } from "@/shared/api/containers";
 import { getProducts } from "@/shared/api/products";
-import type { ContainerDto, FillContainerDto, ProductDto } from "@/shared/types";
+import { getContainerTypes } from "@/shared/api/container-types";
+import type { ContainerDto, ContainerTypeDto, FillContainerDto, ProductDto } from "@/shared/types";
 import { toast } from "sonner";
 import { normalizeUnit } from "@/shared/constants/units";
 import { showErrorToast } from "@/shared/utils/errors";
@@ -62,6 +63,7 @@ export function FillContainerDialog({
   onSuccess,
 }: FillContainerDialogProps) {
   const [products, setProducts] = useState<ProductDto[]>([]);
+  const [containerTypes, setContainerTypes] = useState<ContainerTypeDto[]>([]);
   const [loading, setLoading] = useState(false);
 
   const [productIdStr, setProductIdStr] = useState<string>("");
@@ -70,27 +72,56 @@ export function FillContainerDialog({
   const [productionDate, setProductionDate] = useState<string>(todayYmd());
   const [expirationDate, setExpirationDate] = useState<string>(""); // empty => null
 
+  const allowedProductTypeNames = useMemo(() => {
+    const currentType = containerTypes.find((type) => type.id === container.containerTypeId);
+    const names = currentType?.allowedProductTypeNames ?? null;
+    if (!names || names.length === 0) return null;
+    return new Set(names.map((name) => name.trim().toLowerCase()));
+  }, [container.containerTypeId, containerTypes]);
+
+  const filteredProducts = useMemo(() => {
+    if (!allowedProductTypeNames) return products;
+    return products.filter((product) =>
+      allowedProductTypeNames.has((product.productTypeName ?? "").trim().toLowerCase()),
+    );
+  }, [allowedProductTypeNames, products]);
+
   useEffect(() => {
     if (!open) return;
 
     // reset on open
     setLoading(false);
     setProducts([]);
+    setContainerTypes([]);
     setProductIdStr("");
     setQuantityStr(String(container.volume ?? ""));
     setProductionDate(todayYmd());
     setExpirationDate("");
 
-    getProducts()
-      .then(setProducts)
+    Promise.all([getProducts(), getContainerTypes()])
+      .then(([productItems, containerTypeItems]) => {
+        setProducts(productItems);
+        setContainerTypes(containerTypeItems);
+      })
       .catch((error) => showErrorToast(error, "Не вдалося завантажити продукти"));
-  }, [open, container.volume, container.unit]);
+  }, [open, container.containerTypeId, container.volume, container.unit]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (filteredProducts.length === 1) {
+      setProductIdStr(String(filteredProducts[0].id));
+      return;
+    }
+    if (productIdStr && !filteredProducts.some((product) => String(product.id) === productIdStr)) {
+      setProductIdStr("");
+    }
+  }, [filteredProducts, open, productIdStr]);
 
   const selectedProduct = useMemo(() => {
     const pid = Number(productIdStr);
     if (!Number.isFinite(pid) || pid <= 0) return null;
-    return products.find((p) => p.id === pid) ?? null;
-  }, [productIdStr, products]);
+    return filteredProducts.find((p) => p.id === pid) ?? null;
+  }, [filteredProducts, productIdStr]);
 
   // Auto-calc expiration date if product has shelf life
   useEffect(() => {
@@ -108,6 +139,11 @@ export function FillContainerDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (filteredProducts.length === 0) {
+      toast.error("Немає доступних продуктів для вибраної тари");
+      return;
+    }
 
     const pid = Number(productIdStr);
     if (!Number.isFinite(pid) || pid <= 0) {
@@ -165,7 +201,7 @@ export function FillContainerDialog({
                 <SelectValue placeholder="Оберіть продукт" />
               </SelectTrigger>
               <SelectContent>
-                {products.map((p) => (
+                {filteredProducts.map((p) => (
                   <SelectItem key={p.id} value={String(p.id)}>
                     {p.name ?? "—"}
                     {p.productTypeName ? ` (${p.productTypeName})` : ""}
@@ -173,6 +209,11 @@ export function FillContainerDialog({
                 ))}
               </SelectContent>
             </Select>
+            {filteredProducts.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                Немає доступних продуктів для цього типу тари.
+              </p>
+            ) : null}
           </div>
 
           <div className="grid grid-cols-2 gap-4">

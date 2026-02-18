@@ -21,7 +21,7 @@ function safeParam(p: string | string[] | undefined): string {
 export default function ContainerTypeDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const id = safeParam(params.id as unknown);
+  const id = safeParam(params.id as string | string[] | undefined);
 
   const [item, setItem] = useState<ContainerTypeDto | null>(null);
   const [containers, setContainers] = useState<ContainerDto[]>([]);

@@ -50,6 +50,9 @@ export default function ContainerTypesPage() {
 
   const [editingItem, setEditingItem] = useState<ContainerTypeDto | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editSelectedTypeIds, setEditSelectedTypeIds] = useState<number[]>([]);
+  const [editAllTypesSelected, setEditAllTypesSelected] = useState(true);
+  const [editTypePickerOpen, setEditTypePickerOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteItem, setDeleteItem] = useState<ContainerTypeDto | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -150,15 +153,23 @@ export default function ContainerTypesPage() {
 
   const handleUpdate = async (item: ContainerTypeDto) => {
     try {
+      const allowedProductTypeIds = editAllTypesSelected
+        ? []
+        : Array.from(new Set(editSelectedTypeIds));
+
       await updateContainerType(String(item.id), {
         name: item.name,
         codePrefix: item.codePrefix,
         defaultUnit: normalizeUnit(item.defaultUnit),
         meta: item.meta,
+        allowedProductTypeIds,
       });
       toast.success("Тип тари оновлено");
       setEditDialogOpen(false);
       setEditingItem(null);
+      setEditSelectedTypeIds([]);
+      setEditAllTypesSelected(true);
+      setEditTypePickerOpen(false);
       await load();
     } catch (error) {
       showErrorToast(error, "Не вдалося оновити тип тари");
@@ -184,7 +195,16 @@ export default function ContainerTypesPage() {
   };
 
   const openEditDialog = (item: ContainerTypeDto) => {
+    const allowedNames = (item.allowedProductTypeNames ?? []).map((name) => name.trim().toLowerCase());
+    const idsByName = productTypes
+      .filter((type) => allowedNames.includes(type.name.trim().toLowerCase()))
+      .map((type) => type.id);
+    const isAllTypes = !item.allowedProductTypeNames || item.allowedProductTypeNames.length === 0;
+
     setEditingItem({ ...item });
+    setEditAllTypesSelected(isAllTypes);
+    setEditSelectedTypeIds(idsByName);
+    setEditTypePickerOpen(false);
     setEditDialogOpen(true);
   };
 
@@ -196,6 +216,30 @@ export default function ContainerTypesPage() {
     }
     setSelectedTypeIds((prev) => prev.filter((id) => id !== typeId));
   };
+
+  const handleEditTypeToggle = (typeId: number, checked: boolean) => {
+    setEditAllTypesSelected(false);
+    if (checked) {
+      setEditSelectedTypeIds((prev) => Array.from(new Set([...prev, typeId])));
+      return;
+    }
+    setEditSelectedTypeIds((prev) => prev.filter((id) => id !== typeId));
+  };
+
+  const editSelectedTypeNames = useMemo(() => {
+    if (editAllTypesSelected) {
+      return "Усі типи продуктів";
+    }
+
+    if (!editSelectedTypeIds.length) {
+      return "Типи не вибрані";
+    }
+
+    return productTypes
+      .filter((type) => editSelectedTypeIds.includes(type.id))
+      .map((type) => type.name)
+      .join(", ");
+  }, [editAllTypesSelected, editSelectedTypeIds, productTypes]);
 
   const handleRowNavigation = (event: MouseEvent<HTMLElement>, href: string) => {
     const target = event.target as HTMLElement;
@@ -473,6 +517,47 @@ export default function ContainerTypesPage() {
                 {editingItem.allowedProductTypeNames?.length
                   ? editingItem.allowedProductTypeNames.join(", ")
                   : "усі"}
+              </div>
+              <div className="space-y-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-between"
+                  onClick={() => setEditTypePickerOpen((prev) => !prev)}
+                >
+                  <span className="line-clamp-1 text-left">{editSelectedTypeNames}</span>
+                  <ChevronDown className="ml-2 h-4 w-4 shrink-0" />
+                </Button>
+                {editTypePickerOpen && (
+                  <div className="rounded-md border bg-background p-3">
+                    <label className="mb-2 flex cursor-pointer items-center gap-2 rounded px-1 py-1.5 hover:bg-muted/60">
+                      <input
+                        type="checkbox"
+                        checked={editAllTypesSelected}
+                        onChange={(e) => {
+                          setEditAllTypesSelected(e.target.checked);
+                          if (e.target.checked) {
+                            setEditSelectedTypeIds([]);
+                          }
+                        }}
+                      />
+                      <span className="font-medium">Усі типи продуктів</span>
+                    </label>
+                    <div className="max-h-40 space-y-1 overflow-auto pr-1 text-sm">
+                      {productTypes.map((type) => (
+                        <label key={type.id} className="flex cursor-pointer items-center gap-2 rounded px-1 py-1.5 hover:bg-muted/60">
+                          <input
+                            type="checkbox"
+                            checked={!editAllTypesSelected && editSelectedTypeIds.includes(type.id)}
+                            onChange={(e) => handleEditTypeToggle(type.id, e.target.checked)}
+                          />
+                          <span className="flex-1">{type.name}</span>
+                          <span className="text-xs text-muted-foreground">#{type.id}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               <div>
                 <label className="text-sm font-medium">Meta</label>

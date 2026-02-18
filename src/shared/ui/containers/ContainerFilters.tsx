@@ -208,7 +208,7 @@ export function ContainerFilters({
                   checked={filledTodayChecked}
                   onChange={(e) =>
                     update({
-                      filledToday: e.target.checked ? todayYmd() : undefined,
+                      filledToday: e.target.checked ? toIsoStartOfDay(todayYmd()) : undefined,
                     })
                   }
                   className="rounded border-input"
