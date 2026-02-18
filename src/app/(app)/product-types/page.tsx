@@ -1,9 +1,10 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { getErrorMessage } from "@/shared/utils/errors";
+import { showErrorToast } from "@/shared/utils/errors";
 import { useAuth } from "@/shared/auth/AuthProvider";
 import type { ProductTypeDto } from "@/shared/types";
 import {
@@ -61,7 +62,7 @@ export default function ProductTypesPage() {
     try {
       setItems(await getProductTypes());
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не вдалося завантажити типи продуктів"));
+      showErrorToast(error, "Не вдалося завантажити типи продуктів");
     } finally {
       setLoading(false);
     }
@@ -90,7 +91,7 @@ export default function ProductTypesPage() {
       setCreateDialogOpen(false);
       await load();
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не вдалося створити тип продукту"));
+      showErrorToast(error, "Не вдалося створити тип продукту");
     } finally {
       setCreating(false);
     }
@@ -109,7 +110,7 @@ export default function ProductTypesPage() {
       setEditingItem(null);
       await load();
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не вдалося оновити тип продукту"));
+      showErrorToast(error, "Не вдалося оновити тип продукту");
     }
   };
 
@@ -125,7 +126,7 @@ export default function ProductTypesPage() {
       setDeleteItem(null);
       await load();
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не вдалося видалити тип продукту"));
+      showErrorToast(error, "Не вдалося видалити тип продукту");
     } finally {
       setDeleteLoading(false);
     }
@@ -174,7 +175,7 @@ export default function ProductTypesPage() {
                     <TableCell>
                       <Badge variant="outline">#{item.id}</Badge>
                     </TableCell>
-                    <TableCell className="font-medium">{item.name ?? "—"}</TableCell>
+                    <TableCell className="font-medium"><Link href={`/product-types/${item.id}`} className="underline-offset-2 hover:underline">{item.name ?? "—"}</Link></TableCell>
                     <TableCell>{item.shelfLifeDays ?? 0}</TableCell>
                     <TableCell>{item.shelfLifeHours ?? 0}</TableCell>
                     <TableCell className="max-w-[240px] truncate text-muted-foreground">
@@ -216,7 +217,7 @@ export default function ProductTypesPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-semibold">{item.name}</h3>
+                        <h3 className="font-semibold"><Link href={`/product-types/${item.id}`} className="underline-offset-2 hover:underline">{item.name}</Link></h3>
                         <Badge variant="secondary" className="text-xs">
                           #{item.id}
                         </Badge>

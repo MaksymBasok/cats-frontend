@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/shared/auth/AuthProvider";
@@ -11,6 +12,7 @@ import {
   getContainerTypes,
   updateContainerType,
 } from "@/shared/api/container-types";
+import { getProductTypes } from "@/shared/api/product-types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, Save, Trash2, Edit } from "lucide-react";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { MEASUREMENT_UNITS, normalizeUnit } from "@/shared/constants/units";
-import { getErrorMessage } from "@/shared/utils/errors";
+import { showErrorToast } from "@/shared/utils/errors";
 import {
   Table,
   TableBody,
@@ -35,6 +37,7 @@ export default function ContainerTypesPage() {
   const router = useRouter();
 
   const [items, setItems] = useState<ContainerTypeDto[]>([]);
+  const [productTypes, setProductTypes] = useState<{ id: number; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
 
@@ -42,6 +45,7 @@ export default function ContainerTypesPage() {
   const [codePrefix, setCodePrefix] = useState("");
   const [defaultUnit, setDefaultUnit] = useState("");
   const [allowedTypeIds, setAllowedTypeIds] = useState("");
+  const [selectedTypeIds, setSelectedTypeIds] = useState<number[]>([]);
   const [meta, setMeta] = useState("");
 
   const [editingItem, setEditingItem] = useState<ContainerTypeDto | null>(null);
@@ -61,12 +65,25 @@ export default function ContainerTypesPage() {
   const load = async () => {
     setLoading(true);
     try {
-      setItems(await getContainerTypes());
+      const [containerTypes, productTypeItems] = await Promise.all([getContainerTypes(), getProductTypes()]);
+      setItems(containerTypes);
+      setProductTypes(
+        productTypeItems.map((type) => ({ id: type.id, name: type.name?.trim() || `Тип #${type.id}` })),
+      );
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не вдалося завантажити типи тари"));
+      showErrorToast(error, "Не вдалося завантажити типи тари");
     } finally {
       setLoading(false);
     }
+  };
+
+  const autoCodePrefix = (value: string) => {
+    const onlyLetters = value
+      .toUpperCase()
+      .replace(/[^A-ZА-ЯІЇЄҐ]/g, "")
+      .slice(0, 2);
+
+    setCodePrefix((prev) => (prev.trim().length > 0 ? prev : onlyLetters));
   };
 
   const onCreate = async (e: FormEvent) => {
@@ -83,7 +100,8 @@ export default function ContainerTypesPage() {
         .map((v) => v.trim())
         .filter(Boolean);
 
-      const ids = idCandidates.map((value) => Number(value));
+      const idsFromInput = idCandidates.map((value) => Number(value));
+      const ids = Array.from(new Set([...selectedTypeIds, ...idsFromInput]));
       const hasInvalidIds = ids.some((value) => !Number.isInteger(value) || value <= 0);
       if (hasInvalidIds) {
         toast.error("ID типів продукту мають бути додатними цілими числами через кому");
@@ -103,11 +121,12 @@ export default function ContainerTypesPage() {
       setCodePrefix("");
       setDefaultUnit("");
       setAllowedTypeIds("");
+      setSelectedTypeIds([]);
       setMeta("");
       setCreateDialogOpen(false);
       await load();
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не вдалося створити тип тари"));
+      showErrorToast(error, "Не вдалося створити тип тари");
     } finally {
       setCreating(false);
     }
@@ -126,7 +145,7 @@ export default function ContainerTypesPage() {
       setEditingItem(null);
       await load();
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не вдалося оновити тип тари"));
+      showErrorToast(error, "Не вдалося оновити тип тари");
     }
   };
 
@@ -142,7 +161,7 @@ export default function ContainerTypesPage() {
       setDeleteItem(null);
       await load();
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не вдалося видалити тип тари"));
+      showErrorToast(error, "Не вдалося видалити тип тари");
     } finally {
       setDeleteLoading(false);
     }
@@ -151,6 +170,14 @@ export default function ContainerTypesPage() {
   const openEditDialog = (item: ContainerTypeDto) => {
     setEditingItem({ ...item });
     setEditDialogOpen(true);
+  };
+
+  const handleTypeToggle = (typeId: number, checked: boolean) => {
+    if (checked) {
+      setSelectedTypeIds((prev) => Array.from(new Set([...prev, typeId])));
+      return;
+    }
+    setSelectedTypeIds((prev) => prev.filter((id) => id !== typeId));
   };
 
   if (!isAdmin) return null;
@@ -191,7 +218,7 @@ export default function ContainerTypesPage() {
                     <TableCell>
                       <Badge variant="outline">#{item.id}</Badge>
                     </TableCell>
-                    <TableCell className="font-medium">{item.name ?? "—"}</TableCell>
+                    <TableCell className="font-medium"><Link href={`/container-types/${item.id}`} className="underline-offset-2 hover:underline">{item.name ?? "—"}</Link></TableCell>
                     <TableCell>
                       <Badge variant="secondary">{item.codePrefix || "—"}</Badge>
                     </TableCell>
@@ -235,7 +262,7 @@ export default function ContainerTypesPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-semibold">{item.name}</h3>
+                        <h3 className="font-semibold"><Link href={`/container-types/${item.id}`} className="underline-offset-2 hover:underline">{item.name}</Link></h3>
                         <Badge variant="secondary" className="text-xs">
                           #{item.id}
                         </Badge>
@@ -288,7 +315,15 @@ export default function ContainerTypesPage() {
             <DialogTitle>Додати новий тип тари</DialogTitle>
           </DialogHeader>
           <form onSubmit={onCreate} className="grid gap-3">
-            <Input placeholder="Назва" value={name} onChange={(e) => setName(e.target.value)} required />
+            <Input
+              placeholder="Назва"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                autoCodePrefix(e.target.value);
+              }}
+              required
+            />
             <div className="grid grid-cols-2 gap-3">
               <Input placeholder="Префікс коду" value={codePrefix} onChange={(e) => setCodePrefix(e.target.value)} />
               <select
@@ -308,6 +343,26 @@ export default function ContainerTypesPage() {
               value={allowedTypeIds}
               onChange={(e) => setAllowedTypeIds(e.target.value)}
             />
+            <div className="rounded-md border p-3">
+              <p className="mb-2 text-sm font-medium">Оберіть типи продукту зі списку</p>
+              <div className="max-h-40 space-y-2 overflow-auto pr-1 text-sm">
+                {productTypes.length === 0 ? (
+                  <p className="text-muted-foreground">Типи продуктів не знайдені</p>
+                ) : (
+                  productTypes.map((type) => (
+                    <label key={type.id} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedTypeIds.includes(type.id)}
+                        onChange={(e) => handleTypeToggle(type.id, e.target.checked)}
+                      />
+                      <span>{type.name}</span>
+                      <span className="text-xs text-muted-foreground">#{type.id}</span>
+                    </label>
+                  ))
+                )}
+              </div>
+            </div>
             <Textarea placeholder="Meta / примітки" value={meta} onChange={(e) => setMeta(e.target.value)} rows={3} />
             <Button disabled={creating} type="submit" className="gap-2">
               <Plus className="h-4 w-4" /> Додати

@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createProduct } from "@/shared/api/products";
 import type { CreateProductDto, ProductTypeDto } from "@/shared/types";
 import { toast } from "sonner";
-import { getErrorMessage } from "@/shared/utils/errors";
+import { showErrorToast } from "@/shared/utils/errors";
 
 interface CreateProductDialogProps {
   open: boolean;
@@ -106,7 +106,7 @@ export function CreateProductDialog({
       onClose();
       setForm(initialForm);
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не вдалося створити продукт"));
+      showErrorToast(error, "Не вдалося створити продукт");
     } finally {
       setLoading(false);
     }

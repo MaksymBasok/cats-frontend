@@ -13,8 +13,7 @@ import { ContainerFilters } from "@/shared/ui/containers/ContainerFilters";
 import { ContainerCard } from "@/shared/ui/containers/ContainerCard";
 import { ContainerTable } from "@/shared/ui/containers/ContainerTable";
 import { CreateContainerDialog } from "@/shared/ui/containers/CreateContainerDialog";
-import { toast } from "sonner";
-import { getErrorMessage } from "@/shared/utils/errors";
+import { showErrorToast } from "@/shared/utils/errors";
 
 export default function ContainersPage() {
   const { isAdmin } = useAuth();
@@ -45,7 +44,7 @@ export default function ContainersPage() {
         const data = await searchContainers(f);
         setContainers(data);
       } catch (error) {
-        toast.error(getErrorMessage(error, "Не вдалося завантажити тару"));
+        showErrorToast(error, "Не вдалося завантажити тару");
       } finally {
         setLoading(false);
       }

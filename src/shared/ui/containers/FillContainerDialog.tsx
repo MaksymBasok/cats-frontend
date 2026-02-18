@@ -23,7 +23,7 @@ import { getProducts } from "@/shared/api/products";
 import type { ContainerDto, FillContainerDto, ProductDto } from "@/shared/types";
 import { toast } from "sonner";
 import { MEASUREMENT_UNITS, normalizeUnit } from "@/shared/constants/units";
-import { getErrorMessage } from "@/shared/utils/errors";
+import { showErrorToast } from "@/shared/utils/errors";
 
 interface FillContainerDialogProps {
   container: ContainerDto;
@@ -84,7 +84,7 @@ export function FillContainerDialog({
 
     getProducts()
       .then(setProducts)
-      .catch((error) => toast.error(getErrorMessage(error, "Не вдалося завантажити продукти")));
+      .catch((error) => showErrorToast(error, "Не вдалося завантажити продукти"));
   }, [open, container.volume, container.unit]);
 
   const selectedProduct = useMemo(() => {
@@ -147,7 +147,7 @@ export function FillContainerDialog({
       onSuccess();
       onClose();
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не вдалося заповнити контейнер"));
+      showErrorToast(error, "Не вдалося заповнити контейнер");
     } finally {
       setLoading(false);
     }

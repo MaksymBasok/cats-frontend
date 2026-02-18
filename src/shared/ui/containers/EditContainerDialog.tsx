@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { MEASUREMENT_UNITS, normalizeUnit } from "@/shared/constants/units";
-import { getErrorMessage } from "@/shared/utils/errors";
+import { showErrorToast } from "@/shared/utils/errors";
 
 interface EditContainerDialogProps {
   container: ContainerDto;
@@ -112,7 +112,7 @@ export function EditContainerDialog({
       onSuccess();
       onClose();
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не вдалося оновити тару"));
+      showErrorToast(error, "Не вдалося оновити тару");
     } finally {
       setSaving(false);
     }

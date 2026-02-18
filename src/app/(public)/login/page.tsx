@@ -6,7 +6,7 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { useAuth } from "@/shared/auth/AuthProvider";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { getErrorMessage } from "@/shared/utils/errors";
+import { showErrorToast } from "@/shared/utils/errors";
 
 declare global {
   interface Window {
@@ -59,7 +59,7 @@ export default function LoginPage() {
         toast.success("Успішний вхід!");
         router.push("/");
       } catch (err) {
-        toast.error(getErrorMessage(err, "Помилка входу"));
+        showErrorToast(err, "Помилка входу");
       } finally {
         setLoginLoading(false);
       }
