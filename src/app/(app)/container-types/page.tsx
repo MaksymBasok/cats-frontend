@@ -128,7 +128,7 @@ export default function ContainerTypesPage() {
         codePrefix: codePrefix.trim() || null,
         defaultUnit: normalizeUnit(defaultUnit),
         meta: meta.trim() || null,
-        allowedProductTypeIds: allTypesSelected ? null : ids,
+        allowedProductTypeIds: allTypesSelected ? [] : ids,
       });
 
       toast.success("Тип тари створено");

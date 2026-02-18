@@ -9,10 +9,9 @@ function extractErrorDetails(error: unknown): string | null {
     }
 
     if (error.details && typeof error.details === "object") {
-      try {
-        return JSON.stringify(error.details, null, 2);
-      } catch {
-        return String(error.details);
+      const plainText = toPlainText(error.details);
+      if (plainText) {
+        return plainText;
       }
     }
   }
@@ -22,6 +21,32 @@ function extractErrorDetails(error: unknown): string | null {
   }
 
   return null;
+}
+
+function toPlainText(value: unknown, prefix = ""): string | null {
+  if (value == null) return null;
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? `${prefix}${trimmed}` : null;
+  }
+
+  if (Array.isArray(value)) {
+    const lines = value
+      .map((item, index) => toPlainText(item, prefix ? `${prefix}${index + 1}. ` : ""))
+      .filter((line): line is string => Boolean(line));
+    return lines.length > 0 ? lines.join("\n") : null;
+  }
+
+  if (typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>);
+    const lines = entries
+      .map(([key, entryValue]) => toPlainText(entryValue, `${prefix}${key}: `))
+      .filter((line): line is string => Boolean(line));
+    return lines.length > 0 ? lines.join("\n") : null;
+  }
+
+  return `${prefix}${String(value)}`;
 }
 
 function humanizeErrorDetails(error: unknown): string | null {
@@ -85,13 +110,13 @@ export function showErrorToast(error: unknown, fallbackTitle: string): void {
     description: details
       ? createElement(
           "details",
-          { className: "mt-1 cursor-pointer text-xs text-muted-foreground" },
+          { className: "mt-1 cursor-pointer text-sm text-muted-foreground" },
           createElement("summary", { className: "outline-none" }, "Показати деталі"),
           createElement(
-            "pre",
+            "p",
             {
               className:
-                "mt-2 max-h-48 overflow-auto whitespace-pre-wrap rounded-md border border-border/80 bg-muted/40 p-2 text-[11px] leading-relaxed",
+                "mt-2 max-h-52 overflow-auto whitespace-pre-wrap rounded-md border border-border bg-background/90 p-3 text-sm leading-relaxed text-foreground",
             },
             details,
           ),
