@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { MEASUREMENT_UNITS, normalizeUnit } from "@/shared/constants/units";
+import { getErrorMessage } from "@/shared/utils/errors";
 
 interface EditContainerDialogProps {
   container: ContainerDto;
@@ -51,7 +53,7 @@ export function EditContainerDialog({
     () => ({
       name: container.name ?? "",
       volume: Number.isFinite(container.volume) ? String(container.volume) : "",
-      unit: container.unit ?? "",
+      unit: normalizeUnit(container.unit),
       containerTypeId: container.containerTypeId != null ? String(container.containerTypeId) : "",
       meta: container.meta ?? "",
     }),
@@ -68,7 +70,7 @@ export function EditContainerDialog({
 
   const buildDto = (): UpdateContainerDto | null => {
     const name = form.name.trim();
-    const unit = form.unit.trim();
+    const unit = normalizeUnit(form.unit);
     const meta = form.meta.trim();
 
     const volumeNum = form.volume.trim() ? Number(form.volume) : NaN;
@@ -90,7 +92,7 @@ export function EditContainerDialog({
     const dto: UpdateContainerDto = {
       name,
       volume: volumeNum,
-      unit: unit || null,
+      unit,
       containerTypeId: typeIdNum,
       meta: meta ? meta : null,
     };
@@ -109,8 +111,8 @@ export function EditContainerDialog({
       toast.success("Тару оновлено");
       onSuccess();
       onClose();
-    } catch {
-      toast.error("Не вдалося оновити тару");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не вдалося оновити тару"));
     } finally {
       setSaving(false);
     }
@@ -153,12 +155,18 @@ export function EditContainerDialog({
 
             <div className="space-y-2">
               <Label htmlFor="unit">Одиниця *</Label>
-              <Input
+              <select
                 id="unit"
                 value={form.unit}
                 onChange={(e) => setForm((p) => ({ ...p, unit: e.target.value }))}
-                required
-              />
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                {MEASUREMENT_UNITS.map((unitOption) => (
+                  <option key={unitOption} value={unitOption}>
+                    {unitOption}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 

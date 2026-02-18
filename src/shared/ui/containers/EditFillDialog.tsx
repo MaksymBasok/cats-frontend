@@ -22,6 +22,8 @@ import { updateContainerFill } from "@/shared/api/containers";
 import { getProducts } from "@/shared/api/products";
 import type { ContainerDto, ProductDto, UpdateContainerFillDto } from "@/shared/types";
 import { toast } from "sonner";
+import { MEASUREMENT_UNITS, normalizeUnit } from "@/shared/constants/units";
+import { getErrorMessage } from "@/shared/utils/errors";
 
 interface EditFillDialogProps {
   container: ContainerDto;
@@ -85,7 +87,7 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
     String(container.currentQuantity ?? container.volume ?? "")
   );
 
-  const [unit, setUnit] = useState<string>(container.unit ?? "");
+  const [unit, setUnit] = useState<string>(normalizeUnit(container.unit));
 
   const [productionDate, setProductionDate] = useState<string>(
     toYmd(container.currentProductionDate) || todayYmd()
@@ -104,13 +106,13 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
 
     setProductIdStr(container.currentProductId != null ? String(container.currentProductId) : "");
     setQuantityStr(String(container.currentQuantity ?? container.volume ?? ""));
-    setUnit(container.unit ?? "");
+    setUnit(normalizeUnit(container.unit));
     setProductionDate(toYmd(container.currentProductionDate) || todayYmd());
     setExpirationDate(toYmd(container.currentExpirationDate) || "");
 
     getProducts()
       .then(setProducts)
-      .catch(() => toast.error("Не вдалося завантажити продукти"));
+      .catch((error) => toast.error(getErrorMessage(error, "Не вдалося завантажити продукти")));
   }, [
     open,
     container.currentProductId,
@@ -175,7 +177,7 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
       // в твоїх типах productId опціональний, але для edit ми все одно шлемо
       productId: pid,
       quantity,
-      unit: unit.trim() || null,
+      unit: normalizeUnit(unit),
       productionDate,  // YYYY-MM-DD
       expirationDate,  // YYYY-MM-DD (required)
     };
@@ -186,8 +188,8 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
       toast.success("Вміст контейнера оновлено");
       onSuccess();
       onClose();
-    } catch {
-      toast.error("Не вдалося оновити вміст контейнера");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не вдалося оновити вміст контейнера"));
     } finally {
       setLoading(false);
     }
@@ -236,12 +238,18 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
             </div>
             <div className="space-y-2">
               <Label htmlFor="unit">Одиниця</Label>
-              <Input
+              <select
                 id="unit"
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
-                required
-              />
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                {MEASUREMENT_UNITS.map((unitOption) => (
+                  <option key={unitOption} value={unitOption}>
+                    {unitOption}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 

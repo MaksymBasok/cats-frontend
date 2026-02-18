@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { differenceInCalendarDays, format, isBefore, parseISO } from "date-fns";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/shared/utils/errors";
 import { getContainers, searchContainerFills } from "@/shared/api/containers";
 import { getProducts } from "@/shared/api/products";
 import type { ContainerFillDto, ContainerDto, ProductDto } from "@/shared/types";
@@ -44,8 +45,8 @@ export default function RemindersPage() {
       setFills(fillsData);
       setContainers(containersData);
       setProducts(productsData);
-    } catch {
-      toast.error("Не вдалося завантажити технологічні дати");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не вдалося завантажити технологічні дати"));
     } finally {
       setLoading(false);
     }

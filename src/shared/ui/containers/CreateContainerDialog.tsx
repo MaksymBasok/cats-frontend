@@ -6,6 +6,8 @@ import { X } from "lucide-react";
 import type { ContainerTypeDto, CreateContainerDto } from "@/shared/types";
 import { createContainer } from "@/shared/api/containers";
 import { toast } from "sonner";
+import { MEASUREMENT_UNITS, normalizeUnit } from "@/shared/constants/units";
+import { getErrorMessage } from "@/shared/utils/errors";
 
 interface CreateContainerDialogProps {
   open: boolean;
@@ -27,7 +29,7 @@ const initialForm: FormState = {
   code: "",
   name: "",
   volume: "",
-  unit: "л",
+  unit: normalizeUnit("л"),
   containerTypeId: "",
   meta: "",
 };
@@ -82,7 +84,7 @@ export function CreateContainerDialog({
       ...(code ? { code } : {}),
       name,
       volume: volumeNum,
-      unit: form.unit.trim() || null,
+      unit: normalizeUnit(form.unit),
       containerTypeId: containerTypeIdNum,
       meta: meta ? meta : null,
     };
@@ -102,8 +104,8 @@ export function CreateContainerDialog({
       onCreated();
       onClose();
       setForm(initialForm);
-    } catch {
-      toast.error("Не вдалося створити тару");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не вдалося створити тару"));
     } finally {
       setSaving(false);
     }
@@ -169,13 +171,18 @@ export function CreateContainerDialog({
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-card-foreground">Одиниця *</label>
-              <input
-                type="text"
+              <select
                 value={form.unit}
                 onChange={(e) => setForm((p) => ({ ...p, unit: e.target.value }))}
                 required
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
+              >
+                {MEASUREMENT_UNITS.map((unit) => (
+                  <option key={unit} value={unit}>
+                    {unit}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 

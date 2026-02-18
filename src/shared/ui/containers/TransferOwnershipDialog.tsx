@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ContainerDto } from "@/shared/types";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/shared/utils/errors";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,8 +76,8 @@ export function TransferOwnershipDialog({
       onSuccess();
       onClose();
       setEmail("");
-    } catch {
-      toast.error("Не вдалося змінити власника");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не вдалося змінити власника"));
     } finally {
       setLoading(false);
     }

@@ -22,6 +22,8 @@ import { fillContainer } from "@/shared/api/containers";
 import { getProducts } from "@/shared/api/products";
 import type { ContainerDto, FillContainerDto, ProductDto } from "@/shared/types";
 import { toast } from "sonner";
+import { MEASUREMENT_UNITS, normalizeUnit } from "@/shared/constants/units";
+import { getErrorMessage } from "@/shared/utils/errors";
 
 interface FillContainerDialogProps {
   container: ContainerDto;
@@ -64,7 +66,7 @@ export function FillContainerDialog({
 
   const [productIdStr, setProductIdStr] = useState<string>("");
   const [quantityStr, setQuantityStr] = useState<string>("");
-  const [unit, setUnit] = useState<string>(container.unit ?? "");
+  const [unit, setUnit] = useState<string>(normalizeUnit(container.unit));
   const [productionDate, setProductionDate] = useState<string>(todayYmd());
   const [expirationDate, setExpirationDate] = useState<string>(""); // empty => null
 
@@ -76,13 +78,13 @@ export function FillContainerDialog({
     setProducts([]);
     setProductIdStr("");
     setQuantityStr(String(container.volume ?? ""));
-    setUnit(container.unit ?? "");
+    setUnit(normalizeUnit(container.unit));
     setProductionDate(todayYmd());
     setExpirationDate("");
 
     getProducts()
       .then(setProducts)
-      .catch(() => toast.error("Не вдалося завантажити продукти"));
+      .catch((error) => toast.error(getErrorMessage(error, "Не вдалося завантажити продукти")));
   }, [open, container.volume, container.unit]);
 
   const selectedProduct = useMemo(() => {
@@ -133,7 +135,7 @@ export function FillContainerDialog({
     const payload: FillContainerDto = {
       productId: pid,
       quantity,
-      unit: unit.trim() || null,
+      unit: normalizeUnit(unit),
       productionDate, // YYYY-MM-DD
       expirationDate: expirationDate ? expirationDate : null, // YYYY-MM-DD | null
     };
@@ -144,8 +146,8 @@ export function FillContainerDialog({
       toast.success("Контейнер заповнено");
       onSuccess();
       onClose();
-    } catch {
-      toast.error("Не вдалося заповнити контейнер");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не вдалося заповнити контейнер"));
     } finally {
       setLoading(false);
     }
@@ -195,12 +197,18 @@ export function FillContainerDialog({
 
             <div className="space-y-2">
               <Label htmlFor="unit">Одиниця</Label>
-              <Input
+              <select
                 id="unit"
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
-                required
-              />
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                {MEASUREMENT_UNITS.map((unitOption) => (
+                  <option key={unitOption} value={unitOption}>
+                    {unitOption}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
