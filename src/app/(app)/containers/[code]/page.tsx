@@ -278,46 +278,57 @@ export default function ContainerDetailPage() {
       </Card>
 
       {/* History */}
-      {history.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Історія</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {history.map((fill) => (
-                <div key={fill.id} className="border-l-2 border-primary py-2 pl-4">
-                  <div className="font-medium">{fill.productName ?? "—"}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {fill.quantity} {fill.unit ?? ""} • {format(new Date(fill.filledDate), "dd.MM.yyyy HH:mm")}
-                  </div>
-                  {fill.emptiedDate && (
-                    <div className="text-sm text-muted-foreground">
-                      Спорожнено: {format(new Date(fill.emptiedDate), "dd.MM.yyyy HH:mm")}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       <Card>
         <CardHeader>
-          <CardTitle>Аудит дій</CardTitle>
+          <CardTitle>Історія та аудит</CardTitle>
         </CardHeader>
-        <CardContent>
-          <ContainerTimeline
-            events={events.map((event) => ({
-              id: event.id,
-              type: event.type,
-              timestamp: event.timestamp,
-              description: event.data ? JSON.stringify(event.data) : undefined,
-              metadata: event.data,
-              performedBy: { id: event.userId, name: event.userName },
-            }))}
-          />
+        <CardContent className="space-y-4">
+          <details open className="rounded-lg border border-border p-3">
+            <summary className="cursor-pointer font-medium">Історія вмісту тари</summary>
+            {history.length > 0 ? (
+              <div className="mt-4 space-y-4">
+                {history.map((fill) => (
+                  <div key={fill.id} className="rounded-md border border-border/80 bg-muted/20 p-3">
+                    <div className="font-medium">{fill.productName ?? "—"}</div>
+                    <div className="text-sm text-muted-foreground">
+                      Кількість: {fill.quantity} {fill.unit ?? ""}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Дата заповнення: {format(new Date(fill.filledDate), "dd.MM.yyyy HH:mm")}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Дата виробництва: {format(new Date(fill.productionDate), "dd.MM.yyyy")}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Термін придатності: {format(new Date(fill.expirationDate), "dd.MM.yyyy")}
+                    </div>
+                    {fill.emptiedDate && (
+                      <div className="text-sm text-muted-foreground">
+                        Дата спорожнення: {format(new Date(fill.emptiedDate), "dd.MM.yyyy HH:mm")}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-muted-foreground">Історія вмісту поки порожня.</p>
+            )}
+          </details>
+
+          <details open className="rounded-lg border border-border p-3">
+            <summary className="cursor-pointer font-medium">Аудит дій</summary>
+            <div className="mt-4">
+              <ContainerTimeline
+                events={events.map((event) => ({
+                  id: event.id,
+                  type: event.type,
+                  timestamp: event.timestamp,
+                  metadata: event.data,
+                  performedBy: { id: event.userId, name: event.userName },
+                }))}
+              />
+            </div>
+          </details>
         </CardContent>
       </Card>
 

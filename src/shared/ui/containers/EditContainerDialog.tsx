@@ -41,14 +41,6 @@ export function EditContainerDialog({
 }: EditContainerDialogProps) {
   const [saving, setSaving] = useState(false);
 
-  const typeDefaultUnit = useMemo(() => {
-    const map = new Map<number, string>();
-    for (const ct of containerTypes) {
-      if (ct.id != null && ct.defaultUnit) map.set(ct.id, ct.defaultUnit);
-    }
-    return map;
-  }, [containerTypes]);
-
   const initialForm: FormState = useMemo(
     () => ({
       name: container.name ?? "",
@@ -158,8 +150,8 @@ export function EditContainerDialog({
               <select
                 id="unit"
                 value={form.unit}
-                onChange={(e) => setForm((p) => ({ ...p, unit: e.target.value }))}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                disabled
+                className="w-full rounded-lg border border-input bg-muted px-3 py-2 text-sm text-muted-foreground"
               >
                 {MEASUREMENT_UNITS.map((unitOption) => (
                   <option key={unitOption} value={unitOption}>
@@ -171,23 +163,12 @@ export function EditContainerDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="containerTypeId">Тип тари *</Label>
+            <Label htmlFor="containerTypeId">Тип тари</Label>
             <select
               id="containerTypeId"
               value={form.containerTypeId}
-              onChange={(e) => {
-                const v = e.target.value;
-                const idNum = v ? Number(v) : NaN;
-                const suggestedUnit = Number.isFinite(idNum) ? typeDefaultUnit.get(idNum) : undefined;
-
-                setForm((p) => ({
-                  ...p,
-                  containerTypeId: v,
-                  unit: suggestedUnit ?? p.unit,
-                }));
-              }}
-              required
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              disabled
+              className="w-full rounded-lg border border-input bg-muted px-3 py-2 text-sm text-muted-foreground"
             >
               <option value="">Оберіть тип...</option>
               {containerTypes.map((ct) => (
@@ -197,6 +178,8 @@ export function EditContainerDialog({
               ))}
             </select>
           </div>
+
+          <p className="text-xs text-muted-foreground">Одиниця та тип тари фіксуються при створенні і не редагуються, щоб зберегти коректну історію.</p>
 
           <div className="space-y-2">
             <Label htmlFor="meta">Примітки</Label>
