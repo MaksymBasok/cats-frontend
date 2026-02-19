@@ -1,7 +1,7 @@
 // src/app/(app)/containers/[code]/page.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import type { ContainerDto, ContainerFillDto, ContainerStatus } from "@/shared/types";
 import * as containersApi from "@/shared/api/containers";
@@ -19,6 +19,7 @@ import { showErrorToast } from "@/shared/utils/errors";
 import { eventsApi, type Event } from "@/api/events";
 import { ContainerTimeline } from "@/shared/ui/containers/ContainerTimeline";
 import { useAuth } from "@/shared/auth/AuthProvider";
+import { ApiError } from "@/shared/api/client";
 
 function safeParam(p: string | string[] | undefined): string {
   if (!p) return "";
@@ -42,60 +43,86 @@ export default function ContainerDetailPage() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [emptyConfirmOpen, setEmptyConfirmOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [historyLoadFailed, setHistoryLoadFailed] = useState(false);
   const [eventsLoadFailed, setEventsLoadFailed] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [eventsLoading, setEventsLoading] = useState(false);
 
-  useEffect(() => {
+  const fetchHistory = useCallback(async (containerId: number) => {
+    setHistoryLoading(true);
+    setHistoryLoadFailed(false);
+    try {
+      const historyData = await containersApi.getContainerHistory(containerId);
+      setHistory(historyData);
+    } catch {
+      setHistory([]);
+      setHistoryLoadFailed(true);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+
+  const fetchEvents = useCallback(async (containerCode: string) => {
+    setEventsLoading(true);
+    setEventsLoadFailed(false);
+    try {
+      const eventItems = await eventsApi.getByContainer(containerCode);
+      setEvents(eventItems);
+    } catch {
+      setEvents([]);
+      setEventsLoadFailed(true);
+    } finally {
+      setEventsLoading(false);
+    }
+  }, []);
+
+  const fetchContainerData = useCallback(async () => {
     if (!hasCode) {
       setLoading(false);
+      setLoadError(null);
       setContainer(null);
       setHistory([]);
       setEvents([]);
       setHistoryLoadFailed(false);
       setEventsLoadFailed(false);
-      setHistoryLoadFailed(false);
-      setEventsLoadFailed(false);
+      setHistoryLoading(false);
+      setEventsLoading(false);
       return;
     }
-    void fetchContainerData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code, hasCode]);
 
-  const fetchContainerData = async () => {
     try {
       setLoading(true);
-      setHistoryLoadFailed(false);
-      setEventsLoadFailed(false);
+      setLoadError(null);
 
       const containerData = await containersApi.getContainerByCode(code);
       setContainer(containerData);
 
-      try {
-        const historyData = await containersApi.getContainerHistory(containerData.id);
-        setHistory(historyData);
-      } catch {
-        setHistory([]);
-        setHistoryLoadFailed(true);
-      }
-
-      try {
-        const eventItems = await eventsApi.getByContainer(containerData.code ?? code);
-        setEvents(eventItems);
-      } catch {
-        setEvents([]);
-        setEventsLoadFailed(true);
-      }
+      await Promise.all([
+        fetchHistory(containerData.id),
+        fetchEvents(containerData.code ?? code),
+      ]);
     } catch (error) {
-      showErrorToast(error, "Не вдалося завантажити дані контейнера");
       setContainer(null);
       setHistory([]);
       setEvents([]);
       setHistoryLoadFailed(false);
       setEventsLoadFailed(false);
+      setHistoryLoading(false);
+      setEventsLoading(false);
+      setLoadError("Failed to load container data.");
+
+      if (!(error instanceof ApiError && error.status === 404)) {
+        showErrorToast(error, "Failed to load container data");
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [code, fetchEvents, fetchHistory, hasCode]);
+
+  useEffect(() => {
+    void fetchContainerData();
+  }, [fetchContainerData]);
 
   const handleDelete = async () => {
     if (!container) return;
@@ -103,10 +130,10 @@ export default function ContainerDetailPage() {
     try {
       setActionLoading(true);
       await containersApi.deleteContainer(container.id);
-      toast.success("Контейнер видалено");
+      toast.success("Container deleted");
       router.push("/containers");
     } catch (error) {
-      showErrorToast(error, "Не вдалося видалити контейнер");
+      showErrorToast(error, "Failed to delete container");
     } finally {
       setActionLoading(false);
       setDeleteConfirmOpen(false);
@@ -118,10 +145,10 @@ export default function ContainerDetailPage() {
     try {
       setActionLoading(true);
       await containersApi.emptyContainer(container.id);
-      toast.success("Контейнер спорожнено");
+      toast.success("Container emptied");
       await fetchContainerData();
     } catch (error) {
-      showErrorToast(error, "Не вдалося спорожнити контейнер");
+      showErrorToast(error, "Failed to empty container");
     } finally {
       setActionLoading(false);
       setEmptyConfirmOpen(false);
@@ -133,16 +160,16 @@ export default function ContainerDetailPage() {
   };
 
   const qrUrl = useMemo(() => {
-    if (!container) return "";
+    if (!container || typeof window === "undefined") return "";
     const containerCode = container.code ?? code;
     return `${window.location.origin}/containers/${encodeURIComponent(containerCode)}`;
   }, [container, code]);
 
   const statusLabel = useMemo(() => {
     const s: ContainerStatus | null = container?.status ?? null;
-    if (s === "Empty") return "Порожній";
-    if (s === "Full") return "Заповнений";
-    return "—";
+    if (s === "Empty") return "Empty";
+    if (s === "Full") return "Full";
+    return "-";
   }, [container?.status]);
 
   const statusDotClass = useMemo(() => {
@@ -163,10 +190,10 @@ export default function ContainerDetailPage() {
   if (!hasCode) {
     return (
       <div className="space-y-4">
-        <p className="text-sm text-muted-foreground">Некоректний код контейнера.</p>
+        <p className="text-sm text-muted-foreground">Invalid container code.</p>
         <Button variant="outline" onClick={() => router.push("/containers")}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          До списку тари
+          Back to containers
         </Button>
       </div>
     );
@@ -175,11 +202,18 @@ export default function ContainerDetailPage() {
   if (!container) {
     return (
       <div className="space-y-4">
-        <p className="text-sm text-muted-foreground">Контейнер не знайдено або недоступний.</p>
-        <Button variant="outline" onClick={() => router.push("/containers")}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          До списку тари
-        </Button>
+        <p className="text-sm text-muted-foreground">{loadError ?? "Container not found."}</p>
+        <div className="flex flex-wrap gap-2">
+          {loadError ? (
+            <Button variant="outline" onClick={() => void fetchContainerData()}>
+              Retry
+            </Button>
+          ) : null}
+          <Button variant="outline" onClick={() => router.push("/containers")}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to containers
+          </Button>
+        </div>
       </div>
     );
   }
@@ -197,7 +231,6 @@ export default function ContainerDetailPage() {
 
   return (
     <div className="space-y-6 pb-20 md:pb-6">
-      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Button variant="outline" size="icon" onClick={() => router.push("/containers")}>
@@ -212,16 +245,21 @@ export default function ContainerDetailPage() {
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              Створено {format(new Date(container.createdAt), "dd.MM.yyyy")}
+              Created {format(new Date(container.createdAt), "dd.MM.yyyy")}
             </p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           {isEmpty ? (
-            <Button size="sm" onClick={() => setFillOpen(true)} className="bg-brand-navy">
+            <Button
+              size="sm"
+              onClick={() => setFillOpen(true)}
+              className="bg-brand-navy"
+              disabled={actionLoading}
+            >
               <Droplets className="mr-2 h-4 w-4" />
-              Заповнити
+              Fill
             </Button>
           ) : (
             <>
@@ -229,19 +267,25 @@ export default function ContainerDetailPage() {
                 size="sm"
                 variant="outline"
                 onClick={() => setEditFillOpen(true)}
-                aria-label="Редагувати"
+                aria-label="Edit fill"
+                disabled={actionLoading}
               >
                 <Edit className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Редагувати</span>
+                <span className="hidden sm:inline">Edit</span>
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setEmptyConfirmOpen(true)}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setEmptyConfirmOpen(true)}
+                disabled={actionLoading}
+              >
                 <X className="mr-2 h-4 w-4" />
-                Спорожнити
+                Empty
               </Button>
             </>
           )}
 
-          <Button variant="outline" size="sm" onClick={handleExportQR}>
+          <Button variant="outline" size="sm" onClick={handleExportQR} disabled={actionLoading}>
             <Download className="mr-2 h-4 w-4" />
             QR
           </Button>
@@ -252,6 +296,7 @@ export default function ContainerDetailPage() {
               size="sm"
               onClick={() => setDeleteConfirmOpen(true)}
               aria-label="Delete container"
+              disabled={actionLoading}
             >
               <Trash2 className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Delete</span>
@@ -260,62 +305,60 @@ export default function ContainerDetailPage() {
         </div>
       </div>
 
-      {/* Details Card */}
       <Card>
         <CardHeader>
-          <CardTitle>Деталі</CardTitle>
+          <CardTitle>Details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Код контейнера</p>
+              <p className="text-sm font-medium text-muted-foreground">Code</p>
               <p className="text-lg font-medium">{containerCode}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Назва</p>
-              <p className="text-lg font-medium">{container.name ?? "—"}</p>
+              <p className="text-sm font-medium text-muted-foreground">Name</p>
+              <p className="text-lg font-medium">{container.name ?? "-"}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Об&apos;єм</p>
+              <p className="text-sm font-medium text-muted-foreground">Volume</p>
               <p className="text-lg font-medium">
                 {container.volume} {container.unit ?? ""}
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Тип контейнера</p>
-              <p className="text-lg font-medium">{container.containerTypeName ?? "—"}</p>
+              <p className="text-sm font-medium text-muted-foreground">Type</p>
+              <p className="text-lg font-medium">{container.containerTypeName ?? "-"}</p>
             </div>
           </div>
 
-          {/* Current content */}
           {hasCurrentContent && (
             <div className="border-t pt-4">
-              <h3 className="mb-2 font-medium">Поточний вміст</h3>
+              <h3 className="mb-2 font-medium">Current content</h3>
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Продукт</p>
-                  <p className="text-lg font-medium">{container.currentProductName ?? "—"}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Product</p>
+                  <p className="text-lg font-medium">{container.currentProductName ?? "-"}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Кількість</p>
+                  <p className="text-sm font-medium text-muted-foreground">Quantity</p>
                   <p className="text-lg font-medium">
-                    {container.currentQuantity ?? "—"} {container.unit ?? ""}
+                    {container.currentQuantity ?? "-"} {container.unit ?? ""}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Дата виробництва</p>
+                  <p className="text-sm font-medium text-muted-foreground">Production date</p>
                   <p className="text-lg font-medium">
                     {container.currentProductionDate
                       ? format(new Date(container.currentProductionDate), "dd.MM.yyyy")
-                      : "—"}
+                      : "-"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Термін придатності</p>
+                  <p className="text-sm font-medium text-muted-foreground">Expiration date</p>
                   <p className="text-lg font-medium">
                     {container.currentExpirationDate
                       ? format(new Date(container.currentExpirationDate), "dd.MM.yyyy")
-                      : "—"}
+                      : "-"}
                   </p>
                 </div>
               </div>
@@ -324,72 +367,94 @@ export default function ContainerDetailPage() {
         </CardContent>
       </Card>
 
-      {/* History */}
       <Card>
         <CardHeader>
-          <CardTitle>Історія та аудит</CardTitle>
+          <CardTitle>History and audit</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <details open className="rounded-lg border border-border p-3">
-            <summary className="cursor-pointer font-medium">Історія вмісту тари</summary>
-            {historyLoadFailed && (
-              <p className="mt-3 text-sm text-destructive">
-                Failed to load content history.
-              </p>
-            )}
-            {history.length > 0 ? (
+            <summary className="cursor-pointer font-medium">Content history</summary>
+
+            {historyLoadFailed ? (
+              <div className="mt-3 flex flex-col items-start gap-2">
+                <p className="text-sm text-destructive">Failed to load content history.</p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void fetchHistory(container.id)}
+                  disabled={historyLoading}
+                >
+                  Retry
+                </Button>
+              </div>
+            ) : historyLoading ? (
+              <p className="mt-3 text-sm text-muted-foreground">Loading history...</p>
+            ) : history.length > 0 ? (
               <div className="mt-4 space-y-4">
                 {history.map((fill) => (
                   <div key={fill.id} className="rounded-md border border-border/80 bg-muted/20 p-3">
-                    <div className="font-medium">{fill.productName ?? "—"}</div>
+                    <div className="font-medium">{fill.productName ?? "-"}</div>
                     <div className="text-sm text-muted-foreground">
-                      Кількість: {fill.quantity} {fill.unit ?? ""}
+                      Quantity: {fill.quantity} {fill.unit ?? ""}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      Дата заповнення: {format(new Date(fill.filledDate), "dd.MM.yyyy HH:mm")}
+                      Filled at: {format(new Date(fill.filledDate), "dd.MM.yyyy HH:mm")}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      Дата виробництва: {format(new Date(fill.productionDate), "dd.MM.yyyy")}
+                      Production date: {format(new Date(fill.productionDate), "dd.MM.yyyy")}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      Термін придатності: {format(new Date(fill.expirationDate), "dd.MM.yyyy")}
+                      Expiration date: {format(new Date(fill.expirationDate), "dd.MM.yyyy")}
                     </div>
                     {fill.emptiedDate && (
                       <div className="text-sm text-muted-foreground">
-                        Дата спорожнення: {format(new Date(fill.emptiedDate), "dd.MM.yyyy HH:mm")}
+                        Emptied at: {format(new Date(fill.emptiedDate), "dd.MM.yyyy HH:mm")}
                       </div>
                     )}
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="mt-3 text-sm text-muted-foreground">Історія вмісту поки порожня.</p>
+              <p className="mt-3 text-sm text-muted-foreground">No content history yet.</p>
             )}
           </details>
 
           <details open className="rounded-lg border border-border p-3">
-            <summary className="cursor-pointer font-medium">Аудит дій</summary>
-            {eventsLoadFailed && (
-              <p className="mt-3 text-sm text-destructive">
-                Failed to load audit events.
-              </p>
+            <summary className="cursor-pointer font-medium">Audit events</summary>
+
+            {eventsLoadFailed ? (
+              <div className="mt-3 flex flex-col items-start gap-2">
+                <p className="text-sm text-destructive">Failed to load audit events.</p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void fetchEvents(containerCode)}
+                  disabled={eventsLoading}
+                >
+                  Retry
+                </Button>
+              </div>
+            ) : eventsLoading ? (
+              <p className="mt-3 text-sm text-muted-foreground">Loading events...</p>
+            ) : (
+              <div className="mt-4">
+                <ContainerTimeline
+                  events={events.map((event) => ({
+                    id: event.id,
+                    type: event.type,
+                    timestamp: event.timestamp,
+                    metadata: event.data,
+                    performedBy: { id: event.userId, name: event.userName },
+                  }))}
+                />
+              </div>
             )}
-            <div className="mt-4">
-              <ContainerTimeline
-                events={events.map((event) => ({
-                  id: event.id,
-                  type: event.type,
-                  timestamp: event.timestamp,
-                  metadata: event.data,
-                  performedBy: { id: event.userId, name: event.userName },
-                }))}
-              />
-            </div>
           </details>
         </CardContent>
       </Card>
 
-      {/* Dialogs */}
       {isEmpty && (
         <FillContainerDialog
           container={container}
@@ -406,19 +471,15 @@ export default function ContainerDetailPage() {
           onSuccess={fetchContainerData}
         />
       )}
-      <QrGeneratorDialog
-        open={qrOpen}
-        onClose={() => setQrOpen(false)}
-        url={qrUrl}
-        title={containerCode}
-      />
+
+      <QrGeneratorDialog open={qrOpen} onClose={() => setQrOpen(false)} url={qrUrl} title={containerCode} />
 
       <ConfirmDialog
         open={emptyConfirmOpen}
-        title="Спорожнити контейнер?"
-        description="Поточне заповнення буде завершене. Ви зможете знову наповнити контейнер пізніше."
-        confirmLabel="Спорожнити"
-        cancelLabel="Скасувати"
+        title="Empty container?"
+        description="Current fill will be finished. You can fill this container again later."
+        confirmLabel="Empty"
+        cancelLabel="Cancel"
         variant="default"
         onConfirm={handleEmpty}
         onCancel={() => setEmptyConfirmOpen(false)}

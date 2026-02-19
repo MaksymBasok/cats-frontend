@@ -38,6 +38,7 @@ export default function ContainerTypesPage() {
   const [items, setItems] = useState<ContainerTypeDto[]>([]);
   const [productTypes, setProductTypes] = useState<{ id: number; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
 
@@ -68,6 +69,7 @@ export default function ContainerTypesPage() {
 
   const load = async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const [containerTypes, productTypeItems] = await Promise.all([getContainerTypes(), getProductTypes()]);
       setItems(containerTypes);
@@ -75,6 +77,7 @@ export default function ContainerTypesPage() {
         productTypeItems.map((type) => ({ id: type.id, name: type.name?.trim() || `Тип #${type.id}` })),
       );
     } catch (error) {
+      setLoadError("Failed to load container types.");
       showErrorToast(error, "Не вдалося завантажити типи тари");
     } finally {
       setLoading(false);
@@ -278,6 +281,15 @@ export default function ContainerTypesPage() {
         <div className="flex min-h-[200px] items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
         </div>
+      ) : loadError ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+            <p className="text-sm text-destructive">{loadError}</p>
+            <Button type="button" variant="outline" onClick={() => void load()}>
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
         <>
           <Card className="hidden md:block">

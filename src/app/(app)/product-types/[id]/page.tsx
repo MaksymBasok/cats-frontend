@@ -27,15 +27,20 @@ export default function ProductTypeDetailPage() {
   const [item, setItem] = useState<ProductTypeDto | null>(null);
   const [products, setProducts] = useState<ProductDto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!hasValidId) {
       setItem(null);
       setProducts([]);
+      setLoadError(null);
       setLoading(false);
       return;
     }
+
     setLoading(true);
+    setLoadError(null);
+
     try {
       const [typeItem, productsByType] = await Promise.all([
         getProductType(String(parsedId)),
@@ -44,23 +49,75 @@ export default function ProductTypeDetailPage() {
       setItem(typeItem);
       setProducts(productsByType);
     } catch (error) {
-      showErrorToast(error, "Не вдалося завантажити дані типу продукту");
+      setItem(null);
+      setProducts([]);
+      setLoadError("Failed to load product type data.");
+      showErrorToast(error, "Failed to load product type data");
     } finally {
       setLoading(false);
     }
   }, [hasValidId, parsedId]);
 
   useEffect(() => {
-    if (!hasValidId) {
-      setLoading(false);
-      return;
-    }
     void load();
-  }, [hasValidId, load]);
+  }, [load]);
 
-  if (loading) return <p className="text-sm text-muted-foreground">Завантаження...</p>;
-  if (!hasValidId) return <p className="text-sm text-muted-foreground">Invalid product type ID.</p>;
-  if (!item) return <p className="text-sm text-muted-foreground">Тип продукту не знайдено.</p>;
+  if (loading) {
+    return (
+      <div className="flex min-h-[200px] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  if (!hasValidId) {
+    return (
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">Invalid product type ID.</p>
+        <Button asChild variant="outline">
+          <Link href="/product-types">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to product types
+          </Link>
+        </Button>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-start gap-3 py-8">
+          <p className="text-sm text-destructive">{loadError}</p>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" onClick={() => void load()}>
+              Retry
+            </Button>
+            <Button asChild variant="ghost">
+              <Link href="/product-types">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!item) {
+    return (
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">Product type not found.</p>
+        <Button asChild variant="outline">
+          <Link href="/product-types">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to product types
+          </Link>
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 pb-20 md:pb-6">
@@ -70,32 +127,50 @@ export default function ProductTypeDetailPage() {
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
-        <h1 className="text-2xl font-bold">{item.name || `Тип #${item.id}`}</h1>
+        <h1 className="text-2xl font-bold">{item.name || `Type #${item.id}`}</h1>
         <Badge variant="secondary">#{item.id}</Badge>
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Інформація про тип</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>Type info</CardTitle>
+        </CardHeader>
         <CardContent className="space-y-2 text-sm">
-          <p>Термін придатності: <span className="font-medium">{item.shelfLifeDays ?? 0} дн. {item.shelfLifeHours ?? 0} год.</span></p>
-          {item.meta && <p>Meta: <span className="font-medium">{item.meta}</span></p>}
+          <p>
+            Shelf life: <span className="font-medium">{item.shelfLifeDays ?? 0} d. {item.shelfLifeHours ?? 0} h.</span>
+          </p>
+          {item.meta && (
+            <p>
+              Meta: <span className="font-medium">{item.meta}</span>
+            </p>
+          )}
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Продукти цього типу ({products.length})</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>Products of this type ({products.length})</CardTitle>
+        </CardHeader>
         <CardContent>
           {products.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Для цього типу ще немає продуктів.</p>
+            <p className="text-sm text-muted-foreground">No products found for this type.</p>
           ) : (
             <Table>
-              <TableHeader><TableRow><TableHead>Назва</TableHead><TableHead>Опис</TableHead><TableHead>Термін</TableHead></TableRow></TableHeader>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Shelf life</TableHead>
+                </TableRow>
+              </TableHeader>
               <TableBody>
                 {products.map((product) => (
                   <TableRow key={product.id}>
                     <TableCell>{product.name || `#${product.id}`}</TableCell>
-                    <TableCell>{product.description || "—"}</TableCell>
-                    <TableCell>{product.shelfLifeDays ?? 0} дн. {product.shelfLifeHours ?? 0} год.</TableCell>
+                    <TableCell>{product.description || "-"}</TableCell>
+                    <TableCell>
+                      {product.shelfLifeDays ?? 0} d. {product.shelfLifeHours ?? 0} h.
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

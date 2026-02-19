@@ -26,14 +26,16 @@ type RequestOptions = {
   signal?: AbortSignal;
   auth?: boolean;
   headers?: Record<string, string>;
+  timeoutMs?: number;
 };
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5208").replace(/\/+$/, "");
+const DEFAULT_API_TIMEOUT_MS = 20000;
 
 type ErrorPayload = { message?: string; title?: string; raw?: string };
 
 export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T> {
-  const { method = "GET", body, signal, auth = true, headers: extraHeaders } = opts;
+  const { method = "GET", body, signal, auth = true, headers: extraHeaders, timeoutMs = DEFAULT_API_TIMEOUT_MS } = opts;
 
   const headers: Record<string, string> = { ...(extraHeaders ?? {}) };
 
@@ -49,17 +51,53 @@ export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   const url = `${API_BASE}${normalizedPath}`;
 
+  const abortController = new AbortController();
+  const externalAbortHandler = () => {
+    abortController.abort(signal?.reason);
+  };
+  if (signal) {
+    if (signal.aborted) {
+      externalAbortHandler();
+    } else {
+      signal.addEventListener("abort", externalAbortHandler, { once: true });
+    }
+  }
+
+  const timeoutId =
+    timeoutMs > 0
+      ? setTimeout(() => {
+          abortController.abort(new DOMException("Request timed out", "TimeoutError"));
+        }, timeoutMs)
+      : null;
+
   let res: Response;
   try {
     res = await fetch(url, {
       method,
       headers,
       body: body !== undefined && body !== null ? JSON.stringify(body) : undefined,
-      signal,
+      signal: abortController.signal,
     });
   } catch (e: unknown) {
+    const externalAborted = !!signal?.aborted;
+    const timedOut = !externalAborted && abortController.signal.aborted && timeoutMs > 0;
+    if (timedOut) {
+      throw new ApiError("Request timeout. Please try again.", 0, { cause: e, kind: "timeout", timeoutMs });
+    }
+
+    if (externalAborted) {
+      throw new ApiError("Request cancelled", 0, { cause: e, kind: "aborted" });
+    }
+
     const message = e instanceof Error ? e.message : "Network error";
-    throw new ApiError(message, 0, { cause: e });
+    throw new ApiError(message, 0, { cause: e, kind: "network" });
+  } finally {
+    if (timeoutId !== null) {
+      clearTimeout(timeoutId);
+    }
+    if (signal) {
+      signal.removeEventListener("abort", externalAbortHandler);
+    }
   }
 
   const contentType = res.headers.get("content-type") || "";

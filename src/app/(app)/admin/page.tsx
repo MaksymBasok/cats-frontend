@@ -43,6 +43,7 @@ export default function AdminPage() {
 
   const [users, setUsers] = useState<UserDto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
   const [inviteEmail, setInviteEmail] = useState("");
@@ -74,9 +75,11 @@ export default function AdminPage() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
+      setLoadError(null);
       const data = await usersApi.getUsers();
       setUsers(data);
     } catch (error) {
+      setLoadError("Failed to load users.");
       showErrorToast(error, "Не вдалося завантажити користувачів");
     } finally {
       setLoading(false);
@@ -250,6 +253,15 @@ export default function AdminPage() {
         <div className="flex min-h-[200px] items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
         </div>
+      ) : loadError ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+            <p className="text-sm text-destructive">{loadError}</p>
+            <Button type="button" variant="outline" onClick={() => void fetchUsers()}>
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
         <>
           {pendingUsers.length > 0 && (

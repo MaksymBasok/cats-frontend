@@ -90,6 +90,14 @@ function humanizeErrorDetails(error: unknown): string | null {
 
 export function getErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof ApiError) {
+    const details = error.details as { kind?: string } | undefined;
+    if (details?.kind === "timeout") {
+      return "Request timed out. Please try again";
+    }
+    if (details?.kind === "aborted") {
+      return "Request cancelled";
+    }
+
     if (error.status === 0) {
       return "Немає з'єднання з сервером. Перевірте мережу або API URL";
     }
