@@ -216,13 +216,15 @@ export default function RemindersPage() {
             )}
 
             {hasActiveFilters && (
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={clearFilters}
-                className="mt-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                className="mt-3 h-auto gap-1.5 px-0 text-muted-foreground transition-colors hover:text-foreground"
               >
                 <X className="h-3.5 w-3.5" /> Скинути фільтри
-              </button>
+              </Button>
             )}
           </div>
         )}

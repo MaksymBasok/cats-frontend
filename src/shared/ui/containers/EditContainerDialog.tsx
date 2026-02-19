@@ -1,4 +1,4 @@
-// src/shared/ui/containers/EditContainerDialog.tsx
+﻿// src/shared/ui/containers/EditContainerDialog.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { MEASUREMENT_UNITS, normalizeUnit } from "@/shared/constants/units";
+import { Textarea } from "@/components/ui/textarea";
+import { normalizeUnit } from "@/shared/constants/units";
 import { showErrorToast } from "@/shared/utils/errors";
 
 interface EditContainerDialogProps {
@@ -22,9 +23,9 @@ interface EditContainerDialogProps {
 
 type FormState = {
   name: string;
-  volume: string; // string to avoid NaN while typing
+  volume: string;
   unit: string;
-  containerTypeId: string; // select uses string
+  containerTypeId: string;
   meta: string;
 };
 
@@ -54,6 +55,12 @@ export function EditContainerDialog({
 
   const [form, setForm] = useState<FormState>(initialForm);
 
+  const selectedContainerTypeName = useMemo(() => {
+    const typeId = Number(form.containerTypeId);
+    if (!Number.isFinite(typeId)) return "-";
+    return containerTypes.find((type) => type.id === typeId)?.name ?? "-";
+  }, [containerTypes, form.containerTypeId]);
+
   useEffect(() => {
     if (!open) return;
     setForm(initialForm);
@@ -65,15 +72,15 @@ export function EditContainerDialog({
     const unit = normalizeUnit(form.unit);
     const meta = form.meta.trim();
 
-    const volumeNum = form.volume.trim() ? Number(form.volume) : NaN;
-    const typeIdNum = form.containerTypeId ? Number(form.containerTypeId) : NaN;
+    const volumeNum = form.volume.trim() ? Number(form.volume) : Number.NaN;
+    const typeIdNum = form.containerTypeId ? Number(form.containerTypeId) : Number.NaN;
 
     if (!name) {
-      toast.error("Вкажіть назву");
+      toast.error("Вкажіть назву тари");
       return null;
     }
     if (!Number.isFinite(volumeNum) || volumeNum <= 0) {
-      toast.error("Вкажіть коректний об'єм (> 0)");
+      toast.error("Об'єм має бути більше 0");
       return null;
     }
     if (!Number.isFinite(typeIdNum)) {
@@ -132,7 +139,7 @@ export function EditContainerDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="volume">{"Об'єм *"}</Label>
+              <Label htmlFor="volume">Об’єм *</Label>
               <Input
                 id="volume"
                 type="number"
@@ -147,48 +154,36 @@ export function EditContainerDialog({
 
             <div className="space-y-2">
               <Label htmlFor="unit">Одиниця *</Label>
-              <select
+              <Input
                 id="unit"
-                value={form.unit}
-                disabled
-                className="w-full rounded-lg border border-input bg-muted px-3 py-2 text-sm text-muted-foreground"
-              >
-                {MEASUREMENT_UNITS.map((unitOption) => (
-                  <option key={unitOption} value={unitOption}>
-                    {unitOption}
-                  </option>
-                ))}
-              </select>
+                value={form.unit || "-"}
+                readOnly
+                className="bg-muted text-muted-foreground"
+              />
             </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="containerTypeId">Тип тари</Label>
-            <select
+            <Input
               id="containerTypeId"
-              value={form.containerTypeId}
-              disabled
-              className="w-full rounded-lg border border-input bg-muted px-3 py-2 text-sm text-muted-foreground"
-            >
-              <option value="">Оберіть тип...</option>
-              {containerTypes.map((ct) => (
-                <option key={ct.id} value={ct.id}>
-                  {ct.name ?? "—"}
-                </option>
-              ))}
-            </select>
+              value={selectedContainerTypeName}
+              readOnly
+              className="bg-muted text-muted-foreground"
+            />
           </div>
 
-          <p className="text-xs text-muted-foreground">Одиниця та тип тари фіксуються при створенні і не редагуються, щоб зберегти коректну історію.</p>
+          <p className="text-xs text-muted-foreground">
+            Одиниця та тип тари фіксуються після створення, щоб зберегти коректну історію заповнень.
+          </p>
 
           <div className="space-y-2">
             <Label htmlFor="meta">Примітки</Label>
-            <textarea
+            <Textarea
               id="meta"
               value={form.meta}
               onChange={(e) => setForm((p) => ({ ...p, meta: e.target.value }))}
               rows={3}
-              className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
 

@@ -91,7 +91,7 @@ export default function LoginPage() {
     tryInit();
     const failTimer = setTimeout(() => {
       if (!window.google) {
-        toast.error("Google Sign-In не завантажився. Оновіть сторінку або перевірте блокувальники скриптів");
+        toast.error("Вхід через Google не завантажився. Оновіть сторінку або перевірте блокувальники скриптів");
       }
     }, 4000);
     // If not loaded yet, wait for the script
@@ -122,7 +122,7 @@ export default function LoginPage() {
         <div className="flex flex-col items-center gap-4 mb-8">
           <Image
             src="/images/cats-logo.png"
-            alt="CATS - Container Audit Tracking System"
+            alt="CATS - Система обліку тари"
             width={80}
             height={80}
             className="rounded-xl w-20 h-auto"
@@ -130,7 +130,7 @@ export default function LoginPage() {
           />
           <div className="text-center">
             <h1 className="text-xl font-semibold tracking-tight text-card-foreground text-balance">
-              Container Audit Tracking System
+              Система обліку тари
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Увійдіть для продовження

@@ -15,6 +15,8 @@ import { getProductTypes } from "@/shared/api/product-types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -44,7 +46,7 @@ export default function ContainerTypesPage() {
 
   const [name, setName] = useState("");
   const [codePrefix, setCodePrefix] = useState("");
-  const [defaultUnit, setDefaultUnit] = useState("");
+  const [defaultUnit, setDefaultUnit] = useState(normalizeUnit("л"));
   const [selectedTypeIds, setSelectedTypeIds] = useState<number[]>([]);
   const [allTypesSelected, setAllTypesSelected] = useState(true);
   const [typePickerOpen, setTypePickerOpen] = useState(false);
@@ -77,7 +79,7 @@ export default function ContainerTypesPage() {
         productTypeItems.map((type) => ({ id: type.id, name: type.name?.trim() || `Тип #${type.id}` })),
       );
     } catch (error) {
-      setLoadError("Failed to load container types.");
+      setLoadError("Не вдалося завантажити типи тари.");
       showErrorToast(error, "Не вдалося завантажити типи тари");
     } finally {
       setLoading(false);
@@ -141,7 +143,7 @@ export default function ContainerTypesPage() {
       toast.success("Тип тари створено");
       setName("");
       setCodePrefix("");
-      setDefaultUnit("");
+      setDefaultUnit(normalizeUnit("л"));
       setSelectedTypeIds([]);
       setAllTypesSelected(true);
       setTypePickerOpen(false);
@@ -158,7 +160,7 @@ export default function ContainerTypesPage() {
   const handleUpdate = async (item: ContainerTypeDto) => {
     const trimmedName = (item.name ?? "").trim();
     if (!trimmedName) {
-      toast.error("Enter container type name");
+      toast.error("Вкажіть назву типу тари");
       return;
     }
 
@@ -175,7 +177,7 @@ export default function ContainerTypesPage() {
         meta: item.meta,
         allowedProductTypeIds,
       });
-      toast.success("Container type updated");
+      toast.success("Тип тари оновлено");
       setEditDialogOpen(false);
       setEditingItem(null);
       setEditSelectedTypeIds([]);
@@ -183,7 +185,7 @@ export default function ContainerTypesPage() {
       setEditTypePickerOpen(false);
       await load();
     } catch (error) {
-      showErrorToast(error, "Failed to update container type");
+      showErrorToast(error, "Не вдалося оновити тип тари");
     } finally {
       setUpdating(false);
     }
@@ -214,7 +216,10 @@ export default function ContainerTypesPage() {
       .map((type) => type.id);
     const isAllTypes = !item.allowedProductTypeNames || item.allowedProductTypeNames.length === 0;
 
-    setEditingItem({ ...item });
+    setEditingItem({
+      ...item,
+      defaultUnit: normalizeUnit(item.defaultUnit) || normalizeUnit("л"),
+    });
     setEditAllTypesSelected(isAllTypes);
     setEditSelectedTypeIds(idsByName);
     setEditTypePickerOpen(false);
@@ -286,7 +291,7 @@ export default function ContainerTypesPage() {
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
             <p className="text-sm text-destructive">{loadError}</p>
             <Button type="button" variant="outline" onClick={() => void load()}>
-              Retry
+              Повторити
             </Button>
           </CardContent>
         </Card>
@@ -426,17 +431,18 @@ export default function ContainerTypesPage() {
             />
             <div className="grid grid-cols-2 gap-3">
               <Input placeholder="Префікс коду" value={codePrefix} onChange={(e) => setCodePrefix(e.target.value)} />
-              <select
-                value={normalizeUnit(defaultUnit)}
-                onChange={(e) => setDefaultUnit(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              >
-                {MEASUREMENT_UNITS.map((unit) => (
-                  <option key={unit} value={unit}>
-                    {unit}
-                  </option>
-                ))}
-              </select>
+              <Select value={normalizeUnit(defaultUnit) || normalizeUnit("л")} onValueChange={setDefaultUnit}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MEASUREMENT_UNITS.map((unit) => (
+                    <SelectItem key={unit} value={unit}>
+                      {unit}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <p className="text-sm font-medium">Дозволені типи продуктів</p>
@@ -488,7 +494,7 @@ export default function ContainerTypesPage() {
                 )}
               </div>
             </div>
-            <Textarea placeholder="Meta / примітки" value={meta} onChange={(e) => setMeta(e.target.value)} rows={3} />
+            <Textarea placeholder="Примітки" value={meta} onChange={(e) => setMeta(e.target.value)} rows={3} />
             <Button disabled={creating} type="submit" className="gap-2">
               <Plus className="h-4 w-4" /> Додати
             </Button>
@@ -504,8 +510,9 @@ export default function ContainerTypesPage() {
           {editingItem && (
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium">Назва</label>
+                <Label htmlFor="edit-container-type-name">Назва</Label>
                 <Input
+                  id="edit-container-type-name"
                   value={editingItem.name ?? ""}
                   onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
                   className="mt-1.5"
@@ -513,26 +520,31 @@ export default function ContainerTypesPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-sm font-medium">Префікс коду</label>
+                  <Label htmlFor="edit-container-type-prefix">Префікс коду</Label>
                   <Input
+                    id="edit-container-type-prefix"
                     value={editingItem.codePrefix ?? ""}
                     onChange={(e) => setEditingItem({ ...editingItem, codePrefix: e.target.value })}
                     className="mt-1.5"
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Одиниця</label>
-                  <select
-                    value={normalizeUnit(editingItem.defaultUnit)}
-                    onChange={(e) => setEditingItem({ ...editingItem, defaultUnit: e.target.value })}
-                    className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  <Label htmlFor="edit-container-type-unit">Одиниця</Label>
+                  <Select
+                    value={normalizeUnit(editingItem.defaultUnit) || normalizeUnit("л")}
+                    onValueChange={(value) => setEditingItem({ ...editingItem, defaultUnit: value })}
                   >
-                    {MEASUREMENT_UNITS.map((unit) => (
-                      <option key={unit} value={unit}>
-                        {unit}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger id="edit-container-type-unit" className="mt-1.5">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MEASUREMENT_UNITS.map((unit) => (
+                        <SelectItem key={unit} value={unit}>
+                          {unit}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
@@ -583,8 +595,9 @@ export default function ContainerTypesPage() {
                 )}
               </div>
               <div>
-                <label className="text-sm font-medium">Meta</label>
+                <Label htmlFor="edit-container-type-meta">Примітки</Label>
                 <Textarea
+                  id="edit-container-type-meta"
                   value={editingItem.meta ?? ""}
                   onChange={(e) => setEditingItem({ ...editingItem, meta: e.target.value })}
                   className="mt-1.5"
@@ -593,7 +606,7 @@ export default function ContainerTypesPage() {
               </div>
               <div className="flex gap-2 pt-2">
                 <Button onClick={() => handleUpdate(editingItem)} disabled={updating} className="flex-1">
-                  <Save className="mr-2 h-4 w-4" /> {updating ? "Saving..." : "Save"}
+                  <Save className="mr-2 h-4 w-4" /> {updating ? "Збереження..." : "Зберегти"}
                 </Button>
               </div>
             </div>

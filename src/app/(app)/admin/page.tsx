@@ -31,10 +31,10 @@ function initialsForUser(u: UserDto): string {
   const first = (u.firstName ?? "").trim();
   const last = (u.lastName ?? "").trim();
   if (first || last) {
-    return `${first[0] ?? ""}${last[0] ?? ""}`.toUpperCase() || "U";
+    return `${first[0] ?? ""}${last[0] ?? ""}`.toUpperCase() || "К";
   }
   const email = (u.email ?? "").trim();
-  return email ? email[0].toUpperCase() : "U";
+  return email ? email[0].toUpperCase() : "К";
 }
 
 export default function AdminPage() {
@@ -79,7 +79,7 @@ export default function AdminPage() {
       const data = await usersApi.getUsers();
       setUsers(data);
     } catch (error) {
-      setLoadError("Failed to load users.");
+      setLoadError("Не вдалося завантажити користувачів.");
       showErrorToast(error, "Не вдалося завантажити користувачів");
     } finally {
       setLoading(false);
@@ -142,11 +142,11 @@ export default function AdminPage() {
   const handleInvite = async (e: FormEvent) => {
     e.preventDefault();
     if (!inviteEmail.trim()) {
-      toast.error("Вкажіть email");
+      toast.error("Вкажіть електронну пошту");
       return;
     }
     if (!isValidEmail(inviteEmail)) {
-      toast.error("Вкажіть коректний email");
+      toast.error("Вкажіть коректну електронну пошту");
       return;
     }
     setInviteLoading(true);
@@ -165,12 +165,12 @@ export default function AdminPage() {
   const handleCreateUser = async (e: FormEvent) => {
     e.preventDefault();
     if (!createEmail.trim()) {
-      toast.error("Вкажіть email");
+      toast.error("Вкажіть електронну пошту");
       return;
     }
 
     if (!isValidEmail(createEmail)) {
-      toast.error("Вкажіть коректний email");
+      toast.error("Вкажіть коректну електронну пошту");
       return;
     }
     setCreateLoading(true);
@@ -258,7 +258,7 @@ export default function AdminPage() {
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
             <p className="text-sm text-destructive">{loadError}</p>
             <Button type="button" variant="outline" onClick={() => void fetchUsers()}>
-              Retry
+              Повторити
             </Button>
           </CardContent>
         </Card>
@@ -292,7 +292,7 @@ export default function AdminPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Користувач</TableHead>
-                        <TableHead>Email</TableHead>
+                        <TableHead>Е-пошта</TableHead>
                         <TableHead className="w-[200px]">Дії</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -355,14 +355,14 @@ export default function AdminPage() {
 
               <div className="hidden md:block">
                 <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Користувач</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Роль</TableHead>
-                      <TableHead className="w-[150px]">Дії</TableHead>
-                    </TableRow>
-                  </TableHeader>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Користувач</TableHead>
+                        <TableHead>Е-пошта</TableHead>
+                        <TableHead>Роль</TableHead>
+                        <TableHead className="w-[150px]">Дії</TableHead>
+                      </TableRow>
+                    </TableHeader>
                   <TableBody>
                     {activeUsers.map((u) => (
                       <TableRow key={u.id}>
@@ -381,7 +381,7 @@ export default function AdminPage() {
                               <Shield className="mr-1 h-3 w-3" /> Адмін
                             </Badge>
                           ) : (
-                            <Badge variant="outline">Operator</Badge>
+                            <Badge variant="outline">Оператор</Badge>
                           )}
                         </TableCell>
                         <TableCell>
@@ -411,14 +411,14 @@ export default function AdminPage() {
             <DialogTitle>Надіслати запрошення</DialogTitle>
           </DialogHeader>
           <form className="grid gap-3" onSubmit={handleInvite}>
-            <Input placeholder="email@company.com" type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} />
+            <Input placeholder="Електронна пошта" type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} />
             <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as UserRole)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Operator">Operator</SelectItem>
-                <SelectItem value="Admin">Admin</SelectItem>
+                <SelectItem value="Operator">Оператор</SelectItem>
+                <SelectItem value="Admin">Адміністратор</SelectItem>
               </SelectContent>
             </Select>
             <Button disabled={inviteLoading} type="submit">
@@ -434,7 +434,7 @@ export default function AdminPage() {
             <DialogTitle>Створити користувача</DialogTitle>
           </DialogHeader>
           <form className="grid gap-3" onSubmit={handleCreateUser}>
-            <Input placeholder="Email" type="email" value={createEmail} onChange={(e) => setCreateEmail(e.target.value)} />
+            <Input placeholder="Електронна пошта" type="email" value={createEmail} onChange={(e) => setCreateEmail(e.target.value)} />
             <div className="grid gap-3 sm:grid-cols-2">
               <Input placeholder="Ім'я" value={createFirstName} onChange={(e) => setCreateFirstName(e.target.value)} />
               <Input placeholder="Прізвище" value={createLastName} onChange={(e) => setCreateLastName(e.target.value)} />
@@ -444,8 +444,8 @@ export default function AdminPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Operator">Operator</SelectItem>
-                <SelectItem value="Admin">Admin</SelectItem>
+                <SelectItem value="Operator">Оператор</SelectItem>
+                <SelectItem value="Admin">Адміністратор</SelectItem>
               </SelectContent>
             </Select>
             <Button disabled={createLoading} type="submit">

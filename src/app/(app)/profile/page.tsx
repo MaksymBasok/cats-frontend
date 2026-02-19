@@ -1,4 +1,4 @@
-// src/app/(app)/profile/page.tsx
+﻿// src/app/(app)/profile/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -10,6 +10,9 @@ import { Save, LogOut, UserCircle } from "lucide-react";
 
 import { useAuth } from "@/shared/auth/AuthProvider";
 import { updateProfile } from "@/shared/api/users";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function ProfilePage() {
   const { user, refreshProfile, logout } = useAuth();
@@ -93,7 +96,7 @@ export default function ProfilePage() {
           {avatarUrl ? (
             <Image
               src={avatarUrl}
-              alt="Аватар користувача"
+              alt="Аватар"
               width={48}
               height={48}
               className="h-12 w-12 rounded-full border border-border object-cover"
@@ -113,59 +116,62 @@ export default function ProfilePage() {
 
         <div className="flex flex-col gap-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-card-foreground">
-              {"Ім'я"}
-            </label>
-            <input
+            <Label className="mb-1 block" htmlFor="firstName">
+              Ім’я
+            </Label>
+            <Input
+              id="firstName"
               type="text"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-card-foreground">
+            <Label className="mb-1 block" htmlFor="middleName">
               По батькові
-            </label>
-            <input
+            </Label>
+            <Input
+              id="middleName"
               type="text"
               value={middleName}
               onChange={(e) => setMiddleName(e.target.value)}
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-card-foreground">
+            <Label className="mb-1 block" htmlFor="lastName">
               Прізвище
-            </label>
-            <input
+            </Label>
+            <Input
+              id="lastName"
               type="text"
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
         </div>
 
         <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-between">
-          <button
+          <Button
             onClick={handleSave}
             disabled={saving || !dirty}
-            className="flex items-center justify-center gap-2 rounded-lg bg-brand-navy px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-opacity"
+            className="gap-2"
+            type="button"
           >
             <Save className="h-4 w-4" />
-            {saving ? "Зберігаємо..." : "Зберегти"}
-          </button>
+            {saving ? "Збереження..." : "Зберегти"}
+          </Button>
 
-          <button
+          <Button
             onClick={handleLogout}
-            className="flex items-center justify-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
+            variant="outline"
+            className="gap-2 text-destructive hover:text-destructive"
+            type="button"
           >
             <LogOut className="h-4 w-4" />
             Вийти
-          </button>
+          </Button>
         </div>
       </div>
     </div>

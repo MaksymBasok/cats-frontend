@@ -1,4 +1,4 @@
-// src/shared/ui/containers/FillContainerDialog.tsx
+﻿// src/shared/ui/containers/FillContainerDialog.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -41,9 +41,7 @@ function todayYmd() {
   return `${y}-${m}-${day}`;
 }
 
-// Add days/hours to YYYY-MM-DD in local time, return YYYY-MM-DD
 function addShelfLife(baseYmd: string, days: number, hours: number) {
-  // Parse as local date at midnight
   const [y, m, d] = baseYmd.split("-").map((x) => Number(x));
   const dt = new Date(y, (m ?? 1) - 1, d ?? 1, 0, 0, 0, 0);
 
@@ -70,7 +68,7 @@ export function FillContainerDialog({
   const [quantityStr, setQuantityStr] = useState<string>("");
   const unit = normalizeUnit(container.unit);
   const [productionDate, setProductionDate] = useState<string>(todayYmd());
-  const [expirationDate, setExpirationDate] = useState<string>(""); // empty => null
+  const [expirationDate, setExpirationDate] = useState<string>("");
 
   const allowedProductTypeNames = useMemo(() => {
     const currentType = containerTypes.find((type) => type.id === container.containerTypeId);
@@ -89,7 +87,6 @@ export function FillContainerDialog({
   useEffect(() => {
     if (!open) return;
 
-    // reset on open
     setLoading(false);
     setProducts([]);
     setContainerTypes([]);
@@ -104,7 +101,7 @@ export function FillContainerDialog({
         setContainerTypes(containerTypeItems);
       })
       .catch((error) => showErrorToast(error, "Не вдалося завантажити продукти"));
-  }, [open, container.containerTypeId, container.volume, container.unit]);
+  }, [open, container.containerTypeId, container.volume]);
 
   useEffect(() => {
     if (!open) return;
@@ -123,16 +120,13 @@ export function FillContainerDialog({
     return filteredProducts.find((p) => p.id === pid) ?? null;
   }, [filteredProducts, productIdStr]);
 
-  // Auto-calc expiration date if product has shelf life
   useEffect(() => {
     if (!selectedProduct) return;
 
     const days = selectedProduct.shelfLifeDays ?? 0;
     const hours = selectedProduct.shelfLifeHours ?? 0;
     const hasShelf = !!(days || hours);
-    if (!hasShelf) return;
-
-    if (!productionDate) return;
+    if (!hasShelf || !productionDate) return;
 
     setExpirationDate(addShelfLife(productionDate, days, hours));
   }, [selectedProduct, productionDate]);
@@ -141,7 +135,7 @@ export function FillContainerDialog({
     e.preventDefault();
 
     if (filteredProducts.length === 0) {
-      toast.error("Немає доступних продуктів для вибраної тари");
+      toast.error("Для цього типу тари немає доступних продуктів");
       return;
     }
 
@@ -166,8 +160,8 @@ export function FillContainerDialog({
       productId: pid,
       quantity,
       unit,
-      productionDate, // YYYY-MM-DD
-      expirationDate: expirationDate ? expirationDate : null, // YYYY-MM-DD | null
+      productionDate,
+      expirationDate: expirationDate ? expirationDate : null,
     };
 
     setLoading(true);
@@ -203,7 +197,7 @@ export function FillContainerDialog({
               <SelectContent>
                 {filteredProducts.map((p) => (
                   <SelectItem key={p.id} value={String(p.id)}>
-                    {p.name ?? "—"}
+                    {p.name ?? "-"}
                     {p.productTypeName ? ` (${p.productTypeName})` : ""}
                   </SelectItem>
                 ))}
@@ -211,7 +205,7 @@ export function FillContainerDialog({
             </Select>
             {filteredProducts.length === 0 ? (
               <p className="text-xs text-muted-foreground">
-                Немає доступних продуктів для цього типу тари.
+                Для цього типу тари немає доступних продуктів.
               </p>
             ) : null}
           </div>
@@ -232,7 +226,7 @@ export function FillContainerDialog({
 
             <div className="space-y-2">
               <Label htmlFor="unit">Одиниця</Label>
-              <Input id="unit" value={unit || "—"} readOnly className="bg-muted text-muted-foreground" />
+              <Input id="unit" value={unit || "-"} readOnly className="bg-muted text-muted-foreground" />
             </div>
           </div>
 
@@ -257,10 +251,12 @@ export function FillContainerDialog({
             />
             {hasShelfLife ? (
               <p className="text-xs text-muted-foreground">
-                Автоматично розраховано з терміну придатності продукту (можна змінити вручну).
+                Дата придатності розрахована автоматично з терміну придатності продукту (можна змінити вручну).
               </p>
             ) : null}
-            <p className="text-xs text-muted-foreground">Одиниця виміру фіксована та береться з налаштувань тари.</p>
+            <p className="text-xs text-muted-foreground">
+              Одиниця фіксована налаштуванням тари та не редагується у цій формі.
+            </p>
           </div>
 
           <div className="flex justify-end gap-2 pt-4">

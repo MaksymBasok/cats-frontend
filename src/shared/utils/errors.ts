@@ -1,4 +1,4 @@
-import { createElement } from "react";
+﻿import { createElement } from "react";
 import { toast } from "sonner";
 import { ApiError } from "@/shared/api/client";
 
@@ -92,10 +92,10 @@ export function getErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof ApiError) {
     const details = error.details as { kind?: string } | undefined;
     if (details?.kind === "timeout") {
-      return "Request timed out. Please try again";
+      return "Час очікування запиту вичерпано. Спробуйте ще раз";
     }
     if (details?.kind === "aborted") {
-      return "Request cancelled";
+      return "Запит скасовано";
     }
 
     if (error.status === 0) {
@@ -132,6 +132,6 @@ export function showErrorToast(error: unknown, fallbackTitle: string): void {
             details,
           ),
         )
-      : "Спробуйте повторити дію або зверніться до адміністратора, якщо помилка повторюється.",
+      : "Спробуйте повторити дію або зверніться до адміністратора, якщо проблема повторюється.",
   });
 }

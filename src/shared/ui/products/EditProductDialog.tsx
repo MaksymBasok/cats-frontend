@@ -1,4 +1,4 @@
-// src/shared/ui/products/EditProductDialog.tsx
+﻿// src/shared/ui/products/EditProductDialog.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -24,8 +24,8 @@ interface EditProductDialogProps {
 type FormState = {
   name: string;
   description: string;
-  productTypeId: string; // select value (string)
-  shelfLifeDays: string; // strings to avoid NaN during typing
+  productTypeId: string;
+  shelfLifeDays: string;
   shelfLifeHours: string;
 };
 
@@ -67,7 +67,6 @@ export function EditProductDialog({
     shelfLifeHours: numToStr(product.shelfLifeHours),
   });
 
-  // Re-init when dialog opens or product changes (important when editing different rows)
   useEffect(() => {
     if (!open) return;
     setLoading(false);
@@ -83,11 +82,11 @@ export function EditProductDialog({
   const buildDto = (): UpdateProductDto | null => {
     const name = form.name.trim();
     if (!name) {
-      toast.error("Вкажіть назву");
+      toast.error("Вкажіть назву продукту");
       return null;
     }
 
-    const ptId = form.productTypeId ? Number(form.productTypeId) : NaN;
+    const ptId = form.productTypeId ? Number(form.productTypeId) : Number.NaN;
     if (!Number.isFinite(ptId) || !productTypeIds.has(ptId)) {
       toast.error("Оберіть тип продукту");
       return null;
@@ -97,11 +96,11 @@ export function EditProductDialog({
     const hours = form.shelfLifeHours.trim() ? Number(form.shelfLifeHours) : null;
 
     if (days != null && (!Number.isFinite(days) || days < 0)) {
-      toast.error("Термін (днів) має бути числом ≥ 0");
+      toast.error("Термін у днях має бути цілим числом >= 0");
       return null;
     }
     if (hours != null && (!Number.isFinite(hours) || hours < 0)) {
-      toast.error("Термін (годин) має бути числом ≥ 0");
+      toast.error("Термін у годинах має бути цілим числом >= 0");
       return null;
     }
 
@@ -162,7 +161,7 @@ export function EditProductDialog({
               <SelectContent>
                 {productTypes.map((type) => (
                   <SelectItem key={type.id} value={String(type.id)}>
-                    {type.name ?? "—"}
+                    {type.name ?? "-"}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -170,7 +169,7 @@ export function EditProductDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Опис (опціонально)</Label>
+            <Label htmlFor="description">Опис (необов’язково)</Label>
             <Textarea
               id="description"
               value={form.description}
@@ -190,7 +189,7 @@ export function EditProductDialog({
                 inputMode="numeric"
                 value={form.shelfLifeDays}
                 onChange={(e) => setForm((p) => ({ ...p, shelfLifeDays: e.target.value }))}
-                placeholder="—"
+                placeholder="-"
               />
             </div>
             <div className="space-y-2">
@@ -203,12 +202,12 @@ export function EditProductDialog({
                 inputMode="numeric"
                 value={form.shelfLifeHours}
                 onChange={(e) => setForm((p) => ({ ...p, shelfLifeHours: e.target.value }))}
-                placeholder="—"
+                placeholder="-"
               />
             </div>
           </div>
           <p className="-mt-2 text-xs text-muted-foreground">
-            При зміні типу продукту термін придатності автоматично підставляється з довідника.
+            При зміні типу продукту значення терміну придатності автоматично підтягуються з типу.
           </p>
 
           <div className="flex justify-end gap-2 pt-4">

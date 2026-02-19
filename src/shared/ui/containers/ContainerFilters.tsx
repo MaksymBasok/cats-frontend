@@ -2,12 +2,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, Filter, X } from "lucide-react";
+import { Filter, Search, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type {
+  ContainerStatus,
   ContainerTypeDto,
   ProductTypeDto,
   SearchContainersParams,
-  ContainerStatus,
 } from "@/shared/types";
 
 interface ContainerFiltersProps {
@@ -36,7 +40,7 @@ function fromIsoToDateInput(value?: string): string {
 }
 
 function toNumberOrUndefined(v: string): number | undefined {
-  if (!v) return undefined;
+  if (!v || v === "all") return undefined;
   const n = Number(v);
   return Number.isFinite(n) ? n : undefined;
 }
@@ -53,17 +57,14 @@ export function ContainerFilters({
     onChange({ ...filters, ...patch });
   };
 
-  // UI toggle -> API expects filledToday string (date) in your types.
-  const filledTodayChecked = useMemo(() => {
-    return !!filters.filledToday;
-  }, [filters.filledToday]);
+  const filledTodayChecked = useMemo(() => !!filters.filledToday, [filters.filledToday]);
 
   const hasActiveFilters = useMemo(() => {
     return (
-      (filters.containerTypeId != null && filters.containerTypeId !== undefined) ||
-      (filters.status != null && filters.status !== undefined) ||
+      filters.containerTypeId != null ||
+      filters.status != null ||
       !!filters.productionDate ||
-      (filters.currentProductTypeId != null && filters.currentProductTypeId !== undefined) ||
+      filters.currentProductTypeId != null ||
       !!filters.showExpired ||
       !!filters.filledToday
     );
@@ -80,28 +81,33 @@ export function ContainerFilters({
     onChange({ searchTerm: filters.searchTerm });
   };
 
+  const containerTypeValue = filters.containerTypeId != null ? String(filters.containerTypeId) : "all";
+  const statusValue = filters.status ?? "all";
+  const productTypeValue = filters.currentProductTypeId != null ? String(filters.currentProductTypeId) : "all";
+
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md">
-      {/* Search bar */}
       <div className="flex items-center gap-2 p-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
+          <Input
             type="text"
             value={filters.searchTerm || ""}
             onChange={(e) => update({ searchTerm: e.target.value || undefined })}
             placeholder="Пошук за кодом, назвою..."
-            className="w-full rounded-lg border border-input bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            className="pl-9"
           />
         </div>
 
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={() => setExpanded((v) => !v)}
-          className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm ${
+          className={`gap-1.5 transition-all duration-200 hover:-translate-y-0.5 ${
             hasActiveFilters
-              ? "border-brand-orange bg-brand-orange/10 text-brand-orange hover:bg-brand-orange/15"
-              : "border-border text-foreground hover:border-brand-orange/40 hover:bg-brand-orange/10 hover:text-brand-orange"
+              ? "border-brand-orange bg-brand-orange/10 text-brand-orange hover:bg-brand-orange/15 hover:text-brand-orange"
+              : "hover:border-brand-orange/40 hover:bg-brand-orange/10 hover:text-brand-orange"
           }`}
         >
           <Filter className="h-4 w-4" />
@@ -111,84 +117,81 @@ export function ContainerFilters({
               !
             </span>
           )}
-        </button>
+        </Button>
       </div>
 
-      {/* Expandable panel */}
       {expanded && (
         <div className="border-t border-border px-3 pb-3 pt-2">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                Тип тари
-              </label>
-              <select
-                value={filters.containerTypeId != null ? String(filters.containerTypeId) : ""}
-                onChange={(e) => update({ containerTypeId: toNumberOrUndefined(e.target.value) })}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="">Всі типи</option>
-                {containerTypes.map((ct) => (
-                  <option key={ct.id} value={ct.id}>
-                    {ct.name ?? "—"}
-                  </option>
-                ))}
-              </select>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Тип тари</Label>
+              <Select value={containerTypeValue} onValueChange={(value) => update({ containerTypeId: toNumberOrUndefined(value) })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Всі типи" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Всі типи</SelectItem>
+                  {containerTypes.map((ct) => (
+                    <SelectItem key={ct.id} value={String(ct.id)}>
+                      {ct.name ?? "—"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                Статус
-              </label>
-              <select
-                value={filters.status ?? ""}
-                onChange={(e) =>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Статус</Label>
+              <Select
+                value={statusValue}
+                onValueChange={(value) =>
                   update({
-                    status: (e.target.value ? (e.target.value as ContainerStatus) : undefined),
+                    status: value !== "all" ? (value as ContainerStatus) : undefined,
                   })
                 }
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               >
-                <option value="">Всі</option>
-                <option value="Empty">Порожня</option>
-                <option value="Full">Заповнена</option>
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Всі" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Всі</SelectItem>
+                  <SelectItem value="Empty">Порожня</SelectItem>
+                  <SelectItem value="Full">Заповнена</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                Дата виробництва
-              </label>
-              <input
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Дата виробництва</Label>
+              <Input
                 type="date"
                 value={fromIsoToDateInput(filters.productionDate)}
-                onChange={(e) =>
-                  update({ productionDate: toIsoStartOfDay(e.target.value) })
-                }
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                onChange={(e) => update({ productionDate: toIsoStartOfDay(e.target.value) })}
               />
             </div>
 
-            <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                Тип продукту
-              </label>
-              <select
-                value={filters.currentProductTypeId != null ? String(filters.currentProductTypeId) : ""}
-                onChange={(e) =>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Тип продукту</Label>
+              <Select
+                value={productTypeValue}
+                onValueChange={(value) =>
                   update({
-                    currentProductTypeId: toNumberOrUndefined(e.target.value),
+                    currentProductTypeId: toNumberOrUndefined(value),
                   })
                 }
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               >
-                <option value="">Всі типи</option>
-                {productTypes.map((pt) => (
-                  <option key={pt.id} value={pt.id}>
-                    {pt.name ?? "—"}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Всі типи" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Всі типи</SelectItem>
+                  {productTypes.map((pt) => (
+                    <SelectItem key={pt.id} value={String(pt.id)}>
+                      {pt.name ?? "—"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex flex-wrap items-center gap-3 sm:gap-4 lg:col-span-2">
@@ -219,17 +222,20 @@ export function ContainerFilters({
           </div>
 
           {hasActiveFilters && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={clearFilters}
-              className="mt-3 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="mt-3 h-auto gap-1.5 px-0 text-muted-foreground hover:bg-transparent hover:text-foreground"
             >
               <X className="h-3.5 w-3.5" />
               Скинути фільтри
-            </button>
+            </Button>
           )}
         </div>
       )}
     </div>
   );
 }
+

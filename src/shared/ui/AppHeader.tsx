@@ -1,4 +1,4 @@
-// src/shared/ui/AppHeader.tsx
+﻿// src/shared/ui/AppHeader.tsx
 "use client";
 
 import Link from "next/link";
@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { ScanLine, LogOut, UserCircle, ChevronDown, Moon, Sun } from "lucide-react";
 import { useAuth } from "@/shared/auth/AuthProvider";
 import { useTheme } from "@/lib/ThemeProvider";
+import { Button } from "@/components/ui/button";
 import { QrScannerModal } from "./QrScannerModal";
 import { Breadcrumbs } from "./Breadcrumbs";
 
@@ -20,18 +21,22 @@ export function AppHeader() {
   const [profileOpen, setProfileOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const roleName = useMemo(() => (isAdmin ? "Адмін" : "Оператор"), [isAdmin]);
+  const roleName = useMemo(() => (isAdmin ? "Адміністратор" : "Оператор"), [isAdmin]);
   const userAvatar = useMemo(() => {
-    const extended = user as (typeof user & { avatarUrl?: string | null; picture?: string | null; imageUrl?: string | null }) | null;
+    const extended = user as (typeof user & {
+      avatarUrl?: string | null;
+      picture?: string | null;
+      imageUrl?: string | null;
+    }) | null;
     return extended?.avatarUrl || extended?.picture || extended?.imageUrl || null;
   }, [user]);
 
   const userInitials = useMemo(() => {
     const first = (user?.firstName ?? "").trim();
     const last = (user?.lastName ?? "").trim();
-    if (first || last) return `${first[0] ?? ""}${last[0] ?? ""}`.toUpperCase() || "U";
+    if (first || last) return `${first[0] ?? ""}${last[0] ?? ""}`.toUpperCase() || "К";
     const mail = (user?.email ?? "").trim();
-    return mail ? mail[0].toUpperCase() : "U";
+    return mail ? mail[0].toUpperCase() : "К";
   }, [user?.email, user?.firstName, user?.lastName]);
 
   const handleLogout = () => {
@@ -40,7 +45,6 @@ export function AppHeader() {
     router.push("/login");
   };
 
-  // Close profile menu on ESC / outside click
   useEffect(() => {
     if (!profileOpen) return;
 
@@ -89,29 +93,35 @@ export function AppHeader() {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
+            <Button
               onClick={toggleTheme}
-              className="flex items-center justify-center rounded-lg border border-border/60 bg-background/70 p-2 text-foreground transition-all hover:-translate-y-0.5 hover:bg-muted"
-              aria-label={theme === "light" ? "Темна тема" : "Світла тема"}
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 rounded-lg border-border/60 bg-background/70 text-foreground transition-all hover:-translate-y-0.5 hover:bg-muted"
+              aria-label={theme === "light" ? "Увімкнути темну тему" : "Увімкнути світлу тему"}
               type="button"
             >
               {theme === "light" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-            </button>
+            </Button>
 
-            <button
+            <Button
               onClick={() => setScanOpen(true)}
-              className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-brand-orange to-amber-300 px-3 py-2 text-sm font-semibold text-brand-navy shadow-sm transition-all hover:-translate-y-0.5 hover:shadow"
-              aria-label="Сканувати QR код"
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 rounded-lg bg-gradient-to-r from-brand-orange to-amber-300 text-sm font-semibold text-brand-navy shadow-sm transition-all hover:-translate-y-0.5 hover:bg-gradient-to-r hover:from-brand-orange hover:to-amber-300 hover:shadow"
+              aria-label="Сканувати QR-код"
               type="button"
             >
               <ScanLine className="h-4 w-4" />
               <span className="hidden sm:inline">Сканувати</span>
-            </button>
+            </Button>
 
             <div className="relative" ref={menuRef}>
-              <button
+              <Button
                 onClick={() => setProfileOpen((v) => !v)}
-                className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+                variant="ghost"
+                size="sm"
+                className="h-9 gap-1.5 rounded-lg px-2 text-sm text-foreground transition-colors hover:bg-muted"
                 aria-label="Меню профілю"
                 aria-haspopup="menu"
                 aria-expanded={profileOpen}
@@ -134,7 +144,7 @@ export function AppHeader() {
                   {user?.firstName || user?.email || ""}
                 </span>
                 <ChevronDown className="h-3 w-3 text-muted-foreground" />
-              </button>
+              </Button>
 
               {profileOpen && (
                 <div
@@ -153,24 +163,23 @@ export function AppHeader() {
                     </span>
                   </div>
 
-                  <Link
-                    href="/profile"
-                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
-                    role="menuitem"
-                  >
-                    <UserCircle className="h-4 w-4" />
-                    Профіль
-                  </Link>
+                  <Button asChild type="button" variant="ghost" className="w-full justify-start gap-2 rounded-lg px-3 py-2 text-sm">
+                    <Link href="/profile" role="menuitem">
+                      <UserCircle className="h-4 w-4" />
+                      Профіль
+                    </Link>
+                  </Button>
 
-                  <button
+                  <Button
                     onClick={handleLogout}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
+                    variant="ghost"
+                    className="w-full justify-start gap-2 rounded-lg px-3 py-2 text-sm text-destructive hover:bg-destructive/10 hover:text-destructive"
                     role="menuitem"
                     type="button"
                   >
                     <LogOut className="h-4 w-4" />
                     Вийти
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>

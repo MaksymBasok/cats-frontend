@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -65,24 +66,22 @@ export function ConfirmDialog({
           </div>
         </div>
         <div className="mt-5 flex gap-3 justify-end">
-          <button
+          <Button
+            type="button"
+            variant="outline"
             onClick={onCancel}
             disabled={loading}
-            className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
           >
             {cancelLabel}
-          </button>
-          <button
+          </Button>
+          <Button
+            type="button"
             onClick={onConfirm}
             disabled={loading}
-            className={`rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50 ${
-              variant === "destructive"
-                ? "bg-destructive text-white hover:bg-destructive/90"
-                : "bg-brand-navy text-primary-foreground hover:opacity-90"
-            }`}
+            variant={variant === "destructive" ? "destructive" : "default"}
           >
             {loading ? "..." : confirmLabel}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

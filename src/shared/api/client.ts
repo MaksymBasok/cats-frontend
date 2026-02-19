@@ -1,4 +1,4 @@
-import { getAccessToken } from "@/shared/auth/token";
+﻿import { getAccessToken } from "@/shared/auth/token";
 
 export const AUTH_EXPIRED_EVENT = "cats:auth-expired";
 
@@ -35,7 +35,14 @@ const DEFAULT_API_TIMEOUT_MS = 20000;
 type ErrorPayload = { message?: string; title?: string; raw?: string };
 
 export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T> {
-  const { method = "GET", body, signal, auth = true, headers: extraHeaders, timeoutMs = DEFAULT_API_TIMEOUT_MS } = opts;
+  const {
+    method = "GET",
+    body,
+    signal,
+    auth = true,
+    headers: extraHeaders,
+    timeoutMs = DEFAULT_API_TIMEOUT_MS,
+  } = opts;
 
   const headers: Record<string, string> = { ...(extraHeaders ?? {}) };
 
@@ -55,6 +62,7 @@ export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T
   const externalAbortHandler = () => {
     abortController.abort(signal?.reason);
   };
+
   if (signal) {
     if (signal.aborted) {
       externalAbortHandler();
@@ -81,15 +89,20 @@ export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T
   } catch (e: unknown) {
     const externalAborted = !!signal?.aborted;
     const timedOut = !externalAborted && abortController.signal.aborted && timeoutMs > 0;
+
     if (timedOut) {
-      throw new ApiError("Request timeout. Please try again.", 0, { cause: e, kind: "timeout", timeoutMs });
+      throw new ApiError("Час очікування запиту вичерпано. Спробуйте ще раз.", 0, {
+        cause: e,
+        kind: "timeout",
+        timeoutMs,
+      });
     }
 
     if (externalAborted) {
-      throw new ApiError("Request cancelled", 0, { cause: e, kind: "aborted" });
+      throw new ApiError("Запит скасовано", 0, { cause: e, kind: "aborted" });
     }
 
-    const message = e instanceof Error ? e.message : "Network error";
+    const message = e instanceof Error ? e.message : "Помилка мережі";
     throw new ApiError(message, 0, { cause: e, kind: "network" });
   } finally {
     if (timeoutId !== null) {
@@ -122,7 +135,7 @@ export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T
       details.title ||
       statusMessage(res.status) ||
       (typeof data === "string" ? data : null) ||
-      `Request failed: ${res.status}`;
+      `Помилка запиту: ${res.status}`;
 
     throw new ApiError(String(message), res.status, data);
   }
@@ -149,13 +162,13 @@ function statusMessage(status: number): string | null {
     case 400:
       return "Некоректні дані запиту";
     case 401:
-      return "Потрібно авторизуватися повторно";
+      return "Потрібна авторизація. Увійдіть повторно";
     case 403:
-      return "Недостатньо прав для цієї дії";
+      return "Недостатньо прав для виконання цієї дії";
     case 404:
       return "Запис не знайдено або вже видалено";
     case 409:
-      return "Конфлікт даних. Може містити додаткові дані";
+      return "Конфлікт даних. Перевірте актуальність інформації";
     case 422:
       return "Помилка валідації даних";
     case 429:

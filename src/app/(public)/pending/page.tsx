@@ -7,6 +7,7 @@ import { Clock, LogOut, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { showErrorToast } from "@/shared/utils/errors";
+import { Button } from "@/components/ui/button";
 
 export default function PendingPage() {
   const { logout, refreshProfile } = useAuth();
@@ -63,21 +64,24 @@ export default function PendingPage() {
           </div>
 
           <div className="flex w-full flex-col gap-2 mt-2">
-            <button
+            <Button
               onClick={handleRetry}
               disabled={checking}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-navy px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-opacity"
+              className="w-full gap-2"
+              type="button"
             >
               <RefreshCw className={`h-4 w-4 ${checking ? "animate-spin" : ""}`} />
               {checking ? "Перевіряємо..." : "Перевірити статус"}
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={handleLogout}
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+              variant="outline"
+              className="w-full gap-2"
+              type="button"
             >
               <LogOut className="h-4 w-4" />
               Вийти
-            </button>
+            </Button>
           </div>
         </div>
       </div>

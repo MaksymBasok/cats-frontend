@@ -51,8 +51,8 @@ export default function ProductTypeDetailPage() {
     } catch (error) {
       setItem(null);
       setProducts([]);
-      setLoadError("Failed to load product type data.");
-      showErrorToast(error, "Failed to load product type data");
+      setLoadError("Не вдалося завантажити дані типу продукту.");
+      showErrorToast(error, "Не вдалося завантажити дані типу продукту");
     } finally {
       setLoading(false);
     }
@@ -73,11 +73,11 @@ export default function ProductTypeDetailPage() {
   if (!hasValidId) {
     return (
       <div className="space-y-3">
-        <p className="text-sm text-muted-foreground">Invalid product type ID.</p>
+        <p className="text-sm text-muted-foreground">Некоректний ID типу продукту.</p>
         <Button asChild variant="outline">
           <Link href="/product-types">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to product types
+            До типів продуктів
           </Link>
         </Button>
       </div>
@@ -91,12 +91,12 @@ export default function ProductTypeDetailPage() {
           <p className="text-sm text-destructive">{loadError}</p>
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="outline" onClick={() => void load()}>
-              Retry
+              Повторити
             </Button>
             <Button asChild variant="ghost">
               <Link href="/product-types">
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Back
+                Назад
               </Link>
             </Button>
           </div>
@@ -108,11 +108,11 @@ export default function ProductTypeDetailPage() {
   if (!item) {
     return (
       <div className="space-y-3">
-        <p className="text-sm text-muted-foreground">Product type not found.</p>
+        <p className="text-sm text-muted-foreground">Тип продукту не знайдено.</p>
         <Button asChild variant="outline">
           <Link href="/product-types">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to product types
+            До типів продуктів
           </Link>
         </Button>
       </div>
@@ -127,21 +127,24 @@ export default function ProductTypeDetailPage() {
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
-        <h1 className="text-2xl font-bold">{item.name || `Type #${item.id}`}</h1>
+        <h1 className="text-2xl font-bold">{item.name || `Тип #${item.id}`}</h1>
         <Badge variant="secondary">#{item.id}</Badge>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Type info</CardTitle>
+          <CardTitle>Інформація про тип</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <p>
-            Shelf life: <span className="font-medium">{item.shelfLifeDays ?? 0} d. {item.shelfLifeHours ?? 0} h.</span>
+            Термін придатності:{" "}
+            <span className="font-medium">
+              {item.shelfLifeDays ?? 0} дн. {item.shelfLifeHours ?? 0} год.
+            </span>
           </p>
           {item.meta && (
             <p>
-              Meta: <span className="font-medium">{item.meta}</span>
+              Примітки: <span className="font-medium">{item.meta}</span>
             </p>
           )}
         </CardContent>
@@ -149,18 +152,18 @@ export default function ProductTypeDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Products of this type ({products.length})</CardTitle>
+          <CardTitle>Продукти цього типу ({products.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {products.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No products found for this type.</p>
+            <p className="text-sm text-muted-foreground">Для цього типу продуктів не знайдено.</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Shelf life</TableHead>
+                  <TableHead>Назва</TableHead>
+                  <TableHead>Опис</TableHead>
+                  <TableHead>Термін придатності</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -169,7 +172,7 @@ export default function ProductTypeDetailPage() {
                     <TableCell>{product.name || `#${product.id}`}</TableCell>
                     <TableCell>{product.description || "-"}</TableCell>
                     <TableCell>
-                      {product.shelfLifeDays ?? 0} d. {product.shelfLifeHours ?? 0} h.
+                      {product.shelfLifeDays ?? 0} дн. {product.shelfLifeHours ?? 0} год.
                     </TableCell>
                   </TableRow>
                 ))}

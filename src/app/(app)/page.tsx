@@ -9,6 +9,7 @@ import { getProductTypes } from "@/shared/api/product-types";
 import { useAuth } from "@/shared/auth/AuthProvider";
 import { useIsDesktop } from "@/hooks/useMediaQuery";
 import type { ContainerDto, ContainerTypeDto, ProductTypeDto, SearchContainersParams } from "@/shared/types";
+import { Button } from "@/components/ui/button";
 import { ContainerFilters } from "@/shared/ui/containers/ContainerFilters";
 import { ContainerCard } from "@/shared/ui/containers/ContainerCard";
 import { ContainerTable } from "@/shared/ui/containers/ContainerTable";
@@ -111,13 +112,13 @@ export default function ContainersPage() {
         </div>
 
         {isAdmin && (
-          <button
+          <Button
             onClick={() => setCreateOpen(true)}
-            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98]"
+            className="gap-2"
           >
             <Plus className="h-4 w-4" />
             Додати
-          </button>
+          </Button>
         )}
       </div>
 
@@ -135,13 +136,14 @@ export default function ContainersPage() {
       ) : loadError ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 py-16 text-center">
           <p className="text-base font-medium text-foreground">{loadError}</p>
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() => void fetchContainers(effectiveFilters)}
-            className="mt-4 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
+            className="mt-4"
           >
             Спробувати ще раз
-          </button>
+          </Button>
         </div>
       ) : containers.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 py-24 text-center">

@@ -19,8 +19,8 @@ function safeParam(p: string | string[] | undefined): string {
 }
 
 function statusLabel(status: string | null | undefined): string {
-  if (status === "Full") return "Full";
-  if (status === "Empty") return "Empty";
+  if (status === "Full") return "Заповнена";
+  if (status === "Empty") return "Порожня";
   return "-";
 }
 
@@ -58,8 +58,8 @@ export default function ContainerTypeDetailPage() {
     } catch (error) {
       setItem(null);
       setContainers([]);
-      setLoadError("Failed to load container type data.");
-      showErrorToast(error, "Failed to load container type data");
+      setLoadError("Не вдалося завантажити дані типу тари.");
+      showErrorToast(error, "Не вдалося завантажити дані типу тари");
     } finally {
       setLoading(false);
     }
@@ -80,11 +80,11 @@ export default function ContainerTypeDetailPage() {
   if (!hasValidId) {
     return (
       <div className="space-y-3">
-        <p className="text-sm text-muted-foreground">Invalid container type ID.</p>
+        <p className="text-sm text-muted-foreground">Некоректний ID типу тари.</p>
         <Button asChild variant="outline">
           <Link href="/container-types">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to container types
+            До типів тари
           </Link>
         </Button>
       </div>
@@ -98,12 +98,12 @@ export default function ContainerTypeDetailPage() {
           <p className="text-sm text-destructive">{loadError}</p>
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="outline" onClick={() => void load()}>
-              Retry
+              Повторити
             </Button>
             <Button asChild variant="ghost">
               <Link href="/container-types">
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Back
+                Назад
               </Link>
             </Button>
           </div>
@@ -115,11 +115,11 @@ export default function ContainerTypeDetailPage() {
   if (!item) {
     return (
       <div className="space-y-3">
-        <p className="text-sm text-muted-foreground">Container type not found.</p>
+        <p className="text-sm text-muted-foreground">Тип тари не знайдено.</p>
         <Button asChild variant="outline">
           <Link href="/container-types">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to container types
+            До типів тари
           </Link>
         </Button>
       </div>
@@ -134,28 +134,28 @@ export default function ContainerTypeDetailPage() {
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
-        <h1 className="text-2xl font-bold">{item.name || `Type #${item.id}`}</h1>
+        <h1 className="text-2xl font-bold">{item.name || `Тип #${item.id}`}</h1>
         <Badge variant="secondary">#{item.id}</Badge>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Type info</CardTitle>
+          <CardTitle>Інформація про тип</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <p>
-            Prefix: <span className="font-medium">{item.codePrefix || "-"}</span>
+            Префікс: <span className="font-medium">{item.codePrefix || "-"}</span>
           </p>
           <p>
-            Default unit: <span className="font-medium">{item.defaultUnit || "-"}</span>
+            Базова одиниця: <span className="font-medium">{item.defaultUnit || "-"}</span>
           </p>
           <p>
-            Allowed product types:{" "}
-            <span className="font-medium">{item.allowedProductTypeNames?.join(", ") || "all"}</span>
+            Дозволені типи продуктів:{" "}
+            <span className="font-medium">{item.allowedProductTypeNames?.join(", ") || "усі"}</span>
           </p>
           {item.meta && (
             <p>
-              Meta: <span className="font-medium">{item.meta}</span>
+              Примітки: <span className="font-medium">{item.meta}</span>
             </p>
           )}
         </CardContent>
@@ -163,19 +163,19 @@ export default function ContainerTypeDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Containers of this type ({containers.length})</CardTitle>
+          <CardTitle>Тара цього типу ({containers.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {containers.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No containers found for this type.</p>
+            <p className="text-sm text-muted-foreground">Для цього типу тари записів не знайдено.</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Code</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Volume</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Код</TableHead>
+                  <TableHead>Назва</TableHead>
+                  <TableHead>Обʼєм</TableHead>
+                  <TableHead>Стан</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

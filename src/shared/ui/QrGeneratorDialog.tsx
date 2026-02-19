@@ -89,12 +89,12 @@ export function QrGeneratorDialog({ open, onClose, url, title }: QrGeneratorDial
             link.download = `${title || "qr-code"}.png`;
             link.click();
             URL.revokeObjectURL(downloadUrl);
-            toast.success("QR код завантажено");
+            toast.success("QR-код завантажено");
           });
         };
         logoImg.onerror = () => {
           URL.revokeObjectURL(objectUrl);
-          toast.error("Не вдалося додати логотип до QR");
+          toast.error("Не вдалося додати логотип до QR-коду");
         };
         logoImg.src = QR_LOGO_SRC;
 
@@ -103,7 +103,7 @@ export function QrGeneratorDialog({ open, onClose, url, title }: QrGeneratorDial
 
       img.src = objectUrl;
     } catch {
-      toast.error("Не вдалося завантажити QR код");
+      toast.error("Не вдалося завантажити QR-код");
     }
   };
 
@@ -111,7 +111,7 @@ export function QrGeneratorDialog({ open, onClose, url, title }: QrGeneratorDial
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>QR код {title && `- ${title}`}</DialogTitle>
+          <DialogTitle>QR-код {title && `- ${title}`}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -148,7 +148,7 @@ export function QrGeneratorDialog({ open, onClose, url, title }: QrGeneratorDial
             </Button>
             <Button onClick={handleDownloadQR} className="flex-1">
               <Download className="mr-2 h-4 w-4" />
-              Завантажити QR
+              Завантажити QR-код
             </Button>
           </div>
         </div>

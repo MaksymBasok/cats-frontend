@@ -1,23 +1,25 @@
-// src/shared/ui/QrScannerModal.tsx
+﻿// src/shared/ui/QrScannerModal.tsx
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { X, Camera, Keyboard } from "lucide-react";
+import { Camera, Keyboard } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 interface QrScannerModalProps {
   open: boolean;
   onClose: () => void;
 }
 
-// Minimal typing for html5-qrcode instance
 type Html5QrInstance = {
   start: (
     cameraConfig: { facingMode: "environment" } | string,
     config: { fps?: number; qrbox?: { width: number; height: number } },
     onSuccess: (decodedText: string) => void,
-    onError: (errorMessage: string) => void
+    onError: (errorMessage: string) => void,
   ) => Promise<void>;
   stop: () => Promise<void>;
   clear: () => Promise<void>;
@@ -27,20 +29,17 @@ function extractContainerCode(raw: string): string | null {
   const text = (raw ?? "").trim();
   if (!text) return null;
 
-  // If QR contains a URL
   try {
     const u = new URL(text);
     const m = u.pathname.match(/\/(containers|c)\/([^/?#]+)/i);
     return m?.[2] ? decodeURIComponent(m[2]) : null;
   } catch {
-    // Not a URL
+    // ignore
   }
 
-  // If QR contains a path-like string (without scheme), e.g. /containers/ABC123
   const pathMatch = text.match(/\/(containers|c)\/([^/?#]+)/i);
   if (pathMatch?.[2]) return decodeURIComponent(pathMatch[2]);
 
-  // Otherwise treat it as plain code
   return text;
 }
 
@@ -58,12 +57,11 @@ export function QrScannerModal({ open, onClose }: QrScannerModalProps) {
   const [isStarting, setIsStarting] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Detect if device is mobile
   useEffect(() => {
     const checkMobile = () => {
       const userAgent = navigator.userAgent || navigator.vendor;
       const isMobileDevice = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
-        userAgent.toLowerCase()
+        userAgent.toLowerCase(),
       );
       const hasTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
       setIsMobile(isMobileDevice || (hasTouch && window.innerWidth < 768));
@@ -81,18 +79,16 @@ export function QrScannerModal({ open, onClose }: QrScannerModalProps) {
         toast.error("Не вдалося розпізнати код контейнера");
         return;
       }
+
       onClose();
-      // IMPORTANT: mentor requirement says URL should be based on container CODE.
-      // Keep route consistent with your app. If you also support /c/[code], you can route there.
       router.push(`/containers/${encodeURIComponent(code)}`);
-      toast.success(`Перехід до контейнера ${code}`);
+      toast.success(`Відкриваємо контейнер ${code}`);
     },
-    [onClose, router]
+    [onClose, router],
   );
 
   useEffect(() => {
     if (!open) {
-      // reset state when closing
       setScannerError(null);
       setShowManual(false);
       setManualCode("");
@@ -101,7 +97,6 @@ export function QrScannerModal({ open, onClose }: QrScannerModalProps) {
       return;
     }
 
-    // On desktop, show manual input by default
     if (!isMobile) {
       setShowManual(true);
     }
@@ -127,20 +122,19 @@ export function QrScannerModal({ open, onClose }: QrScannerModalProps) {
           Html5Qrcode: new (elementId: string) => Html5QrInstance;
         };
 
-        // Ensure we stop previous instance if any
         if (qrInstanceRef.current) {
           try {
             if (scannerStartedRef.current) {
               await qrInstanceRef.current.stop();
             }
           } catch {
-            // Instance might not be running, that's ok
+            // ignore
           }
 
           try {
             await qrInstanceRef.current.clear();
           } catch {
-            // ignore clear errors for stale instance
+            // ignore
           }
 
           scannerStartedRef.current = false;
@@ -154,14 +148,13 @@ export function QrScannerModal({ open, onClose }: QrScannerModalProps) {
           { facingMode: "environment" },
           { fps: 10, qrbox: { width: 250, height: 250 } },
           (decodedText) => {
-            // prevent double fire
             if (hasScannedRef.current) return;
             hasScannedRef.current = true;
             navigateToCode(decodedText);
           },
           () => {
-            // ignore per-frame errors
-          }
+            // ignore frame errors
+          },
         );
 
         scannerStartedRef.current = true;
@@ -176,8 +169,8 @@ export function QrScannerModal({ open, onClose }: QrScannerModalProps) {
 
           setScannerError(
             blockedByPermissions
-              ? "Камера недоступна без дозволу. Надайте доступ або введіть код вручну."
-              : "Не вдалося запустити камеру. Введіть код вручну."
+              ? "Доступ до камери заборонено. Надайте дозвіл або введіть код вручну."
+              : "Не вдалося запустити камеру. Введіть код вручну.",
           );
           setShowManual(true);
         }
@@ -192,16 +185,15 @@ export function QrScannerModal({ open, onClose }: QrScannerModalProps) {
       cancelled = true;
       const instance = qrInstanceRef.current;
       if (instance) {
-        // Try to stop, but don't throw if not running
         const stopPromise = scannerStartedRef.current ? instance.stop() : Promise.resolve();
 
         stopPromise
           .catch(() => {
-            // Scanner might not be running, that's ok
+            // ignore
           })
           .then(() => instance.clear())
           .catch(() => {
-            // Scanner might not be running, that's ok
+            // ignore
           })
           .finally(() => {
             scannerStartedRef.current = false;
@@ -218,96 +210,61 @@ export function QrScannerModal({ open, onClose }: QrScannerModalProps) {
     setManualCode("");
   };
 
-  if (!open) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Сканувати QR"
-    >
-      <div className="relative w-full max-w-sm rounded-xl bg-card p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-card-foreground">
-            {showManual ? "Введіть код" : "Сканувати QR"}
-          </h2>
-          <button
-            onClick={onClose}
-            className="rounded-md p-1 text-muted-foreground hover:bg-muted"
-            aria-label="Закрити"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={(nextOpen) => (!nextOpen ? onClose() : undefined)}>
+      <DialogContent className="w-full max-w-sm p-4 sm:max-w-sm">
+        <DialogHeader className="pr-8">
+          <DialogTitle>{showManual ? "Введіть код" : "Скануйте QR-код"}</DialogTitle>
+        </DialogHeader>
 
         {!showManual ? (
           <>
-            <div
-              id="qr-reader"
-              ref={scannerRootRef}
-              className="overflow-hidden rounded-lg"
-            />
+            <div id="qr-reader" ref={scannerRootRef} className="overflow-hidden rounded-lg" />
 
-            {isStarting && (
-              <p className="mt-2 text-sm text-muted-foreground">
-                Запуск камери...
-              </p>
-            )}
+            {isStarting && <p className="mt-2 text-sm text-muted-foreground">Запускаємо камеру...</p>}
 
-            {scannerError && (
-              <p className="mt-2 text-sm text-destructive">{scannerError}</p>
-            )}
+            {scannerError && <p className="mt-2 text-sm text-destructive">{scannerError}</p>}
 
             {isMobile && (
-              <button
-                onClick={() => setShowManual(true)}
-                className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-muted px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary"
-                type="button"
-              >
+              <Button type="button" variant="outline" className="mt-3 w-full gap-2" onClick={() => setShowManual(true)}>
                 <Keyboard className="h-4 w-4" />
                 Ввести код вручну
-              </button>
+              </Button>
             )}
           </>
         ) : (
           <>
             <div className="flex flex-col gap-3">
-              <input
+              <Input
                 type="text"
                 value={manualCode}
                 onChange={(e) => setManualCode(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleManualSubmit()}
-                placeholder="Введіть код контейнера..."
-                className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                placeholder="Введіть код тари..."
                 autoFocus
               />
-              <button
-                onClick={handleManualSubmit}
-                disabled={!manualCode.trim()}
-                className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
-                type="button"
-              >
-                Перейти
-              </button>
+              <Button onClick={handleManualSubmit} disabled={!manualCode.trim()} type="button">
+                Відкрити
+              </Button>
             </div>
 
             {isMobile && (
-              <button
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-3 w-full gap-2"
                 onClick={() => {
                   setShowManual(false);
                   setScannerError(null);
                 }}
-                className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-muted px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary"
-                type="button"
               >
                 <Camera className="h-4 w-4" />
                 Сканувати камерою
-              </button>
+              </Button>
             )}
           </>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

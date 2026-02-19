@@ -1,4 +1,4 @@
-// src/shared/ui/products/CreateProductDialog.tsx
+﻿// src/shared/ui/products/CreateProductDialog.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -23,8 +23,8 @@ interface CreateProductDialogProps {
 type FormState = {
   name: string;
   description: string;
-  productTypeId: string; // Select keeps string
-  shelfLifeDays: string; // keep string to avoid NaN during typing
+  productTypeId: string;
+  shelfLifeDays: string;
   shelfLifeHours: string;
 };
 
@@ -83,11 +83,11 @@ export function CreateProductDialog({
   const buildDto = (): CreateProductDto | null => {
     const name = form.name.trim();
     if (!name) {
-      toast.error("Вкажіть назву");
+      toast.error("Вкажіть назву продукту");
       return null;
     }
 
-    const ptId = form.productTypeId ? Number(form.productTypeId) : NaN;
+    const ptId = form.productTypeId ? Number(form.productTypeId) : Number.NaN;
     if (!Number.isFinite(ptId) || !productTypeIds.has(ptId)) {
       toast.error("Оберіть тип продукту");
       return null;
@@ -97,15 +97,12 @@ export function CreateProductDialog({
     const hours = form.shelfLifeHours.trim() ? Number(form.shelfLifeHours) : null;
 
     if (days != null && (!Number.isFinite(days) || days < 0)) {
-      toast.error("Термін (днів) має бути числом ≥ 0");
+      toast.error("Термін у днях має бути цілим числом >= 0");
       return null;
     }
     if (hours != null && (!Number.isFinite(hours) || hours < 0)) {
-      toast.error("Термін (годин) має бути числом ≥ 0");
+      toast.error("Термін у годинах має бути цілим числом >= 0");
       return null;
-    }
-    if ((days ?? 0) === 0 && (hours ?? 0) === 0) {
-      // дозволяємо пусто (null), але якщо користувач ввів 0/0 — це те саме що не задавати
     }
 
     const dto: CreateProductDto = {
@@ -169,7 +166,7 @@ export function CreateProductDialog({
               <SelectContent>
                 {productTypes.map((type) => (
                   <SelectItem key={type.id} value={String(type.id)}>
-                    {type.name ?? "—"}
+                    {type.name ?? "-"}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -177,7 +174,7 @@ export function CreateProductDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Опис (опціонально)</Label>
+            <Label htmlFor="description">Опис (необов’язково)</Label>
             <Textarea
               id="description"
               value={form.description}
@@ -197,7 +194,7 @@ export function CreateProductDialog({
                 inputMode="numeric"
                 value={form.shelfLifeDays}
                 onChange={(e) => setForm((p) => ({ ...p, shelfLifeDays: e.target.value }))}
-                placeholder="—"
+                placeholder="-"
               />
             </div>
             <div className="space-y-2">
@@ -210,12 +207,12 @@ export function CreateProductDialog({
                 inputMode="numeric"
                 value={form.shelfLifeHours}
                 onChange={(e) => setForm((p) => ({ ...p, shelfLifeHours: e.target.value }))}
-                placeholder="—"
+                placeholder="-"
               />
             </div>
           </div>
           <p className="-mt-2 text-xs text-muted-foreground">
-            Термін придатності автоматично підтягується з типу продукту, але його можна змінити вручну.
+            Значення терміну придатності підтягуються з типу продукту, але їх можна змінити вручну.
           </p>
 
           <div className="flex justify-end gap-2 pt-4">

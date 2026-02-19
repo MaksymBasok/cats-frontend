@@ -83,8 +83,8 @@ export default function ProductTypesPage() {
     try {
       setItems(await getProductTypes());
     } catch (error) {
-      setLoadError("Failed to load product types.");
-      showErrorToast(error, "Failed to load product types");
+      setLoadError("Не вдалося завантажити типи продуктів.");
+      showErrorToast(error, "Не вдалося завантажити типи продуктів");
     } finally {
       setLoading(false);
     }
@@ -102,19 +102,19 @@ export default function ProductTypesPage() {
 
     const trimmedName = name.trim();
     if (!trimmedName) {
-      toast.error("Enter a name");
+      toast.error("Вкажіть назву");
       return;
     }
 
     const parsedDays = parseNonNegativeInteger(days);
     if (parsedDays === "invalid") {
-      toast.error("Days must be a whole number >= 0");
+      toast.error("Кількість днів має бути цілим числом >= 0");
       return;
     }
 
     const parsedHours = parseNonNegativeInteger(hours);
     if (parsedHours === "invalid") {
-      toast.error("Hours must be a whole number >= 0");
+      toast.error("Кількість годин має бути цілим числом >= 0");
       return;
     }
 
@@ -126,12 +126,12 @@ export default function ProductTypesPage() {
         shelfLifeHours: parsedHours,
         meta: meta.trim() || null,
       });
-      toast.success("Product type created");
+      toast.success("Тип продукту створено");
       resetCreateForm();
       setCreateDialogOpen(false);
       await load();
     } catch (error) {
-      showErrorToast(error, "Failed to create product type");
+      showErrorToast(error, "Не вдалося створити тип продукту");
     } finally {
       setCreating(false);
     }
@@ -153,19 +153,19 @@ export default function ProductTypesPage() {
 
     const trimmedName = editName.trim();
     if (!trimmedName) {
-      toast.error("Enter a name");
+      toast.error("Вкажіть назву");
       return;
     }
 
     const parsedDays = parseNonNegativeInteger(editDays);
     if (parsedDays === "invalid") {
-      toast.error("Days must be a whole number >= 0");
+      toast.error("Кількість днів має бути цілим числом >= 0");
       return;
     }
 
     const parsedHours = parseNonNegativeInteger(editHours);
     if (parsedHours === "invalid") {
-      toast.error("Hours must be a whole number >= 0");
+      toast.error("Кількість годин має бути цілим числом >= 0");
       return;
     }
 
@@ -177,12 +177,12 @@ export default function ProductTypesPage() {
         shelfLifeHours: parsedHours,
         meta: editMeta.trim() || null,
       });
-      toast.success("Product type updated");
+      toast.success("Тип продукту оновлено");
       setEditDialogOpen(false);
       setEditingItem(null);
       await load();
     } catch (error) {
-      showErrorToast(error, "Failed to update product type");
+      showErrorToast(error, "Не вдалося оновити тип продукту");
     } finally {
       setUpdating(false);
     }
@@ -194,13 +194,13 @@ export default function ProductTypesPage() {
     setDeleteLoading(true);
     try {
       await deleteProductType(String(deleteItem.id));
-      toast.success("Product type deleted");
+      toast.success("Тип продукту видалено");
       setEditDialogOpen(false);
       setEditingItem(null);
       setDeleteItem(null);
       await load();
     } catch (error) {
-      showErrorToast(error, "Failed to delete product type");
+      showErrorToast(error, "Не вдалося видалити тип продукту");
     } finally {
       setDeleteLoading(false);
     }
@@ -237,7 +237,7 @@ export default function ProductTypesPage() {
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
             <p className="text-sm text-destructive">{loadError}</p>
             <Button type="button" variant="outline" onClick={() => void load()}>
-              Retry
+              Повторити
             </Button>
           </CardContent>
         </Card>
@@ -257,7 +257,7 @@ export default function ProductTypesPage() {
                   <TableHead>Назва</TableHead>
                   <TableHead>Дні</TableHead>
                   <TableHead>Години</TableHead>
-                  <TableHead>Мета</TableHead>
+                  <TableHead>Примітки</TableHead>
                   <TableHead className="w-[120px]">Дії</TableHead>
                 </TableRow>
               </TableHeader>
@@ -285,7 +285,7 @@ export default function ProductTypesPage() {
                           variant="destructive"
                           onClick={() => setDeleteItem(item)}
                           className="h-8 gap-1.5"
-                          aria-label="Delete"
+                          aria-label="Видалити тип продукту"
                         >
                           <Trash2 className="h-4 w-4" /> Видалити
                         </Button>
@@ -314,7 +314,7 @@ export default function ProductTypesPage() {
                       <div className="mt-2 flex flex-wrap gap-2 text-sm text-muted-foreground">
                         <span className="inline-flex items-center gap-1">
                           <Clock className="h-3.5 w-3.5" />
-                          {item.shelfLifeDays ?? 0}d {item.shelfLifeHours ?? 0}h
+                          {item.shelfLifeDays ?? 0} дн. {item.shelfLifeHours ?? 0} год.
                         </span>
                       </div>
                       {item.meta && <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{item.meta}</p>}
@@ -324,7 +324,7 @@ export default function ProductTypesPage() {
                         size="icon"
                         variant="outline"
                         onClick={() => openEditDialog(item)}
-                        aria-label="Edit"
+                        aria-label="Редагувати тип продукту"
                         className="h-8 w-8"
                       >
                         <Edit className="h-4 w-4" />
@@ -334,7 +334,7 @@ export default function ProductTypesPage() {
                         variant="destructive"
                         onClick={() => setDeleteItem(item)}
                         className="h-8 w-8"
-                        aria-label="Delete"
+                        aria-label="Видалити тип продукту"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -358,7 +358,7 @@ export default function ProductTypesPage() {
       >
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Create product type</DialogTitle>
+            <DialogTitle>Створити тип продукту</DialogTitle>
           </DialogHeader>
           <form onSubmit={onCreate} className="grid gap-3">
             <Input placeholder="Назва" value={name} onChange={(e) => setName(e.target.value)} required />
@@ -366,7 +366,7 @@ export default function ProductTypesPage() {
               <Input placeholder="Дні" value={days} onChange={(e) => setDays(e.target.value)} type="number" min="0" step="1" />
               <Input placeholder="Години" value={hours} onChange={(e) => setHours(e.target.value)} type="number" min="0" step="1" />
             </div>
-            <Textarea placeholder="Мета" value={meta} onChange={(e) => setMeta(e.target.value)} rows={3} />
+            <Textarea placeholder="Примітки" value={meta} onChange={(e) => setMeta(e.target.value)} rows={3} />
             <Button disabled={creating} type="submit" className="gap-2">
               <Plus className="h-4 w-4" /> {creating ? "Створення..." : "Створити"}
             </Button>
@@ -418,12 +418,12 @@ export default function ProductTypesPage() {
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium">Мета</label>
+                <label className="text-sm font-medium">Примітки</label>
                 <Textarea value={editMeta} onChange={(e) => setEditMeta(e.target.value)} className="mt-1.5" rows={3} />
               </div>
               <div className="flex gap-2 pt-2">
                 <Button type="submit" disabled={updating} className="flex-1">
-                  <Save className="mr-2 h-4 w-4" /> {updating ? "Saving..." : "Save"}
+                  <Save className="mr-2 h-4 w-4" /> {updating ? "Збереження..." : "Зберегти"}
                 </Button>
               </div>
             </form>
@@ -433,10 +433,10 @@ export default function ProductTypesPage() {
 
       <ConfirmDialog
         open={!!deleteItem}
-        title="Delete product type?"
-        description={`Product type "${deleteItem?.name?.trim() || `#${deleteItem?.id ?? ""}`}" will be deleted permanently.`}
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title="Видалити тип продукту?"
+        description={`Тип продукту "${deleteItem?.name?.trim() || `#${deleteItem?.id ?? ""}`}" буде видалено без можливості відновлення.`}
+        confirmLabel="Видалити"
+        cancelLabel="Скасувати"
         variant="destructive"
         onConfirm={handleDelete}
         onCancel={() => setDeleteItem(null)}

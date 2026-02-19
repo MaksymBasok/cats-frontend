@@ -1,4 +1,4 @@
-// src/shared/ui/containers/EditFillDialog.tsx
+﻿// src/shared/ui/containers/EditFillDialog.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -41,14 +41,10 @@ function todayYmd() {
   return `${y}-${m}-${day}`;
 }
 
-// Support both formats:
-// - API may already return "YYYY-MM-DD" (as your types declare)
-// - or older code might pass ISO
 function toYmd(value?: string | null) {
   if (!value) return "";
-  // if already YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
-  // try ISO -> YYYY-MM-DD
+
   try {
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return "";
@@ -61,7 +57,6 @@ function toYmd(value?: string | null) {
   }
 }
 
-// Add days/hours to YYYY-MM-DD in local time, return YYYY-MM-DD
 function addShelfLife(baseYmd: string, days: number, hours: number) {
   const [y, m, d] = baseYmd.split("-").map((x) => Number(x));
   const dt = new Date(y, (m ?? 1) - 1, d ?? 1, 0, 0, 0, 0);
@@ -83,19 +78,13 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
   const [productIdStr, setProductIdStr] = useState<string>(
     container.currentProductId != null ? String(container.currentProductId) : ""
   );
-
-  // keep as string during typing to avoid NaN glitches
   const [quantityStr, setQuantityStr] = useState<string>(
     String(container.currentQuantity ?? container.volume ?? "")
   );
-
   const unit = normalizeUnit(container.unit);
-
   const [productionDate, setProductionDate] = useState<string>(
     toYmd(container.currentProductionDate) || todayYmd()
   );
-
-  // UpdateContainerFillDto requires expirationDate: string
   const [expirationDate, setExpirationDate] = useState<string>(
     toYmd(container.currentExpirationDate) || ""
   );
@@ -139,7 +128,6 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
     container.currentQuantity,
     container.currentProductionDate,
     container.currentExpirationDate,
-    container.unit,
     container.volume,
   ]);
 
@@ -160,16 +148,13 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
     return filteredProducts.find((p) => p.id === pid) ?? null;
   }, [filteredProducts, productIdStr]);
 
-  // Auto-calc expiration when product and productionDate change
   useEffect(() => {
     if (!selectedProduct) return;
 
     const days = selectedProduct.shelfLifeDays ?? 0;
     const hours = selectedProduct.shelfLifeHours ?? 0;
     const hasShelf = !!(days || hours);
-    if (!hasShelf) return;
-
-    if (!productionDate) return;
+    if (!hasShelf || !productionDate) return;
 
     setExpirationDate(addShelfLife(productionDate, days, hours));
   }, [selectedProduct, productionDate]);
@@ -178,7 +163,7 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
     e.preventDefault();
 
     if (filteredProducts.length === 0) {
-      toast.error("Немає доступних продуктів для вибраної тари");
+      toast.error("Для цього типу тари немає доступних продуктів");
       return;
     }
 
@@ -205,12 +190,11 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
     }
 
     const payload: UpdateContainerFillDto = {
-      // в твоїх типах productId опціональний, але для edit ми все одно шлемо
       productId: pid,
       quantity,
       unit,
-      productionDate,  // YYYY-MM-DD
-      expirationDate,  // YYYY-MM-DD (required)
+      productionDate,
+      expirationDate,
     };
 
     setLoading(true);
@@ -246,7 +230,7 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
               <SelectContent>
                 {filteredProducts.map((p) => (
                   <SelectItem key={p.id} value={String(p.id)}>
-                    {p.name ?? "—"}
+                    {p.name ?? "-"}
                     {p.productTypeName ? ` (${p.productTypeName})` : ""}
                   </SelectItem>
                 ))}
@@ -254,7 +238,7 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
             </Select>
             {filteredProducts.length === 0 ? (
               <p className="text-xs text-muted-foreground">
-                Немає доступних продуктів для цього типу тари.
+                Для цього типу тари немає доступних продуктів.
               </p>
             ) : null}
           </div>
@@ -274,7 +258,7 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
             </div>
             <div className="space-y-2">
               <Label htmlFor="unit">Одиниця</Label>
-              <Input id="unit" value={unit || "—"} readOnly className="bg-muted text-muted-foreground" />
+              <Input id="unit" value={unit || "-"} readOnly className="bg-muted text-muted-foreground" />
             </div>
           </div>
 
@@ -300,10 +284,12 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
             />
             {hasShelfLife ? (
               <p className="text-xs text-muted-foreground">
-                Автоматично розраховано з терміну придатності продукту (можна змінити вручну).
+                Дата придатності розрахована автоматично з терміну придатності продукту (можна змінити вручну).
               </p>
             ) : null}
-            <p className="text-xs text-muted-foreground">Одиниця виміру фіксована та береться з налаштувань тари.</p>
+            <p className="text-xs text-muted-foreground">
+              Одиниця фіксована налаштуванням тари та не редагується у цій формі.
+            </p>
           </div>
 
           <div className="flex justify-end gap-2 pt-4">

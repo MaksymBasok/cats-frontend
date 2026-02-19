@@ -61,11 +61,11 @@ export function TransferOwnershipDialog({
 
     const v = email.trim();
     if (!v) {
-      toast.error("Вкажіть email нового власника");
+      toast.error("Вкажіть електронну пошту нового власника");
       return;
     }
     if (!isValidEmail(v)) {
-      toast.error("Некоректний email");
+      toast.error("Некоректна електронна пошта");
       return;
     }
 
@@ -94,7 +94,7 @@ export function TransferOwnershipDialog({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email нового власника</Label>
+            <Label htmlFor="email">Електронна пошта нового власника</Label>
             <Input
               id="email"
               type="email"

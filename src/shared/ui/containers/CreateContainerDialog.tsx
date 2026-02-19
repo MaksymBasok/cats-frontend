@@ -2,12 +2,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { X } from "lucide-react";
-import type { ContainerTypeDto, CreateContainerDto } from "@/shared/types";
-import { createContainer } from "@/shared/api/containers";
 import { toast } from "sonner";
 import { normalizeUnit } from "@/shared/constants/units";
+import { createContainer } from "@/shared/api/containers";
+import type { ContainerTypeDto, CreateContainerDto } from "@/shared/types";
 import { showErrorToast } from "@/shared/utils/errors";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 interface CreateContainerDialogProps {
   open: boolean;
@@ -19,9 +24,9 @@ interface CreateContainerDialogProps {
 type FormState = {
   code: string;
   name: string;
-  volume: string; // keep as string to avoid NaN during typing
+  volume: string;
   unit: string;
-  containerTypeId: string; // select value
+  containerTypeId: string;
   meta: string;
 };
 
@@ -60,7 +65,6 @@ export function CreateContainerDialog({
 
   useEffect(() => {
     if (!open) return;
-    // reset when opening
     setForm(initialForm);
     setSaving(false);
   }, [open]);
@@ -70,11 +74,11 @@ export function CreateContainerDialog({
     const code = form.code.trim();
     const meta = form.meta.trim();
 
-    const containerTypeIdNum = form.containerTypeId ? Number(form.containerTypeId) : NaN;
-    const volumeNum = form.volume.trim() ? Number(form.volume) : NaN;
+    const containerTypeIdNum = form.containerTypeId ? Number(form.containerTypeId) : Number.NaN;
+    const volumeNum = form.volume.trim() ? Number(form.volume) : Number.NaN;
 
     if (!name) {
-      toast.error("Вкажіть назву");
+      toast.error("Вкажіть назву тари");
       return null;
     }
     if (!Number.isFinite(containerTypeIdNum)) {
@@ -82,12 +86,11 @@ export function CreateContainerDialog({
       return null;
     }
     if (!Number.isFinite(volumeNum) || volumeNum <= 0) {
-      toast.error("Вкажіть коректний об'єм (> 0)");
+      toast.error("Об'єм має бути більше 0");
       return null;
     }
 
-    const dto: CreateContainerDto = {
-      // code optional
+    return {
       ...(code ? { code } : {}),
       name,
       volume: volumeNum,
@@ -95,8 +98,6 @@ export function CreateContainerDialog({
       containerTypeId: containerTypeIdNum,
       meta: meta ? meta : null,
     };
-
-    return dto;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -118,54 +119,41 @@ export function CreateContainerDialog({
     }
   };
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-md rounded-xl bg-card p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-card-foreground">Нова тара</h2>
-          <button
-            onClick={onClose}
-            className="rounded-md p-1 text-muted-foreground hover:bg-muted"
-            aria-label="Закрити"
-            type="button"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={(nextOpen) => (!nextOpen ? onClose() : undefined)}>
+      <DialogContent className="sm:max-w-[460px]">
+        <DialogHeader>
+          <DialogTitle>Нова тара</DialogTitle>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-card-foreground">
-              Код (необов&apos;язково)
-            </label>
-            <input
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="create-code">Код (необов’язково)</Label>
+            <Input
+              id="create-code"
               type="text"
               value={form.code}
               onChange={(e) => setForm((p) => ({ ...p, code: e.target.value }))}
               placeholder="Автоматично"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
 
-          <div>
-            <label className="mb-1 block text-sm font-medium text-card-foreground">Назва *</label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="create-name">Назва *</Label>
+            <Input
+              id="create-name"
               type="text"
               value={form.name}
               onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
               required
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-card-foreground">
-                {"Об'єм *"}
-              </label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="create-volume">Об’єм *</Label>
+              <Input
+                id="create-volume"
                 type="number"
                 value={form.volume}
                 onChange={(e) => setForm((p) => ({ ...p, volume: e.target.value }))}
@@ -173,80 +161,72 @@ export function CreateContainerDialog({
                 min={0.001}
                 step="any"
                 inputMode="decimal"
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-card-foreground">Одиниця *</label>
-              <input
-                value={selectedTypeUnit || "—"}
-                readOnly
-                className="w-full rounded-lg border border-input bg-muted px-3 py-2 text-sm text-muted-foreground"
-              />
+            <div className="space-y-2">
+              <Label htmlFor="create-unit">Одиниця *</Label>
+              <Input id="create-unit" value={selectedTypeUnit || "-"} readOnly className="bg-muted text-muted-foreground" />
             </div>
           </div>
 
-          <div>
-            <label className="mb-1 block text-sm font-medium text-card-foreground">Тип тари *</label>
-            <select
-              value={form.containerTypeId}
-              onChange={(e) => {
-                const v = e.target.value;
-                const idNum = v ? Number(v) : NaN;
-                const suggestedUnit = Number.isFinite(idNum)
-                  ? defaultUnitByTypeId.get(idNum)
-                  : undefined;
+          <div className="space-y-2">
+            <Label htmlFor="create-container-type">Тип тари *</Label>
+            <Select
+              value={form.containerTypeId || "none"}
+              onValueChange={(value) => {
+                if (value === "none") {
+                  setForm((p) => ({ ...p, containerTypeId: "" }));
+                  return;
+                }
+
+                const idNum = Number(value);
+                const suggestedUnit = Number.isFinite(idNum) ? defaultUnitByTypeId.get(idNum) : undefined;
 
                 setForm((p) => ({
                   ...p,
-                  containerTypeId: v,
+                  containerTypeId: value,
                   unit: suggestedUnit ? normalizeUnit(suggestedUnit) : p.unit,
                 }));
               }}
-              required
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
-              <option value="">Оберіть тип...</option>
-              {containerTypes.map((ct) => (
-                <option key={ct.id} value={ct.id}>
-                  {ct.name ?? "—"}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger id="create-container-type">
+                <SelectValue placeholder="Оберіть тип..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Оберіть тип...</SelectItem>
+                {containerTypes.map((ct) => (
+                  <SelectItem key={ct.id} value={String(ct.id)}>
+                    {ct.name ?? "-"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <p className="-mt-2 text-xs text-muted-foreground">
-            Одиниця підтягується автоматично з типу тари та не редагується вручну.
+            Одиниця підтягується з типу тари та не редагується вручну.
           </p>
 
-          <div>
-            <label className="mb-1 block text-sm font-medium text-card-foreground">Примітки</label>
-            <textarea
+          <div className="space-y-2">
+            <Label htmlFor="create-meta">Примітки</Label>
+            <Textarea
+              id="create-meta"
               value={form.meta}
               onChange={(e) => setForm((p) => ({ ...p, meta: e.target.value }))}
               rows={2}
-              className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
 
-          <div className="mt-2 flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
-            >
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={onClose} disabled={saving}>
               Скасувати
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="rounded-lg bg-brand-navy px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
-            >
-              {saving ? "Створюємо..." : "Створити"}
-            </button>
+            </Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? "Створення..." : "Створити"}
+            </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
