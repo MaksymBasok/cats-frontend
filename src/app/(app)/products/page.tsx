@@ -23,6 +23,7 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<ProductDto[]>([]);
   const [productTypes, setProductTypes] = useState<ProductTypeDto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editProduct, setEditProduct] = useState<ProductDto | null>(null);
@@ -36,10 +37,12 @@ export default function ProductsPage() {
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const data = await getProducts();
       setProducts(data);
     } catch (error) {
+      setLoadError("Не вдалося завантажити продукти.");
       showErrorToast(error, "Не вдалося завантажити продукти");
     } finally {
       setLoading(false);
@@ -145,6 +148,17 @@ export default function ProductsPage() {
       {loading ? (
         <div className="flex items-center justify-center rounded-xl border border-border bg-card/50 py-24">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : loadError ? (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 py-16 text-center">
+          <p className="text-base font-medium text-foreground">{loadError}</p>
+          <button
+            type="button"
+            onClick={() => void fetchProducts()}
+            className="mt-4 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
+          >
+            Спробувати ще раз
+          </button>
         </div>
       ) : filteredProducts.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 py-24 text-center">

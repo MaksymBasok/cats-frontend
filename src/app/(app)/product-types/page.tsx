@@ -29,13 +29,32 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+function parseNonNegativeInteger(value: string): number | null | "invalid" {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const parsed = Number(trimmed);
+  if (!Number.isFinite(parsed) || parsed < 0 || !Number.isInteger(parsed)) {
+    return "invalid";
+  }
+
+  return parsed;
+}
+
 export default function ProductTypesPage() {
   const { isAdmin } = useAuth();
   const router = useRouter();
 
   const [items, setItems] = useState<ProductTypeDto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   const [creating, setCreating] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const [name, setName] = useState("");
   const [days, setDays] = useState("");
@@ -43,10 +62,12 @@ export default function ProductTypesPage() {
   const [meta, setMeta] = useState("");
 
   const [editingItem, setEditingItem] = useState<ProductTypeDto | null>(null);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editDays, setEditDays] = useState("");
+  const [editHours, setEditHours] = useState("");
+  const [editMeta, setEditMeta] = useState("");
+
   const [deleteItem, setDeleteItem] = useState<ProductTypeDto | null>(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -58,58 +79,112 @@ export default function ProductTypesPage() {
 
   const load = async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       setItems(await getProductTypes());
     } catch (error) {
-      showErrorToast(error, "Не вдалося завантажити типи продуктів");
+      setLoadError("Failed to load product types.");
+      showErrorToast(error, "Failed to load product types");
     } finally {
       setLoading(false);
     }
   };
 
+  const resetCreateForm = () => {
+    setName("");
+    setDays("");
+    setHours("");
+    setMeta("");
+  };
+
   const onCreate = async (e: FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) {
-      toast.error("Вкажіть назву");
+
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      toast.error("Enter a name");
+      return;
+    }
+
+    const parsedDays = parseNonNegativeInteger(days);
+    if (parsedDays === "invalid") {
+      toast.error("Days must be a whole number >= 0");
+      return;
+    }
+
+    const parsedHours = parseNonNegativeInteger(hours);
+    if (parsedHours === "invalid") {
+      toast.error("Hours must be a whole number >= 0");
       return;
     }
 
     setCreating(true);
     try {
       await createProductType({
-        name: name.trim(),
-        shelfLifeDays: days ? Number(days) : null,
-        shelfLifeHours: hours ? Number(hours) : null,
+        name: trimmedName,
+        shelfLifeDays: parsedDays,
+        shelfLifeHours: parsedHours,
         meta: meta.trim() || null,
       });
-      toast.success("Тип продукту створено");
-      setName("");
-      setDays("");
-      setHours("");
-      setMeta("");
+      toast.success("Product type created");
+      resetCreateForm();
       setCreateDialogOpen(false);
       await load();
     } catch (error) {
-      showErrorToast(error, "Не вдалося створити тип продукту");
+      showErrorToast(error, "Failed to create product type");
     } finally {
       setCreating(false);
     }
   };
 
-  const handleUpdate = async (item: ProductTypeDto) => {
+  const openEditDialog = (item: ProductTypeDto) => {
+    setEditingItem({ ...item });
+    setEditName(item.name ?? "");
+    setEditDays(item.shelfLifeDays != null ? String(item.shelfLifeDays) : "");
+    setEditHours(item.shelfLifeHours != null ? String(item.shelfLifeHours) : "");
+    setEditMeta(item.meta ?? "");
+    setUpdating(false);
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdate = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!editingItem) return;
+
+    const trimmedName = editName.trim();
+    if (!trimmedName) {
+      toast.error("Enter a name");
+      return;
+    }
+
+    const parsedDays = parseNonNegativeInteger(editDays);
+    if (parsedDays === "invalid") {
+      toast.error("Days must be a whole number >= 0");
+      return;
+    }
+
+    const parsedHours = parseNonNegativeInteger(editHours);
+    if (parsedHours === "invalid") {
+      toast.error("Hours must be a whole number >= 0");
+      return;
+    }
+
+    setUpdating(true);
     try {
-      await updateProductType(String(item.id), {
-        name: item.name,
-        shelfLifeDays: item.shelfLifeDays,
-        shelfLifeHours: item.shelfLifeHours,
-        meta: item.meta,
+      await updateProductType(String(editingItem.id), {
+        name: trimmedName,
+        shelfLifeDays: parsedDays,
+        shelfLifeHours: parsedHours,
+        meta: editMeta.trim() || null,
       });
-      toast.success("Тип продукту оновлено");
+      toast.success("Product type updated");
       setEditDialogOpen(false);
       setEditingItem(null);
       await load();
     } catch (error) {
-      showErrorToast(error, "Не вдалося оновити тип продукту");
+      showErrorToast(error, "Failed to update product type");
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -119,23 +194,17 @@ export default function ProductTypesPage() {
     setDeleteLoading(true);
     try {
       await deleteProductType(String(deleteItem.id));
-      toast.success("Тип продукту видалено");
+      toast.success("Product type deleted");
       setEditDialogOpen(false);
       setEditingItem(null);
       setDeleteItem(null);
       await load();
     } catch (error) {
-      showErrorToast(error, "Не вдалося видалити тип продукту");
+      showErrorToast(error, "Failed to delete product type");
     } finally {
       setDeleteLoading(false);
     }
   };
-
-  const openEditDialog = (item: ProductTypeDto) => {
-    setEditingItem({ ...item });
-    setEditDialogOpen(true);
-  };
-
 
   const handleRowNavigation = (event: MouseEvent<HTMLElement>, href: string) => {
     const target = event.target as HTMLElement;
@@ -152,7 +221,7 @@ export default function ProductTypesPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold">Типи продуктів</h1>
-          <p className="text-muted-foreground">Керування довідником типів продуктів та термінами придатності.</p>
+          <p className="text-muted-foreground">Керуйте каталогом типів продуктів та стандартними значеннями терміну придатності.</p>
         </div>
         <Button type="button" onClick={() => setCreateDialogOpen(true)} className="gap-2">
           <Plus className="h-4 w-4" /> Додати тип
@@ -163,6 +232,21 @@ export default function ProductTypesPage() {
         <div className="flex min-h-[200px] items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
         </div>
+      ) : loadError ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+            <p className="text-sm text-destructive">{loadError}</p>
+            <Button type="button" variant="outline" onClick={() => void load()}>
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      ) : items.length === 0 ? (
+        <Card>
+          <CardContent className="py-10 text-center text-sm text-muted-foreground">
+            Не знайдено типів продуктів.
+          </CardContent>
+        </Card>
       ) : (
         <>
           <Card className="hidden md:block">
@@ -173,8 +257,8 @@ export default function ProductTypesPage() {
                   <TableHead>Назва</TableHead>
                   <TableHead>Дні</TableHead>
                   <TableHead>Години</TableHead>
-                  <TableHead>Meta</TableHead>
-                  <TableHead className="w-[100px]">Дії</TableHead>
+                  <TableHead>Мета</TableHead>
+                  <TableHead className="w-[120px]">Дії</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -187,32 +271,23 @@ export default function ProductTypesPage() {
                     <TableCell>
                       <Badge variant="outline">#{item.id}</Badge>
                     </TableCell>
-                    <TableCell className="font-medium">{item.name ?? "—"}</TableCell>
+                    <TableCell className="font-medium">{item.name ?? "-"}</TableCell>
                     <TableCell>{item.shelfLifeDays ?? 0}</TableCell>
                     <TableCell>{item.shelfLifeHours ?? 0}</TableCell>
-                    <TableCell className="max-w-[240px] truncate text-muted-foreground">
-                      {item.meta || "—"}
-                    </TableCell>
+                    <TableCell className="max-w-[240px] truncate text-muted-foreground">{item.meta || "-"}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openEditDialog(item)}
-                          className="h-8"
-                        >
-                          <Edit className="mr-2 h-4 w-4" />
-                          Редагувати
+                        <Button size="sm" variant="outline" onClick={() => openEditDialog(item)} className="h-8">
+                          <Edit className="mr-2 h-4 w-4" /> Редагувати
                         </Button>
                         <Button
                           size="sm"
                           variant="destructive"
                           onClick={() => setDeleteItem(item)}
                           className="h-8 gap-1.5"
-                          aria-label="Видалити"
+                          aria-label="Delete"
                         >
-                          <Trash2 className="h-4 w-4" />
-                          Видалити
+                          <Trash2 className="h-4 w-4" /> Видалити
                         </Button>
                       </div>
                     </TableCell>
@@ -234,14 +309,12 @@ export default function ProductTypesPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <h3 className="font-semibold">{item.name}</h3>
-                        <Badge variant="secondary" className="text-xs">
-                          #{item.id}
-                        </Badge>
+                        <Badge variant="secondary" className="text-xs">#{item.id}</Badge>
                       </div>
                       <div className="mt-2 flex flex-wrap gap-2 text-sm text-muted-foreground">
                         <span className="inline-flex items-center gap-1">
                           <Clock className="h-3.5 w-3.5" />
-                          {item.shelfLifeDays ?? 0}д {item.shelfLifeHours ?? 0}г
+                          {item.shelfLifeDays ?? 0}d {item.shelfLifeHours ?? 0}h
                         </span>
                       </div>
                       {item.meta && <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{item.meta}</p>}
@@ -251,7 +324,7 @@ export default function ProductTypesPage() {
                         size="icon"
                         variant="outline"
                         onClick={() => openEditDialog(item)}
-                        aria-label="Редагувати"
+                        aria-label="Edit"
                         className="h-8 w-8"
                       >
                         <Edit className="h-4 w-4" />
@@ -261,7 +334,7 @@ export default function ProductTypesPage() {
                         variant="destructive"
                         onClick={() => setDeleteItem(item)}
                         className="h-8 w-8"
-                        aria-label="Видалити"
+                        aria-label="Delete"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -274,39 +347,51 @@ export default function ProductTypesPage() {
         </>
       )}
 
-      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+      <Dialog
+        open={createDialogOpen}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen && !creating) {
+            resetCreateForm();
+          }
+          setCreateDialogOpen(nextOpen);
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Створити тип продукту</DialogTitle>
+            <DialogTitle>Create product type</DialogTitle>
           </DialogHeader>
           <form onSubmit={onCreate} className="grid gap-3">
             <Input placeholder="Назва" value={name} onChange={(e) => setName(e.target.value)} required />
             <div className="grid grid-cols-2 gap-3">
-              <Input placeholder="Дні" value={days} onChange={(e) => setDays(e.target.value)} type="number" min="0" />
-              <Input placeholder="Години" value={hours} onChange={(e) => setHours(e.target.value)} type="number" min="0" />
+              <Input placeholder="Дні" value={days} onChange={(e) => setDays(e.target.value)} type="number" min="0" step="1" />
+              <Input placeholder="Години" value={hours} onChange={(e) => setHours(e.target.value)} type="number" min="0" step="1" />
             </div>
-            <Textarea placeholder="Meta / коментар" value={meta} onChange={(e) => setMeta(e.target.value)} rows={3} />
+            <Textarea placeholder="Мета" value={meta} onChange={(e) => setMeta(e.target.value)} rows={3} />
             <Button disabled={creating} type="submit" className="gap-2">
-              <Plus className="h-4 w-4" /> Додати
+              <Plus className="h-4 w-4" /> {creating ? "Створення..." : "Створити"}
             </Button>
           </form>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+      <Dialog
+        open={editDialogOpen}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen && !updating) {
+            setEditingItem(null);
+          }
+          setEditDialogOpen(nextOpen);
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Редагувати тип продукту</DialogTitle>
           </DialogHeader>
           {editingItem && (
-            <div className="space-y-4">
+            <form className="space-y-4" onSubmit={handleUpdate}>
               <div>
                 <label className="text-sm font-medium">Назва</label>
-                <Input
-                  value={editingItem.name ?? ""}
-                  onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
-                  className="mt-1.5"
-                />
+                <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="mt-1.5" required />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -314,8 +399,9 @@ export default function ProductTypesPage() {
                   <Input
                     type="number"
                     min="0"
-                    value={editingItem.shelfLifeDays ?? ""}
-                    onChange={(e) => setEditingItem({ ...editingItem, shelfLifeDays: Number(e.target.value) || 0 })}
+                    step="1"
+                    value={editDays}
+                    onChange={(e) => setEditDays(e.target.value)}
                     className="mt-1.5"
                   />
                 </div>
@@ -324,38 +410,33 @@ export default function ProductTypesPage() {
                   <Input
                     type="number"
                     min="0"
-                    value={editingItem.shelfLifeHours ?? ""}
-                    onChange={(e) => setEditingItem({ ...editingItem, shelfLifeHours: Number(e.target.value) || 0 })}
+                    step="1"
+                    value={editHours}
+                    onChange={(e) => setEditHours(e.target.value)}
                     className="mt-1.5"
                   />
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium">Meta</label>
-                <Textarea
-                  value={editingItem.meta ?? ""}
-                  onChange={(e) => setEditingItem({ ...editingItem, meta: e.target.value })}
-                  className="mt-1.5"
-                  rows={3}
-                />
+                <label className="text-sm font-medium">Мета</label>
+                <Textarea value={editMeta} onChange={(e) => setEditMeta(e.target.value)} className="mt-1.5" rows={3} />
               </div>
               <div className="flex gap-2 pt-2">
-                <Button onClick={() => handleUpdate(editingItem)} className="flex-1">
-                  <Save className="mr-2 h-4 w-4" /> Зберегти
+                <Button type="submit" disabled={updating} className="flex-1">
+                  <Save className="mr-2 h-4 w-4" /> {updating ? "Saving..." : "Save"}
                 </Button>
               </div>
-            </div>
+            </form>
           )}
         </DialogContent>
       </Dialog>
 
-
       <ConfirmDialog
         open={!!deleteItem}
-        title="Видалити тип продукту?"
-        description={`Тип продукту "${deleteItem?.name?.trim() || `#${deleteItem?.id ?? ""}`}" буде видалено без можливості відновлення.`}
-        confirmLabel="Видалити"
-        cancelLabel="Скасувати"
+        title="Delete product type?"
+        description={`Product type "${deleteItem?.name?.trim() || `#${deleteItem?.id ?? ""}`}" will be deleted permanently.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
         variant="destructive"
         onConfirm={handleDelete}
         onCancel={() => setDeleteItem(null)}

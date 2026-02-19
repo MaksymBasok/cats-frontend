@@ -43,6 +43,21 @@ export function EditProductDialog({
   const [loading, setLoading] = useState(false);
 
   const productTypeIds = useMemo(() => new Set(productTypes.map((t) => t.id)), [productTypes]);
+  const productTypeById = useMemo(
+    () => new Map(productTypes.map((type) => [String(type.id), type])),
+    [productTypes]
+  );
+
+  const applyTypeDefaults = (typeId: string) => {
+    const selectedType = productTypeById.get(typeId);
+    return {
+      productTypeId: typeId,
+      shelfLifeDays:
+        selectedType?.shelfLifeDays != null ? String(selectedType.shelfLifeDays) : "",
+      shelfLifeHours:
+        selectedType?.shelfLifeHours != null ? String(selectedType.shelfLifeHours) : "",
+    };
+  };
 
   const [form, setForm] = useState<FormState>({
     name: product.name ?? "",
@@ -140,7 +155,7 @@ export function EditProductDialog({
 
           <div className="space-y-2">
             <Label htmlFor="productType">Тип продукту</Label>
-            <Select value={form.productTypeId} onValueChange={(v) => setForm((p) => ({ ...p, productTypeId: v }))}>
+            <Select value={form.productTypeId} onValueChange={(v) => setForm((p) => ({ ...p, ...applyTypeDefaults(v) }))}>
               <SelectTrigger id="productType">
                 <SelectValue placeholder="Оберіть тип продукту" />
               </SelectTrigger>
@@ -192,6 +207,9 @@ export function EditProductDialog({
               />
             </div>
           </div>
+          <p className="-mt-2 text-xs text-muted-foreground">
+            При зміні типу продукту термін придатності автоматично підставляється з довідника.
+          </p>
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={onClose} disabled={loading}>

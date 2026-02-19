@@ -46,12 +46,39 @@ export function CreateProductDialog({
   const [form, setForm] = useState<FormState>(initialForm);
 
   const productTypeIds = useMemo(() => new Set(productTypes.map((t) => t.id)), [productTypes]);
+  const productTypeById = useMemo(
+    () => new Map(productTypes.map((type) => [String(type.id), type])),
+    [productTypes]
+  );
+
+  const applyTypeDefaults = (typeId: string) => {
+    const selectedType = productTypeById.get(typeId);
+    return {
+      productTypeId: typeId,
+      shelfLifeDays:
+        selectedType?.shelfLifeDays != null ? String(selectedType.shelfLifeDays) : "",
+      shelfLifeHours:
+        selectedType?.shelfLifeHours != null ? String(selectedType.shelfLifeHours) : "",
+    };
+  };
 
   useEffect(() => {
     if (!open) return;
     setLoading(false);
+    if (productTypes.length === 1) {
+      const onlyType = productTypes[0];
+      setForm({
+        ...initialForm,
+        productTypeId: String(onlyType.id),
+        shelfLifeDays:
+          onlyType.shelfLifeDays != null ? String(onlyType.shelfLifeDays) : "",
+        shelfLifeHours:
+          onlyType.shelfLifeHours != null ? String(onlyType.shelfLifeHours) : "",
+      });
+      return;
+    }
     setForm(initialForm);
-  }, [open]);
+  }, [open, productTypes]);
 
   const buildDto = (): CreateProductDto | null => {
     const name = form.name.trim();
@@ -134,7 +161,7 @@ export function CreateProductDialog({
             <Label htmlFor="productType">Тип продукту</Label>
             <Select
               value={form.productTypeId}
-              onValueChange={(value) => setForm((p) => ({ ...p, productTypeId: value }))}
+              onValueChange={(value) => setForm((p) => ({ ...p, ...applyTypeDefaults(value) }))}
             >
               <SelectTrigger id="productType">
                 <SelectValue placeholder="Оберіть тип продукту" />
@@ -187,6 +214,9 @@ export function CreateProductDialog({
               />
             </div>
           </div>
+          <p className="-mt-2 text-xs text-muted-foreground">
+            Термін придатності автоматично підтягується з типу продукту, але його можна змінити вручну.
+          </p>
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={onClose} disabled={loading}>

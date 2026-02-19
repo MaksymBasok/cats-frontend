@@ -51,17 +51,16 @@ export function ContainerTable({ containers }: ContainerTableProps) {
                   }`}
                 >
                   <td className="px-4 py-3">
-                    <Link
-                      href={containerHref ?? "#"}
-                      onClick={(event) => {
-                        if (!containerHref) {
-                          event.preventDefault();
-                        }
-                      }}
-                      className="font-semibold text-blue-600 hover:underline dark:text-sky-300"
-                    >
-                      {c.code ?? "—"}
-                    </Link>
+                    {containerHref ? (
+                      <Link
+                        href={containerHref}
+                        className="font-semibold text-blue-600 hover:underline dark:text-sky-300"
+                      >
+                        {c.code}
+                      </Link>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </td>
 
                   <td className="px-4 py-3 text-foreground">{c.name ?? "—"}</td>

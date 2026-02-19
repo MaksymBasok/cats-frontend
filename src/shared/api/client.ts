@@ -117,7 +117,7 @@ function statusMessage(status: number): string | null {
     case 404:
       return "Запис не знайдено або вже видалено";
     case 409:
-      return "Конфлікт даних. Запис може вже існувати";
+      return "Конфлікт даних. Може містити додаткові дані";
     case 422:
       return "Помилка валідації даних";
     case 429:

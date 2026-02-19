@@ -23,12 +23,14 @@ export default function ContainersPage() {
   const [containerTypes, setContainerTypes] = useState<ContainerTypeDto[]>([]);
   const [productTypes, setProductTypes] = useState<ProductTypeDto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
 
   const [filters, setFilters] = useState<SearchContainersParams>({});
 
   // Debounce *all* filter changes (not only searchTerm), avoid duplicate fetches
   const debounceRef = useRef<number | null>(null);
+  const requestSeqRef = useRef(0);
 
   const effectiveFilters = useMemo<SearchContainersParams>(() => {
     // Normalize: remove empty string values (so URLSearchParams won't get junk)
@@ -39,13 +41,19 @@ export default function ContainersPage() {
 
   const fetchContainers = useCallback(
     async (f: SearchContainersParams) => {
+      const requestSeq = ++requestSeqRef.current;
       setLoading(true);
+      setLoadError(null);
       try {
         const data = await searchContainers(f);
+        if (requestSeq !== requestSeqRef.current) return;
         setContainers(data);
       } catch (error) {
+        if (requestSeq !== requestSeqRef.current) return;
+        setLoadError("Не вдалося завантажити список тари.");
         showErrorToast(error, "Не вдалося завантажити тару");
       } finally {
+        if (requestSeq !== requestSeqRef.current) return;
         setLoading(false);
       }
     },
@@ -123,6 +131,17 @@ export default function ContainersPage() {
       {loading ? (
         <div className="flex items-center justify-center rounded-xl border border-border bg-card/50 py-24">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : loadError ? (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 py-16 text-center">
+          <p className="text-base font-medium text-foreground">{loadError}</p>
+          <button
+            type="button"
+            onClick={() => void fetchContainers(effectiveFilters)}
+            className="mt-4 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
+          >
+            Спробувати ще раз
+          </button>
         </div>
       ) : containers.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 py-24 text-center">

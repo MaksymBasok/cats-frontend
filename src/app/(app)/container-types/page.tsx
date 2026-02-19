@@ -39,6 +39,7 @@ export default function ContainerTypesPage() {
   const [productTypes, setProductTypes] = useState<{ id: number; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [updating, setUpdating] = useState(false);
 
   const [name, setName] = useState("");
   const [codePrefix, setCodePrefix] = useState("");
@@ -152,19 +153,26 @@ export default function ContainerTypesPage() {
   };
 
   const handleUpdate = async (item: ContainerTypeDto) => {
+    const trimmedName = (item.name ?? "").trim();
+    if (!trimmedName) {
+      toast.error("Enter container type name");
+      return;
+    }
+
+    setUpdating(true);
     try {
       const allowedProductTypeIds = editAllTypesSelected
         ? []
         : Array.from(new Set(editSelectedTypeIds));
 
       await updateContainerType(String(item.id), {
-        name: item.name,
+        name: trimmedName,
         codePrefix: item.codePrefix,
         defaultUnit: normalizeUnit(item.defaultUnit),
         meta: item.meta,
         allowedProductTypeIds,
       });
-      toast.success("Тип тари оновлено");
+      toast.success("Container type updated");
       setEditDialogOpen(false);
       setEditingItem(null);
       setEditSelectedTypeIds([]);
@@ -172,7 +180,9 @@ export default function ContainerTypesPage() {
       setEditTypePickerOpen(false);
       await load();
     } catch (error) {
-      showErrorToast(error, "Не вдалося оновити тип тари");
+      showErrorToast(error, "Failed to update container type");
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -205,6 +215,7 @@ export default function ContainerTypesPage() {
     setEditAllTypesSelected(isAllTypes);
     setEditSelectedTypeIds(idsByName);
     setEditTypePickerOpen(false);
+    setUpdating(false);
     setEditDialogOpen(true);
   };
 
@@ -569,8 +580,8 @@ export default function ContainerTypesPage() {
                 />
               </div>
               <div className="flex gap-2 pt-2">
-                <Button onClick={() => handleUpdate(editingItem)} className="flex-1">
-                  <Save className="mr-2 h-4 w-4" /> Зберегти
+                <Button onClick={() => handleUpdate(editingItem)} disabled={updating} className="flex-1">
+                  <Save className="mr-2 h-4 w-4" /> {updating ? "Saving..." : "Save"}
                 </Button>
               </div>
             </div>

@@ -38,6 +38,7 @@ export default function RemindersPage() {
   const [containers, setContainers] = useState<ContainerDto[]>([]);
   const [products, setProducts] = useState<ProductDto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const [selectedContainer, setSelectedContainer] = useState<string>("all");
@@ -52,11 +53,13 @@ export default function RemindersPage() {
   const load = useCallback(async () => {
     if (isDateRangeInvalid) {
       setFills([]);
+      setLoadError(null);
       setLoading(false);
       return;
     }
 
     setLoading(true);
+    setLoadError(null);
     try {
       const [fillsData, containersData, productsData] = await Promise.all([
         searchContainerFills({
@@ -71,6 +74,7 @@ export default function RemindersPage() {
       setContainers(containersData);
       setProducts(productsData);
     } catch (error) {
+      setLoadError("Не вдалося завантажити технологічні дати.");
       showErrorToast(error, "Не вдалося завантажити технологічні дати");
     } finally {
       setLoading(false);
@@ -227,6 +231,13 @@ export default function RemindersPage() {
             <p className="text-sm text-muted-foreground">Завантаження...</p>
           ) : isDateRangeInvalid ? (
             <p className="text-sm text-destructive">Виправте діапазон дат, щоб побачити записи.</p>
+          ) : loadError ? (
+            <div className="flex flex-col items-center py-6 text-center">
+              <p className="text-sm text-destructive">{loadError}</p>
+              <Button type="button" variant="outline" className="mt-3" onClick={() => void load()}>
+                Спробувати ще раз
+              </Button>
+            </div>
           ) : filtered.length === 0 ? (
             <p className="text-sm text-muted-foreground">Немає записів.</p>
           ) : (

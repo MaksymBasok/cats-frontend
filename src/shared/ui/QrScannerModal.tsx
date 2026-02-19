@@ -50,12 +50,12 @@ export function QrScannerModal({ open, onClose }: QrScannerModalProps) {
   const scannerRootRef = useRef<HTMLDivElement>(null);
   const qrInstanceRef = useRef<Html5QrInstance | null>(null);
   const scannerStartedRef = useRef(false);
+  const hasScannedRef = useRef(false);
 
   const [manualCode, setManualCode] = useState("");
   const [showManual, setShowManual] = useState(false);
   const [scannerError, setScannerError] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
-  const [hasScanned, setHasScanned] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   // Detect if device is mobile
@@ -97,7 +97,7 @@ export function QrScannerModal({ open, onClose }: QrScannerModalProps) {
       setShowManual(false);
       setManualCode("");
       setIsStarting(false);
-      setHasScanned(false);
+      hasScannedRef.current = false;
       return;
     }
 
@@ -117,7 +117,7 @@ export function QrScannerModal({ open, onClose }: QrScannerModalProps) {
 
       setIsStarting(true);
       setScannerError(null);
-      setHasScanned(false);
+      hasScannedRef.current = false;
 
       try {
         const mod = await import("html5-qrcode");
@@ -155,8 +155,8 @@ export function QrScannerModal({ open, onClose }: QrScannerModalProps) {
           { fps: 10, qrbox: { width: 250, height: 250 } },
           (decodedText) => {
             // prevent double fire
-            if (hasScanned) return;
-            setHasScanned(true);
+            if (hasScannedRef.current) return;
+            hasScannedRef.current = true;
             navigateToCode(decodedText);
           },
           () => {
@@ -209,7 +209,6 @@ export function QrScannerModal({ open, onClose }: QrScannerModalProps) {
           });
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, showManual, navigateToCode]);
 
   const handleManualSubmit = () => {

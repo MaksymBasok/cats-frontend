@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { showErrorToast } from "@/shared/utils/errors";
 import { eventsApi, type Event } from "@/api/events";
 import { ContainerTimeline } from "@/shared/ui/containers/ContainerTimeline";
+import { useAuth } from "@/shared/auth/AuthProvider";
 
 function safeParam(p: string | string[] | undefined): string {
   if (!p) return "";
@@ -27,6 +28,7 @@ function safeParam(p: string | string[] | undefined): string {
 export default function ContainerDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { isAdmin } = useAuth();
   const code = safeParam(params.code as string | string[] | undefined);
   const hasCode = code.trim().length > 0;
 
@@ -40,6 +42,8 @@ export default function ContainerDetailPage() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [emptyConfirmOpen, setEmptyConfirmOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [historyLoadFailed, setHistoryLoadFailed] = useState(false);
+  const [eventsLoadFailed, setEventsLoadFailed] = useState(false);
 
   useEffect(() => {
     if (!hasCode) {
@@ -47,6 +51,10 @@ export default function ContainerDetailPage() {
       setContainer(null);
       setHistory([]);
       setEvents([]);
+      setHistoryLoadFailed(false);
+      setEventsLoadFailed(false);
+      setHistoryLoadFailed(false);
+      setEventsLoadFailed(false);
       return;
     }
     void fetchContainerData();
@@ -56,6 +64,8 @@ export default function ContainerDetailPage() {
   const fetchContainerData = async () => {
     try {
       setLoading(true);
+      setHistoryLoadFailed(false);
+      setEventsLoadFailed(false);
 
       const containerData = await containersApi.getContainerByCode(code);
       setContainer(containerData);
@@ -65,6 +75,7 @@ export default function ContainerDetailPage() {
         setHistory(historyData);
       } catch {
         setHistory([]);
+        setHistoryLoadFailed(true);
       }
 
       try {
@@ -72,12 +83,15 @@ export default function ContainerDetailPage() {
         setEvents(eventItems);
       } catch {
         setEvents([]);
+        setEventsLoadFailed(true);
       }
     } catch (error) {
       showErrorToast(error, "Не вдалося завантажити дані контейнера");
       setContainer(null);
       setHistory([]);
       setEvents([]);
+      setHistoryLoadFailed(false);
+      setEventsLoadFailed(false);
     } finally {
       setLoading(false);
     }
@@ -232,15 +246,17 @@ export default function ContainerDetailPage() {
             QR
           </Button>
 
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => setDeleteConfirmOpen(true)}
-            aria-label="Видалити"
-          >
-            <Trash2 className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Видалити</span>
-          </Button>
+          {isAdmin && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setDeleteConfirmOpen(true)}
+              aria-label="Delete container"
+            >
+              <Trash2 className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Delete</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -316,6 +332,11 @@ export default function ContainerDetailPage() {
         <CardContent className="space-y-4">
           <details open className="rounded-lg border border-border p-3">
             <summary className="cursor-pointer font-medium">Історія вмісту тари</summary>
+            {historyLoadFailed && (
+              <p className="mt-3 text-sm text-destructive">
+                Failed to load content history.
+              </p>
+            )}
             {history.length > 0 ? (
               <div className="mt-4 space-y-4">
                 {history.map((fill) => (
@@ -348,6 +369,11 @@ export default function ContainerDetailPage() {
 
           <details open className="rounded-lg border border-border p-3">
             <summary className="cursor-pointer font-medium">Аудит дій</summary>
+            {eventsLoadFailed && (
+              <p className="mt-3 text-sm text-destructive">
+                Failed to load audit events.
+              </p>
+            )}
             <div className="mt-4">
               <ContainerTimeline
                 events={events.map((event) => ({
@@ -399,17 +425,19 @@ export default function ContainerDetailPage() {
         loading={actionLoading}
       />
 
-      <ConfirmDialog
-        open={deleteConfirmOpen}
-        title="Видалити контейнер?"
-        description={`Контейнер ${containerCode} буде видалено без можливості відновлення.`}
-        confirmLabel="Видалити"
-        cancelLabel="Скасувати"
-        variant="destructive"
-        onConfirm={handleDelete}
-        onCancel={() => setDeleteConfirmOpen(false)}
-        loading={actionLoading}
-      />
+      {isAdmin && (
+        <ConfirmDialog
+          open={deleteConfirmOpen}
+          title="Delete container?"
+          description={`Container ${containerCode} will be deleted permanently.`}
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
+          variant="destructive"
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteConfirmOpen(false)}
+          loading={actionLoading}
+        />
+      )}
     </div>
   );
 }

@@ -59,6 +59,7 @@ export default function ProductTypeDetailPage() {
   }, [hasValidId, load]);
 
   if (loading) return <p className="text-sm text-muted-foreground">Завантаження...</p>;
+  if (!hasValidId) return <p className="text-sm text-muted-foreground">Invalid product type ID.</p>;
   if (!item) return <p className="text-sm text-muted-foreground">Тип продукту не знайдено.</p>;
 
   return (

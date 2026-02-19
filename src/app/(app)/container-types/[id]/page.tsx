@@ -60,6 +60,7 @@ export default function ContainerTypeDetailPage() {
   }, [hasValidId, load]);
 
   if (loading) return <p className="text-sm text-muted-foreground">Завантаження...</p>;
+  if (!hasValidId) return <p className="text-sm text-muted-foreground">Invalid container type ID.</p>;
   if (!item) return <p className="text-sm text-muted-foreground">Тип тари не знайдено.</p>;
 
   return (
