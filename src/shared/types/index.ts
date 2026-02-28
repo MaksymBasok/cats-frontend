@@ -103,7 +103,9 @@ export interface ContainerFillDto {
   emptiedDate: string | null; // date-time | null
 
   filledByUserId: string; // uuid
+  filledByUserName?: string | null;
   emptiedByUserId: string | null; // uuid | null
+  emptiedByUserName?: string | null;
 }
 
 export interface ContainerDto {
@@ -129,6 +131,11 @@ export interface ContainerDto {
 
   meta: string | null;
   createdAt: string; // date-time
+  createdById?: string | null; // uuid
+  createdByName?: string | null;
+  updatedAt?: string | null; // date-time
+  lastModifiedById?: string | null; // uuid
+  lastModifiedByName?: string | null;
 }
 
 export interface CreateContainerDto {

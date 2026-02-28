@@ -68,33 +68,38 @@ export function AppHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 border-b border-primary/10 bg-background/60 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between px-4 md:px-6 xl:px-8">
-          <div className="flex min-w-0 items-center gap-3">
-            <Link href="/" className="cats-logo-wrap flex items-center gap-3 rounded-2xl px-2.5 py-2 transition-all hover:-translate-y-0.5">
-              <Image
-                src="/images/cats-logo.png"
-                alt="CATS"
-                width={34}
-                height={34}
-                className="cats-logo-glow rounded-xl"
-                quality={100}
-                priority
-              />
-              <div className="hidden sm:block">
-                <span className="block text-lg font-bold tracking-tight gradient-text">CATS</span>
-                <span className="block text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+      <header className="sticky top-0 z-30 border-b border-primary/10 bg-background/70 backdrop-blur-xl">
+        <div className="mx-auto flex min-h-16 max-w-[1600px] items-center gap-3 px-4 md:px-6 xl:px-8">
+          <div className="flex min-w-0 flex-1 items-center gap-4">
+            <Link
+              href="/"
+              className="cats-logo-wrap flex items-center gap-3 rounded-2xl px-3 py-2 text-left transition-all hover:-translate-y-0.5"
+            >
+              <div className="rounded-xl bg-gradient-to-br from-[#0891b2] to-[#22d3ee] p-1.5 shadow-md shadow-primary/20">
+                <Image
+                  src="/images/cats-logo.png"
+                  alt="CATS"
+                  width={32}
+                  height={32}
+                  className="cats-logo-glow h-8 w-8 object-contain"
+                  quality={100}
+                  priority
+                />
+              </div>
+              <div className="hidden text-left sm:block">
+                <span className="block text-lg font-bold tracking-tight gradient-text-animated">CATS</span>
+                <span className="mt-0.5 block text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
                   Tracking System
                 </span>
               </div>
             </Link>
 
-            <div className="hidden min-w-0 md:block">
+            <div className="hidden min-w-0 flex-1 md:block">
               <Breadcrumbs />
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <Button
               onClick={toggleTheme}
               variant="outline"
@@ -140,7 +145,10 @@ export function AppHeader() {
               </Button>
 
               {profileOpen ? (
-                <div className="glass absolute right-0 top-full z-50 mt-2 w-60 rounded-3xl p-2 shadow-[var(--luxury-shadow-hover)]" role="menu">
+                <div
+                  className="glass absolute right-0 top-full z-50 mt-2 w-60 rounded-3xl p-2 shadow-[var(--luxury-shadow-hover)]"
+                  role="menu"
+                >
                   <div className="border-b border-border/70 px-3 py-3">
                     <p className="truncate text-sm font-semibold text-card-foreground">
                       {(user?.firstName || user?.lastName)

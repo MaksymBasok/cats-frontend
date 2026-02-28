@@ -119,13 +119,18 @@ function isFutureDate(value: string): boolean {
   return Number.isFinite(date.getTime()) && date.getTime() > today.getTime();
 }
 
-function isAfter(left: string, right: string): boolean {
-  const leftDate = new Date(`${left}T00:00:00`);
-  const rightDate = new Date(`${right}T00:00:00`);
+function isExpirationAfterProduction(expirationDate: string, productionDate: string): boolean {
+  const leftDate = new Date(`${expirationDate}T23:59:59.999`);
+  const rightDate = new Date(`${productionDate}T00:00:00.000`);
   if (!Number.isFinite(leftDate.getTime()) || !Number.isFinite(rightDate.getTime())) {
     return false;
   }
   return leftDate.getTime() > rightDate.getTime();
+}
+
+function toIsoFromDateInput(value: string, endOfDay = false): string {
+  const time = endOfDay ? "23:59:59.999" : "00:00:00.000";
+  return `${value}T${time}`;
 }
 
 function validateEmail(email: string, issues: string[]): string | null {
@@ -244,7 +249,7 @@ export function validateFillContainer(input: FillInput): ValidationResult<FillCo
   if (input.requireExpirationDate && !expirationDate) {
     issues.push("Вкажіть термін придатності.");
   }
-  if (expirationDate && productionDate && !isAfter(expirationDate, productionDate)) {
+  if (expirationDate && productionDate && !isExpirationAfterProduction(expirationDate, productionDate)) {
     issues.push("Термін придатності має бути пізніше за дату виробництва.");
   }
 
@@ -254,8 +259,8 @@ export function validateFillContainer(input: FillInput): ValidationResult<FillCo
     productId,
     quantity: quantity!,
     unit,
-    productionDate,
-    expirationDate: expirationDate || null,
+    productionDate: toIsoFromDateInput(productionDate),
+    expirationDate: expirationDate ? toIsoFromDateInput(expirationDate, true) : null,
   });
 }
 

@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Save, Trash2, Edit, Clock } from "lucide-react";
+import { Clock3, Edit, FlaskConical, Plus, Save, Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import {
   Table,
@@ -29,18 +29,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
-function parseNonNegativeInteger(value: string): number | null | "invalid" {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-
-  const parsed = Number(trimmed);
-  if (!Number.isFinite(parsed) || parsed < 0 || !Number.isInteger(parsed)) {
-    return "invalid";
-  }
-
-  return parsed;
-}
 
 export default function ProductTypesPage() {
   const { isAdmin } = useAuth();
@@ -81,6 +69,7 @@ export default function ProductTypesPage() {
   const load = async () => {
     setLoading(true);
     setLoadError(null);
+
     try {
       setItems(await getProductTypes());
     } catch (error) {
@@ -98,34 +87,18 @@ export default function ProductTypesPage() {
     setMeta("");
   };
 
-  const onCreate = async (e: FormEvent) => {
-    e.preventDefault();
+  const onCreate = async (event: FormEvent) => {
+    event.preventDefault();
+
     const createResult = validateProductType({
       name,
       shelfLifeDays: days,
       shelfLifeHours: hours,
       meta,
     });
+
     if (!createResult.success) {
       showValidationToast(createResult.issues);
-      return;
-    }
-
-    const trimmedName = name.trim();
-    if (!trimmedName) {
-      toast.error("Вкажіть назву");
-      return;
-    }
-
-    const parsedDays = parseNonNegativeInteger(days);
-    if (parsedDays === "invalid") {
-      toast.error("Кількість днів має бути цілим числом >= 0");
-      return;
-    }
-
-    const parsedHours = parseNonNegativeInteger(hours);
-    if (parsedHours === "invalid") {
-      toast.error("Кількість годин має бути цілим числом >= 0");
       return;
     }
 
@@ -153,35 +126,19 @@ export default function ProductTypesPage() {
     setEditDialogOpen(true);
   };
 
-  const handleUpdate = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleUpdate = async (event: FormEvent) => {
+    event.preventDefault();
     if (!editingItem) return;
+
     const updateResult = validateProductType({
       name: editName,
       shelfLifeDays: editDays,
       shelfLifeHours: editHours,
       meta: editMeta,
     });
+
     if (!updateResult.success) {
       showValidationToast(updateResult.issues);
-      return;
-    }
-
-    const trimmedName = editName.trim();
-    if (!trimmedName) {
-      toast.error("Вкажіть назву");
-      return;
-    }
-
-    const parsedDays = parseNonNegativeInteger(editDays);
-    if (parsedDays === "invalid") {
-      toast.error("Кількість днів має бути цілим числом >= 0");
-      return;
-    }
-
-    const parsedHours = parseNonNegativeInteger(editHours);
-    if (parsedHours === "invalid") {
-      toast.error("Кількість годин має бути цілим числом >= 0");
       return;
     }
 
@@ -229,22 +186,48 @@ export default function ProductTypesPage() {
 
   return (
     <div className="space-y-6 pb-20 md:pb-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-bold">Типи продуктів</h1>
-          <p className="text-muted-foreground">Керуйте каталогом типів продуктів та стандартними значеннями терміну придатності.</p>
+      <section className="glass relative overflow-hidden rounded-[28px] border border-primary/10 p-6 shadow-[var(--luxury-shadow)]">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -right-20 top-0 h-52 w-52 rounded-full bg-primary/10 blur-3xl" />
+          <div className="absolute bottom-0 left-8 h-40 w-40 rounded-full bg-cyan-400/10 blur-3xl" />
         </div>
-        <Button type="button" onClick={() => setCreateDialogOpen(true)} className="gap-2">
-          <Plus className="h-4 w-4" /> Додати тип
-        </Button>
-      </div>
+
+        <div className="relative flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-[var(--neon-glow)]">
+                <FlaskConical className="h-6 w-6" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">
+                  <span className="gradient-text">Типи продуктів</span>
+                </h1>
+                <p className="text-muted-foreground">
+                  Каталог типів продуктів зі стандартними значеннями терміну придатності.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-medium">
+                Типів продуктів: {items.length}
+              </Badge>
+            </div>
+          </div>
+
+          <Button type="button" onClick={() => setCreateDialogOpen(true)} className="gap-2 shadow-[var(--neon-glow)]">
+            <Plus className="h-4 w-4" />
+            Додати тип
+          </Button>
+        </div>
+      </section>
 
       {loading ? (
         <div className="flex min-h-[200px] items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
         </div>
       ) : loadError ? (
-        <Card>
+        <Card className="stylish-card">
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
             <p className="text-sm text-destructive">{loadError}</p>
             <Button type="button" variant="outline" onClick={() => void load()}>
@@ -253,14 +236,14 @@ export default function ProductTypesPage() {
           </CardContent>
         </Card>
       ) : items.length === 0 ? (
-        <Card>
+        <Card className="stylish-card">
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
             Не знайдено типів продуктів.
           </CardContent>
         </Card>
       ) : (
         <>
-          <Card className="hidden md:block">
+          <Card className="stylish-card hidden overflow-hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -289,7 +272,8 @@ export default function ProductTypesPage() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Button size="sm" variant="outline" onClick={() => openEditDialog(item)} className="h-8">
-                          <Edit className="mr-2 h-4 w-4" /> Редагувати
+                          <Edit className="mr-2 h-4 w-4" />
+                          Редагувати
                         </Button>
                         <Button
                           size="sm"
@@ -298,7 +282,8 @@ export default function ProductTypesPage() {
                           className="h-8 gap-1.5"
                           aria-label="Видалити тип продукту"
                         >
-                          <Trash2 className="h-4 w-4" /> Видалити
+                          <Trash2 className="h-4 w-4" />
+                          Видалити
                         </Button>
                       </div>
                     </TableCell>
@@ -312,7 +297,7 @@ export default function ProductTypesPage() {
             {items.map((item) => (
               <Card
                 key={item.id}
-                className="group border-primary/10 transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98]"
+                className="stylish-card group border-primary/10 transition-all hover:-translate-y-0.5 active:scale-[0.98]"
                 onClick={(event) => handleRowNavigation(event, `/product-types/${item.id}`)}
               >
                 <CardContent className="p-4">
@@ -320,15 +305,19 @@ export default function ProductTypesPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <h3 className="font-semibold">{item.name}</h3>
-                        <Badge variant="secondary" className="text-xs">#{item.id}</Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          #{item.id}
+                        </Badge>
                       </div>
                       <div className="mt-2 flex flex-wrap gap-2 text-sm text-muted-foreground">
                         <span className="inline-flex items-center gap-1">
-                          <Clock className="h-3.5 w-3.5" />
+                          <Clock3 className="h-3.5 w-3.5" />
                           {item.shelfLifeDays ?? 0} дн. {item.shelfLifeHours ?? 0} год.
                         </span>
                       </div>
-                      {item.meta && <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{item.meta}</p>}
+                      {item.meta ? (
+                        <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{item.meta}</p>
+                      ) : null}
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Button
@@ -372,14 +361,15 @@ export default function ProductTypesPage() {
             <DialogTitle>Створити тип продукту</DialogTitle>
           </DialogHeader>
           <form onSubmit={onCreate} className="grid gap-3">
-            <Input placeholder="Назва" value={name} onChange={(e) => setName(e.target.value)} required />
+            <Input placeholder="Назва" value={name} onChange={(event) => setName(event.target.value)} required />
             <div className="grid grid-cols-2 gap-3">
-              <Input placeholder="Дні" value={days} onChange={(e) => setDays(e.target.value)} type="number" min="0" step="1" />
-              <Input placeholder="Години" value={hours} onChange={(e) => setHours(e.target.value)} type="number" min="0" step="1" />
+              <Input placeholder="Дні" value={days} onChange={(event) => setDays(event.target.value)} type="number" min="0" step="1" />
+              <Input placeholder="Години" value={hours} onChange={(event) => setHours(event.target.value)} type="number" min="0" step="1" />
             </div>
-            <Textarea placeholder="Примітки" value={meta} onChange={(e) => setMeta(e.target.value)} rows={3} />
+            <Textarea placeholder="Примітки" value={meta} onChange={(event) => setMeta(event.target.value)} rows={3} />
             <Button disabled={creating} type="submit" className="gap-2">
-              <Plus className="h-4 w-4" /> {creating ? "Створення..." : "Створити"}
+              <Plus className="h-4 w-4" />
+              {creating ? "Створення..." : "Створити"}
             </Button>
           </form>
         </DialogContent>
@@ -398,12 +388,13 @@ export default function ProductTypesPage() {
           <DialogHeader>
             <DialogTitle>Редагувати тип продукту</DialogTitle>
           </DialogHeader>
-          {editingItem && (
+          {editingItem ? (
             <form className="space-y-4" onSubmit={handleUpdate}>
               <div>
                 <label className="text-sm font-medium">Назва</label>
-                <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="mt-1.5" required />
+                <Input value={editName} onChange={(event) => setEditName(event.target.value)} className="mt-1.5" required />
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm font-medium">Дні</label>
@@ -412,7 +403,7 @@ export default function ProductTypesPage() {
                     min="0"
                     step="1"
                     value={editDays}
-                    onChange={(e) => setEditDays(e.target.value)}
+                    onChange={(event) => setEditDays(event.target.value)}
                     className="mt-1.5"
                   />
                 </div>
@@ -423,22 +414,25 @@ export default function ProductTypesPage() {
                     min="0"
                     step="1"
                     value={editHours}
-                    onChange={(e) => setEditHours(e.target.value)}
+                    onChange={(event) => setEditHours(event.target.value)}
                     className="mt-1.5"
                   />
                 </div>
               </div>
+
               <div>
                 <label className="text-sm font-medium">Примітки</label>
-                <Textarea value={editMeta} onChange={(e) => setEditMeta(e.target.value)} className="mt-1.5" rows={3} />
+                <Textarea value={editMeta} onChange={(event) => setEditMeta(event.target.value)} className="mt-1.5" rows={3} />
               </div>
+
               <div className="flex gap-2 pt-2">
                 <Button type="submit" disabled={updating} className="flex-1">
-                  <Save className="mr-2 h-4 w-4" /> {updating ? "Збереження..." : "Зберегти"}
+                  <Save className="mr-2 h-4 w-4" />
+                  {updating ? "Збереження..." : "Зберегти"}
                 </Button>
               </div>
             </form>
-          )}
+          ) : null}
         </DialogContent>
       </Dialog>
 

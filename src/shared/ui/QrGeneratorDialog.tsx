@@ -6,7 +6,7 @@ import NextImage from "next/image";
 import { QRCodeSVG } from "qrcode.react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, Copy } from "lucide-react";
+import { Download, Copy, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { useTheme } from "@/lib/ThemeProvider";
 
@@ -114,30 +114,45 @@ export function QrGeneratorDialog({ open, onClose, url, title }: QrGeneratorDial
           <DialogTitle>QR-код {title && `- ${title}`}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="flex justify-center rounded-lg p-6" style={{ backgroundColor: qrBackground }} ref={qrRef}>
-            <div className="relative inline-flex">
-              <QRCodeSVG
-                value={url}
-                size={QR_SIZE}
-                level="H"
-                includeMargin
-                bgColor={qrBackground}
-                fgColor={qrForeground}
-              />
+        <div className="space-y-5">
+          <div className="flex flex-col items-center gap-4">
+            <div className="qr-gradient-border animate-fade-in-scale">
               <div
-                className="pointer-events-none absolute left-1/2 top-1/2 flex h-20 w-20 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border"
-                style={{
-                  backgroundColor: logoBadgeBackground,
-                  borderColor: logoBadgeBorder,
-                }}
+                ref={qrRef}
+                className="flex items-center justify-center rounded-[calc(1rem-3px)] p-4"
+                style={{ backgroundColor: qrBackground }}
               >
-                <NextImage src={QR_LOGO_SRC} alt="CATS" width={60} height={60} className="object-contain" />
+                <div className="relative inline-flex">
+                  <QRCodeSVG
+                    value={url}
+                    size={QR_SIZE}
+                    level="H"
+                    includeMargin
+                    bgColor={qrBackground}
+                    fgColor={qrForeground}
+                  />
+                  <div
+                    className="pointer-events-none absolute left-1/2 top-1/2 flex h-20 w-20 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border"
+                    style={{
+                      backgroundColor: logoBadgeBackground,
+                      borderColor: logoBadgeBorder,
+                    }}
+                  >
+                    <NextImage src={QR_LOGO_SRC} alt="CATS" width={60} height={60} className="object-contain" />
+                  </div>
+                </div>
               </div>
+            </div>
+
+            <div className="flex items-center gap-2 rounded-full border border-primary/15 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 px-4 py-2">
+              <QrCode className="h-4 w-4 text-primary" />
+              <span className="gradient-text text-sm font-bold tracking-wider">{title || "QR"}</span>
             </div>
           </div>
 
-          <div className="rounded-lg bg-muted p-3">
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+
+          <div className="rounded-2xl bg-muted/70 p-3">
             <p className="break-all text-sm text-muted-foreground">{url}</p>
           </div>
 

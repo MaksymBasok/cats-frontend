@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Check, ChevronDown, Plus, Save, Trash2, Edit } from "lucide-react";
+import { Check, ChevronDown, Edit, Plus, Save, Shapes, Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { MEASUREMENT_UNITS, normalizeUnit } from "@/shared/constants/units";
 import { showErrorToast, showValidationToast } from "@/shared/utils/errors";
@@ -73,12 +73,11 @@ export default function ContainerTypesPage() {
   const load = async () => {
     setLoading(true);
     setLoadError(null);
+
     try {
       const [containerTypes, productTypeItems] = await Promise.all([getContainerTypes(), getProductTypes()]);
       setItems(containerTypes);
-      setProductTypes(
-        productTypeItems.map((type) => ({ id: type.id, name: type.name?.trim() || `Тип #${type.id}` })),
-      );
+      setProductTypes(productTypeItems.map((type) => ({ id: type.id, name: type.name?.trim() || `Тип #${type.id}` })));
     } catch (error) {
       setLoadError("Не вдалося завантажити типи тари.");
       showErrorToast(error, "Не вдалося завантажити типи тари");
@@ -95,7 +94,7 @@ export default function ContainerTypesPage() {
       .map((word) => word.replace(/[^A-Za-zА-Яа-яІіЇїЄєҐґ]/g, ""))
       .filter(Boolean);
 
-    const onlyLetters =
+    const prefix =
       words.length > 1
         ? words
             .slice(0, 2)
@@ -104,17 +103,12 @@ export default function ContainerTypesPage() {
             .toUpperCase()
         : (words[0] || "").slice(0, 2).toUpperCase();
 
-    setCodePrefix((prev) => (prev.trim().length > 0 ? prev : onlyLetters));
+    setCodePrefix((prev) => (prev.trim().length > 0 ? prev : prefix));
   };
 
   const selectedTypeNames = useMemo(() => {
-    if (allTypesSelected) {
-      return "Усі типи продуктів";
-    }
-
-    if (!selectedTypeIds.length) {
-      return "Типи не вибрані";
-    }
+    if (allTypesSelected) return "Усі типи продуктів";
+    if (!selectedTypeIds.length) return "Типи не вибрані";
 
     return productTypes
       .filter((type) => selectedTypeIds.includes(type.id))
@@ -122,26 +116,36 @@ export default function ContainerTypesPage() {
       .join(", ");
   }, [allTypesSelected, productTypes, selectedTypeIds]);
 
-  const onCreate = async (e: FormEvent) => {
-    e.preventDefault();
+  const editSelectedTypeNames = useMemo(() => {
+    if (editAllTypesSelected) return "Усі типи продуктів";
+    if (!editSelectedTypeIds.length) return "Типи не вибрані";
+
+    return productTypes
+      .filter((type) => editSelectedTypeIds.includes(type.id))
+      .map((type) => type.name)
+      .join(", ");
+  }, [editAllTypesSelected, editSelectedTypeIds, productTypes]);
+
+  const onCreate = async (event: FormEvent) => {
+    event.preventDefault();
     if (!name.trim()) {
       toast.error("Вкажіть назву типу");
       return;
     }
 
     setCreating(true);
+
     try {
-      const ids = allTypesSelected ? [] : Array.from(new Set(selectedTypeIds));
       const createResult = validateContainerType({
         name,
         codePrefix,
         defaultUnit,
         meta,
-        allowedProductTypeIds: allTypesSelected ? [] : ids,
+        allowedProductTypeIds: allTypesSelected ? [] : Array.from(new Set(selectedTypeIds)),
       });
+
       if (!createResult.success) {
         showValidationToast(createResult.issues);
-        setCreating(false);
         return;
       }
 
@@ -172,20 +176,18 @@ export default function ContainerTypesPage() {
     }
 
     setUpdating(true);
+
     try {
-      const allowedProductTypeIds = editAllTypesSelected
-        ? []
-        : Array.from(new Set(editSelectedTypeIds));
       const updateResult = validateContainerType({
         name: trimmedName,
         codePrefix: item.codePrefix ?? "",
         defaultUnit: item.defaultUnit ?? "",
         meta: item.meta ?? "",
-        allowedProductTypeIds,
+        allowedProductTypeIds: editAllTypesSelected ? [] : Array.from(new Set(editSelectedTypeIds)),
       });
+
       if (!updateResult.success) {
         showValidationToast(updateResult.issues);
-        setUpdating(false);
         return;
       }
 
@@ -223,7 +225,7 @@ export default function ContainerTypesPage() {
   };
 
   const openEditDialog = (item: ContainerTypeDto) => {
-    const allowedNames = (item.allowedProductTypeNames ?? []).map((name) => name.trim().toLowerCase());
+    const allowedNames = (item.allowedProductTypeNames ?? []).map((value) => value.trim().toLowerCase());
     const idsByName = productTypes
       .filter((type) => allowedNames.includes(type.name.trim().toLowerCase()))
       .map((type) => type.id);
@@ -258,21 +260,6 @@ export default function ContainerTypesPage() {
     setEditSelectedTypeIds((prev) => prev.filter((id) => id !== typeId));
   };
 
-  const editSelectedTypeNames = useMemo(() => {
-    if (editAllTypesSelected) {
-      return "Усі типи продуктів";
-    }
-
-    if (!editSelectedTypeIds.length) {
-      return "Типи не вибрані";
-    }
-
-    return productTypes
-      .filter((type) => editSelectedTypeIds.includes(type.id))
-      .map((type) => type.name)
-      .join(", ");
-  }, [editAllTypesSelected, editSelectedTypeIds, productTypes]);
-
   const handleRowNavigation = (event: MouseEvent<HTMLElement>, href: string) => {
     const target = event.target as HTMLElement;
     if (target.closest("button") || target.closest("a") || target.closest("input") || target.closest("label")) {
@@ -285,22 +272,51 @@ export default function ContainerTypesPage() {
 
   return (
     <div className="space-y-6 pb-20 md:pb-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-bold">Типи тари</h1>
-          <p className="text-muted-foreground">Керування типами контейнерів та обмеженнями на типи продуктів.</p>
+      <section className="glass relative overflow-hidden rounded-[28px] border border-primary/10 p-6 shadow-[var(--luxury-shadow)]">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -right-20 top-0 h-52 w-52 rounded-full bg-primary/10 blur-3xl" />
+          <div className="absolute bottom-0 left-8 h-40 w-40 rounded-full bg-cyan-400/10 blur-3xl" />
         </div>
-        <Button type="button" onClick={() => setCreateDialogOpen(true)} className="gap-2">
-          <Plus className="h-4 w-4" /> Додати тип
-        </Button>
-      </div>
+
+        <div className="relative flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-[var(--neon-glow)]">
+                <Shapes className="h-6 w-6" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">
+                  <span className="gradient-text">Типи тари</span>
+                </h1>
+                <p className="text-muted-foreground">
+                  Керування типами контейнерів та дозволеними типами продуктів.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-medium">
+                Типів тари: {items.length}
+              </Badge>
+              <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-medium">
+                Типів продуктів: {productTypes.length}
+              </Badge>
+            </div>
+          </div>
+
+          <Button type="button" onClick={() => setCreateDialogOpen(true)} className="gap-2 shadow-[var(--neon-glow)]">
+            <Plus className="h-4 w-4" />
+            Додати тип
+          </Button>
+        </div>
+      </section>
 
       {loading ? (
         <div className="flex min-h-[200px] items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
         </div>
       ) : loadError ? (
-        <Card>
+        <Card className="stylish-card">
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
             <p className="text-sm text-destructive">{loadError}</p>
             <Button type="button" variant="outline" onClick={() => void load()}>
@@ -310,7 +326,7 @@ export default function ContainerTypesPage() {
         </Card>
       ) : (
         <>
-          <Card className="hidden md:block">
+          <Card className="stylish-card hidden overflow-hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -332,22 +348,17 @@ export default function ContainerTypesPage() {
                     <TableCell>
                       <Badge variant="outline">#{item.id}</Badge>
                     </TableCell>
-                    <TableCell className="font-medium">{item.name ?? "—"}</TableCell>
+                    <TableCell className="font-medium">{item.name ?? "-"}</TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{item.codePrefix || "—"}</Badge>
+                      <Badge variant="secondary">{item.codePrefix || "-"}</Badge>
                     </TableCell>
-                    <TableCell>{item.defaultUnit || "—"}</TableCell>
+                    <TableCell>{item.defaultUnit || "-"}</TableCell>
                     <TableCell className="max-w-[250px] truncate text-xs text-muted-foreground">
                       {item.allowedProductTypeNames?.length ? item.allowedProductTypeNames.join(", ") : "усі"}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openEditDialog(item)}
-                          className="h-8"
-                        >
+                        <Button size="sm" variant="outline" onClick={() => openEditDialog(item)} className="h-8">
                           <Edit className="mr-2 h-4 w-4" />
                           Редагувати
                         </Button>
@@ -373,7 +384,7 @@ export default function ContainerTypesPage() {
             {items.map((item) => (
               <Card
                 key={item.id}
-                className="group border-primary/10 transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98]"
+                className="stylish-card group border-primary/10 transition-all hover:-translate-y-0.5 active:scale-[0.98]"
                 onClick={(event) => handleRowNavigation(event, `/container-types/${item.id}`)}
               >
                 <CardContent className="p-4">
@@ -386,17 +397,19 @@ export default function ContainerTypesPage() {
                         </Badge>
                       </div>
                       <div className="mt-2 flex flex-wrap gap-2 text-sm text-muted-foreground">
-                        {item.codePrefix && (
+                        {item.codePrefix ? (
                           <Badge variant="outline" className="text-xs">
                             {item.codePrefix}
                           </Badge>
-                        )}
-                        {item.defaultUnit && <span>{item.defaultUnit}</span>}
+                        ) : null}
+                        {item.defaultUnit ? <span>{item.defaultUnit}</span> : null}
                       </div>
-                      {item.allowedProductTypeNames && item.allowedProductTypeNames.length > 0 && (
+                      {item.allowedProductTypeNames && item.allowedProductTypeNames.length > 0 ? (
                         <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
                           Дозволені: {item.allowedProductTypeNames.join(", ")}
                         </p>
+                      ) : (
+                        <p className="mt-2 text-xs text-muted-foreground">Дозволені: усі типи продуктів</p>
                       )}
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -436,14 +449,16 @@ export default function ContainerTypesPage() {
             <Input
               placeholder="Назва"
               value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-                autoCodePrefix(e.target.value);
+              onChange={(event) => {
+                setName(event.target.value);
+                autoCodePrefix(event.target.value);
               }}
               required
             />
+
             <div className="grid grid-cols-2 gap-3">
-              <Input placeholder="Префікс коду" value={codePrefix} onChange={(e) => setCodePrefix(e.target.value)} />
+              <Input placeholder="Префікс коду" value={codePrefix} onChange={(event) => setCodePrefix(event.target.value)} />
+
               <Select value={normalizeUnit(defaultUnit) || normalizeUnit("л")} onValueChange={setDefaultUnit}>
                 <SelectTrigger>
                   <SelectValue />
@@ -457,6 +472,7 @@ export default function ContainerTypesPage() {
                 </SelectContent>
               </Select>
             </div>
+
             <div className="space-y-2">
               <p className="text-sm font-medium">Дозволені типи продуктів</p>
               <div className="relative">
@@ -469,15 +485,16 @@ export default function ContainerTypesPage() {
                   <span className="line-clamp-1 text-left">{selectedTypeNames}</span>
                   <ChevronDown className="ml-2 h-4 w-4 shrink-0" />
                 </Button>
-                {typePickerOpen && (
-                  <div className="absolute z-20 mt-2 w-full rounded-md border bg-background p-3 shadow-lg">
+
+                {typePickerOpen ? (
+                  <div className="absolute z-20 mt-2 w-full rounded-xl border bg-background p-3 shadow-lg">
                     <label className="mb-2 flex cursor-pointer items-center gap-2 rounded px-1 py-1.5 hover:bg-muted/60">
                       <input
                         type="checkbox"
                         checked={allTypesSelected}
-                        onChange={(e) => {
-                          setAllTypesSelected(e.target.checked);
-                          if (e.target.checked) {
+                        onChange={(event) => {
+                          setAllTypesSelected(event.target.checked);
+                          if (event.target.checked) {
                             setSelectedTypeIds([]);
                           }
                         }}
@@ -494,22 +511,27 @@ export default function ContainerTypesPage() {
                             <input
                               type="checkbox"
                               checked={!allTypesSelected && selectedTypeIds.includes(type.id)}
-                              onChange={(e) => handleTypeToggle(type.id, e.target.checked)}
+                              onChange={(event) => handleTypeToggle(type.id, event.target.checked)}
                             />
                             <span className="flex-1">{type.name}</span>
                             <span className="text-xs text-muted-foreground">#{type.id}</span>
-                            {!allTypesSelected && selectedTypeIds.includes(type.id) && <Check className="h-3.5 w-3.5 text-primary" />}
+                            {!allTypesSelected && selectedTypeIds.includes(type.id) ? (
+                              <Check className="h-3.5 w-3.5 text-primary" />
+                            ) : null}
                           </label>
                         ))
                       )}
                     </div>
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
-            <Textarea placeholder="Примітки" value={meta} onChange={(e) => setMeta(e.target.value)} rows={3} />
+
+            <Textarea placeholder="Примітки" value={meta} onChange={(event) => setMeta(event.target.value)} rows={3} />
+
             <Button disabled={creating} type="submit" className="gap-2">
-              <Plus className="h-4 w-4" /> Додати
+              <Plus className="h-4 w-4" />
+              {creating ? "Створення..." : "Додати"}
             </Button>
           </form>
         </DialogContent>
@@ -520,27 +542,30 @@ export default function ContainerTypesPage() {
           <DialogHeader>
             <DialogTitle>Редагувати тип тари</DialogTitle>
           </DialogHeader>
-          {editingItem && (
+
+          {editingItem ? (
             <div className="space-y-4">
               <div>
                 <Label htmlFor="edit-container-type-name">Назва</Label>
                 <Input
                   id="edit-container-type-name"
                   value={editingItem.name ?? ""}
-                  onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
+                  onChange={(event) => setEditingItem({ ...editingItem, name: event.target.value })}
                   className="mt-1.5"
                 />
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label htmlFor="edit-container-type-prefix">Префікс коду</Label>
                   <Input
                     id="edit-container-type-prefix"
                     value={editingItem.codePrefix ?? ""}
-                    onChange={(e) => setEditingItem({ ...editingItem, codePrefix: e.target.value })}
+                    onChange={(event) => setEditingItem({ ...editingItem, codePrefix: event.target.value })}
                     className="mt-1.5"
                   />
                 </div>
+
                 <div>
                   <Label htmlFor="edit-container-type-unit">Одиниця</Label>
                   <Select
@@ -560,12 +585,11 @@ export default function ContainerTypesPage() {
                   </Select>
                 </div>
               </div>
-              <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
-                Дозволені типи продуктів: {" "}
-                {editingItem.allowedProductTypeNames?.length
-                  ? editingItem.allowedProductTypeNames.join(", ")
-                  : "усі"}
+
+              <div className="rounded-2xl border border-dashed p-3 text-xs text-muted-foreground">
+                Дозволені типи продуктів: {editingItem.allowedProductTypeNames?.length ? editingItem.allowedProductTypeNames.join(", ") : "усі"}
               </div>
+
               <div className="space-y-2">
                 <Button
                   type="button"
@@ -576,28 +600,30 @@ export default function ContainerTypesPage() {
                   <span className="line-clamp-1 text-left">{editSelectedTypeNames}</span>
                   <ChevronDown className="ml-2 h-4 w-4 shrink-0" />
                 </Button>
-                {editTypePickerOpen && (
-                  <div className="rounded-md border bg-background p-3">
+
+                {editTypePickerOpen ? (
+                  <div className="rounded-xl border bg-background p-3">
                     <label className="mb-2 flex cursor-pointer items-center gap-2 rounded px-1 py-1.5 hover:bg-muted/60">
                       <input
                         type="checkbox"
                         checked={editAllTypesSelected}
-                        onChange={(e) => {
-                          setEditAllTypesSelected(e.target.checked);
-                          if (e.target.checked) {
+                        onChange={(event) => {
+                          setEditAllTypesSelected(event.target.checked);
+                          if (event.target.checked) {
                             setEditSelectedTypeIds([]);
                           }
                         }}
                       />
                       <span className="font-medium">Усі типи продуктів</span>
                     </label>
+
                     <div className="max-h-40 space-y-1 overflow-auto pr-1 text-sm">
                       {productTypes.map((type) => (
                         <label key={type.id} className="flex cursor-pointer items-center gap-2 rounded px-1 py-1.5 hover:bg-muted/60">
                           <input
                             type="checkbox"
                             checked={!editAllTypesSelected && editSelectedTypeIds.includes(type.id)}
-                            onChange={(e) => handleEditTypeToggle(type.id, e.target.checked)}
+                            onChange={(event) => handleEditTypeToggle(type.id, event.target.checked)}
                           />
                           <span className="flex-1">{type.name}</span>
                           <span className="text-xs text-muted-foreground">#{type.id}</span>
@@ -605,28 +631,30 @@ export default function ContainerTypesPage() {
                       ))}
                     </div>
                   </div>
-                )}
+                ) : null}
               </div>
+
               <div>
                 <Label htmlFor="edit-container-type-meta">Примітки</Label>
                 <Textarea
                   id="edit-container-type-meta"
                   value={editingItem.meta ?? ""}
-                  onChange={(e) => setEditingItem({ ...editingItem, meta: e.target.value })}
+                  onChange={(event) => setEditingItem({ ...editingItem, meta: event.target.value })}
                   className="mt-1.5"
                   rows={3}
                 />
               </div>
+
               <div className="flex gap-2 pt-2">
                 <Button onClick={() => handleUpdate(editingItem)} disabled={updating} className="flex-1">
-                  <Save className="mr-2 h-4 w-4" /> {updating ? "Збереження..." : "Зберегти"}
+                  <Save className="mr-2 h-4 w-4" />
+                  {updating ? "Збереження..." : "Зберегти"}
                 </Button>
               </div>
             </div>
-          )}
+          ) : null}
         </DialogContent>
       </Dialog>
-
 
       <ConfirmDialog
         open={!!deleteItem}

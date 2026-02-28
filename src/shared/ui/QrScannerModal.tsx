@@ -1,9 +1,8 @@
-﻿// src/shared/ui/QrScannerModal.tsx
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, Keyboard } from "lucide-react";
+import { Camera, Keyboard, RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -20,19 +19,33 @@ type Html5QrInstance = {
     config: { fps?: number; qrbox?: { width: number; height: number } },
     onSuccess: (decodedText: string) => void,
     onError: (errorMessage: string) => void,
-  ) => Promise<void>;
-  stop: () => Promise<void>;
-  clear: () => Promise<void>;
+  ) => Promise<unknown>;
+  stop: () => Promise<unknown>;
+  clear: () => Promise<unknown>;
 };
+
+type Html5QrCamera = {
+  id: string;
+  label: string;
+};
+
+type Html5QrModule = {
+  Html5Qrcode: {
+    new (elementId: string): Html5QrInstance;
+    getCameras?: () => Promise<Html5QrCamera[]>;
+  };
+};
+
+const QR_READER_ID = "qr-reader";
 
 function extractContainerCode(raw: string): string | null {
   const text = (raw ?? "").trim();
   if (!text) return null;
 
   try {
-    const u = new URL(text);
-    const m = u.pathname.match(/\/(containers|c)\/([^/?#]+)/i);
-    return m?.[2] ? decodeURIComponent(m[2]) : null;
+    const url = new URL(text);
+    const match = url.pathname.match(/\/(containers|c)\/([^/?#]+)/i);
+    return match?.[2] ? decodeURIComponent(match[2]) : null;
   } catch {
     // ignore
   }
@@ -50,21 +63,57 @@ export function QrScannerModal({ open, onClose }: QrScannerModalProps) {
   const qrInstanceRef = useRef<Html5QrInstance | null>(null);
   const scannerStartedRef = useRef(false);
   const hasScannedRef = useRef(false);
+  const warmupStreamRef = useRef<MediaStream | null>(null);
 
   const [manualCode, setManualCode] = useState("");
   const [showManual, setShowManual] = useState(false);
   const [scannerError, setScannerError] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [scanAttempt, setScanAttempt] = useState(0);
+
+  const stopWarmupStream = useCallback(() => {
+    const stream = warmupStreamRef.current;
+    if (!stream) return;
+
+    stream.getTracks().forEach((track) => track.stop());
+    warmupStreamRef.current = null;
+  }, []);
+
+  const stopScanner = useCallback(async () => {
+    stopWarmupStream();
+
+    const instance = qrInstanceRef.current;
+    if (!instance) return;
+
+    try {
+      if (scannerStartedRef.current) {
+        await instance.stop();
+      }
+    } catch {
+      // ignore
+    }
+
+    try {
+      await instance.clear();
+    } catch {
+      // ignore
+    }
+
+    scannerStartedRef.current = false;
+    qrInstanceRef.current = null;
+
+    if (scannerRootRef.current) {
+      scannerRootRef.current.innerHTML = "";
+    }
+  }, [stopWarmupStream]);
 
   useEffect(() => {
     const checkMobile = () => {
       const userAgent = navigator.userAgent || navigator.vendor;
-      const isMobileDevice = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
-        userAgent.toLowerCase(),
-      );
+      const mobileUa = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
       const hasTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
-      setIsMobile(isMobileDevice || (hasTouch && window.innerWidth < 768));
+      setIsMobile(mobileUa || (hasTouch && window.innerWidth < 768));
     };
 
     checkMobile();
@@ -74,15 +123,15 @@ export function QrScannerModal({ open, onClose }: QrScannerModalProps) {
 
   const navigateToCode = useCallback(
     (raw: string) => {
-      const code = extractContainerCode(raw);
-      if (!code) {
+      const parsedCode = extractContainerCode(raw);
+      if (!parsedCode) {
         toast.error("Не вдалося розпізнати код контейнера");
         return;
       }
 
       onClose();
-      router.push(`/containers/${encodeURIComponent(code)}`);
-      toast.success(`Відкриваємо контейнер ${code}`);
+      router.push(`/containers/${encodeURIComponent(parsedCode)}`);
+      toast.success(`Відкриваємо контейнер ${parsedCode}`);
     },
     [onClose, router],
   );
@@ -90,156 +139,192 @@ export function QrScannerModal({ open, onClose }: QrScannerModalProps) {
   useEffect(() => {
     if (!open) {
       setScannerError(null);
-      setShowManual(false);
       setManualCode("");
+      setShowManual(false);
       setIsStarting(false);
+      setScanAttempt(0);
       hasScannedRef.current = false;
+      void stopScanner();
       return;
     }
 
+    setScannerError(null);
+    setManualCode("");
+    setIsStarting(false);
+    hasScannedRef.current = false;
+
     if (!isMobile) {
       setShowManual(true);
+      return;
     }
-  }, [open, isMobile]);
+
+    setShowManual(false);
+    setScanAttempt((value) => value + 1);
+  }, [open, isMobile, stopScanner]);
 
   useEffect(() => {
-    if (!open || showManual) return;
+    if (!open || showManual || !isMobile || scanAttempt === 0) return;
 
     let cancelled = false;
 
     async function initScanner() {
       if (!scannerRootRef.current) return;
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setScannerError("Браузер не підтримує доступ до камери. Введіть код вручну.");
+        return;
+      }
 
       setIsStarting(true);
       setScannerError(null);
       hasScannedRef.current = false;
 
       try {
-        const mod = await import("html5-qrcode");
+        await stopScanner();
         if (cancelled) return;
 
-        const { Html5Qrcode } = mod as unknown as {
-          Html5Qrcode: new (elementId: string) => Html5QrInstance;
-        };
+        const warmupStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false,
+        });
+        warmupStreamRef.current = warmupStream;
 
-        if (qrInstanceRef.current) {
-          try {
-            if (scannerStartedRef.current) {
-              await qrInstanceRef.current.stop();
-            }
-          } catch {
-            // ignore
-          }
+        const warmupTrack = warmupStream.getVideoTracks()[0];
+        const preferredDeviceId = warmupTrack?.getSettings().deviceId;
 
-          try {
-            await qrInstanceRef.current.clear();
-          } catch {
-            // ignore
-          }
+        const mod = (await import("html5-qrcode")) as unknown as Html5QrModule;
+        if (cancelled) return;
 
-          scannerStartedRef.current = false;
-          qrInstanceRef.current = null;
-        }
+        const availableCameras = typeof mod.Html5Qrcode.getCameras === "function"
+          ? await mod.Html5Qrcode.getCameras()
+          : [];
 
-        const instance = new Html5Qrcode("qr-reader");
+        const preferredCamera =
+          availableCameras.find((camera) => /back|rear|environment/i.test(camera.label)) ||
+          availableCameras.find((camera) => camera.id === preferredDeviceId) ||
+          availableCameras[0];
+
+        stopWarmupStream();
+        if (cancelled) return;
+
+        scannerRootRef.current.innerHTML = "";
+
+        const instance = new mod.Html5Qrcode(QR_READER_ID);
         qrInstanceRef.current = instance;
 
+        const qrboxSize = isMobile ? 230 : 260;
+
         await instance.start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
+          preferredCamera?.id ?? { facingMode: "environment" },
+          { fps: 10, qrbox: { width: qrboxSize, height: qrboxSize } },
           (decodedText) => {
             if (hasScannedRef.current) return;
             hasScannedRef.current = true;
             navigateToCode(decodedText);
           },
           () => {
-            // ignore frame errors
+            // ignore frame decode errors
           },
         );
 
         scannerStartedRef.current = true;
 
-        if (!cancelled) setScannerError(null);
+        if (!cancelled) {
+          setScannerError(null);
+        }
       } catch (error) {
         scannerStartedRef.current = false;
+
         if (!cancelled) {
           const message = error instanceof Error ? error.message.toLowerCase() : "";
           const blockedByPermissions =
-            message.includes("permission") || message.includes("denied") || message.includes("notallowed");
+            message.includes("permission") ||
+            message.includes("denied") ||
+            message.includes("notallowed") ||
+            message.includes("not readable");
 
           setScannerError(
             blockedByPermissions
-              ? "Доступ до камери заборонено. Надайте дозвіл або введіть код вручну."
-              : "Не вдалося запустити камеру. Введіть код вручну.",
+              ? "Не вдалося отримати доступ до камери. Надайте дозвіл у браузері та спробуйте ще раз."
+              : "Камера не запустилась. Спробуйте ще раз або введіть код вручну.",
           );
-          setShowManual(true);
         }
       } finally {
-        if (!cancelled) setIsStarting(false);
+        stopWarmupStream();
+        if (!cancelled) {
+          setIsStarting(false);
+        }
       }
     }
 
-    initScanner();
+    void initScanner();
 
     return () => {
       cancelled = true;
-      const instance = qrInstanceRef.current;
-      if (instance) {
-        const stopPromise = scannerStartedRef.current ? instance.stop() : Promise.resolve();
-
-        stopPromise
-          .catch(() => {
-            // ignore
-          })
-          .then(() => instance.clear())
-          .catch(() => {
-            // ignore
-          })
-          .finally(() => {
-            scannerStartedRef.current = false;
-            qrInstanceRef.current = null;
-          });
-      }
+      void stopScanner();
     };
-  }, [open, showManual, navigateToCode]);
+  }, [isMobile, navigateToCode, open, scanAttempt, showManual, stopScanner, stopWarmupStream]);
 
   const handleManualSubmit = () => {
-    const code = manualCode.trim();
-    if (!code) return;
-    navigateToCode(code);
+    const value = manualCode.trim();
+    if (!value) return;
+    navigateToCode(value);
     setManualCode("");
   };
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => (!nextOpen ? onClose() : undefined)}>
-      <DialogContent className="w-full max-w-sm p-4 sm:max-w-sm">
+      <DialogContent className="w-full max-w-sm p-4 sm:max-w-md">
         <DialogHeader className="pr-8">
           <DialogTitle>{showManual ? "Введіть код" : "Скануйте QR-код"}</DialogTitle>
         </DialogHeader>
 
         {!showManual ? (
-          <>
-            <div id="qr-reader" ref={scannerRootRef} className="overflow-hidden rounded-lg" />
+          <div className="space-y-4">
+            <div className="qr-gradient-border animate-fade-in-scale">
+              <div className="scanner-shell">
+                <div id={QR_READER_ID} ref={scannerRootRef} className="scanner-surface" />
+                <div className="scanner-frame pointer-events-none absolute inset-0">
+                  <span className="scanner-corner left-5 top-5" />
+                  <span className="scanner-corner right-5 top-5 rotate-90" />
+                  <span className="scanner-corner bottom-5 left-5 -rotate-90" />
+                  <span className="scanner-corner bottom-5 right-5 rotate-180" />
+                </div>
+              </div>
+            </div>
 
-            {isStarting && <p className="mt-2 text-sm text-muted-foreground">Запускаємо камеру...</p>}
+            {isStarting ? (
+              <p className="text-sm text-muted-foreground">Запускаємо камеру та запитуємо дозвіл...</p>
+            ) : null}
 
-            {scannerError && <p className="mt-2 text-sm text-destructive">{scannerError}</p>}
+            {scannerError ? <p className="text-sm text-destructive">{scannerError}</p> : null}
 
-            {isMobile && (
-              <Button type="button" variant="outline" className="mt-3 w-full gap-2" onClick={() => setShowManual(true)}>
+            <div className="flex flex-col gap-2">
+              {scannerError ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full gap-2"
+                  onClick={() => setScanAttempt((value) => value + 1)}
+                >
+                  <RefreshCcw className="h-4 w-4" />
+                  Спробувати ще раз
+                </Button>
+              ) : null}
+
+              <Button type="button" variant="outline" className="w-full gap-2" onClick={() => setShowManual(true)}>
                 <Keyboard className="h-4 w-4" />
                 Ввести код вручну
               </Button>
-            )}
-          </>
+            </div>
+          </div>
         ) : (
           <>
             <div className="flex flex-col gap-3">
               <Input
                 type="text"
                 value={manualCode}
-                onChange={(e) => setManualCode(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleManualSubmit()}
+                onChange={(event) => setManualCode(event.target.value)}
+                onKeyDown={(event) => event.key === "Enter" && handleManualSubmit()}
                 placeholder="Введіть код тари..."
                 autoFocus
               />
@@ -248,7 +333,7 @@ export function QrScannerModal({ open, onClose }: QrScannerModalProps) {
               </Button>
             </div>
 
-            {isMobile && (
+            {isMobile ? (
               <Button
                 type="button"
                 variant="outline"
@@ -256,12 +341,13 @@ export function QrScannerModal({ open, onClose }: QrScannerModalProps) {
                 onClick={() => {
                   setShowManual(false);
                   setScannerError(null);
+                  setScanAttempt((value) => value + 1);
                 }}
               >
                 <Camera className="h-4 w-4" />
                 Сканувати камерою
               </Button>
-            )}
+            ) : null}
           </>
         )}
       </DialogContent>
