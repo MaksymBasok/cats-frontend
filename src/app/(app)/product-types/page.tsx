@@ -3,7 +3,8 @@
 import { FormEvent, MouseEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { showErrorToast } from "@/shared/utils/errors";
+import { showErrorToast, showValidationToast } from "@/shared/utils/errors";
+import { validateProductType } from "@/shared/utils/form-validation";
 import { useAuth } from "@/shared/auth/AuthProvider";
 import type { ProductTypeDto } from "@/shared/types";
 import {
@@ -99,6 +100,16 @@ export default function ProductTypesPage() {
 
   const onCreate = async (e: FormEvent) => {
     e.preventDefault();
+    const createResult = validateProductType({
+      name,
+      shelfLifeDays: days,
+      shelfLifeHours: hours,
+      meta,
+    });
+    if (!createResult.success) {
+      showValidationToast(createResult.issues);
+      return;
+    }
 
     const trimmedName = name.trim();
     if (!trimmedName) {
@@ -120,12 +131,7 @@ export default function ProductTypesPage() {
 
     setCreating(true);
     try {
-      await createProductType({
-        name: trimmedName,
-        shelfLifeDays: parsedDays,
-        shelfLifeHours: parsedHours,
-        meta: meta.trim() || null,
-      });
+      await createProductType(createResult.data);
       toast.success("Тип продукту створено");
       resetCreateForm();
       setCreateDialogOpen(false);
@@ -150,6 +156,16 @@ export default function ProductTypesPage() {
   const handleUpdate = async (e: FormEvent) => {
     e.preventDefault();
     if (!editingItem) return;
+    const updateResult = validateProductType({
+      name: editName,
+      shelfLifeDays: editDays,
+      shelfLifeHours: editHours,
+      meta: editMeta,
+    });
+    if (!updateResult.success) {
+      showValidationToast(updateResult.issues);
+      return;
+    }
 
     const trimmedName = editName.trim();
     if (!trimmedName) {
@@ -171,12 +187,7 @@ export default function ProductTypesPage() {
 
     setUpdating(true);
     try {
-      await updateProductType(String(editingItem.id), {
-        name: trimmedName,
-        shelfLifeDays: parsedDays,
-        shelfLifeHours: parsedHours,
-        meta: editMeta.trim() || null,
-      });
+      await updateProductType(String(editingItem.id), updateResult.data);
       toast.success("Тип продукту оновлено");
       setEditDialogOpen(false);
       setEditingItem(null);

@@ -3,9 +3,9 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useCallback, useState } from "react";
-import { useAuth } from "@/shared/auth/AuthProvider";
-import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { useAuth } from "@/shared/auth/AuthProvider";
 import { showErrorToast } from "@/shared/utils/errors";
 
 declare global {
@@ -27,7 +27,7 @@ declare global {
               text?: string;
               shape?: string;
               locale?: string;
-            }
+            },
           ) => void;
         };
       };
@@ -56,29 +56,29 @@ export default function LoginPage() {
           router.push("/pending");
           return;
         }
-        toast.success("Успішний вхід!");
+        toast.success("Успішний вхід");
         router.push("/");
-      } catch (err) {
-        showErrorToast(err, "Помилка входу");
+      } catch (error) {
+        showErrorToast(error, "Помилка входу");
       } finally {
         setLoginLoading(false);
       }
     },
-    [login, router]
+    [login, router],
   );
 
   useEffect(() => {
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
     if (!clientId || !googleButtonRef.current) return;
 
-    function tryInit() {
+    const tryInit = () => {
       if (!window.google || !googleButtonRef.current) return;
       googleButtonRef.current.innerHTML = "";
       window.google.accounts.id.initialize({
-        client_id: clientId!,
+        client_id: clientId,
         callback: handleCredentialResponse,
       });
-      window.google.accounts.id.renderButton(googleButtonRef.current!, {
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
         theme: "outline",
         size: "large",
         width: 320,
@@ -86,15 +86,15 @@ export default function LoginPage() {
         shape: "rectangular",
         locale: "uk",
       });
-    }
+    };
 
     tryInit();
     const failTimer = setTimeout(() => {
       if (!window.google) {
-        toast.error("Вхід через Google не завантажився. Оновіть сторінку або перевірте блокувальники скриптів");
+        toast.error("Вхід через Google не завантажився. Оновіть сторінку або перевірте блокувальники скриптів.");
       }
     }, 4000);
-    // If not loaded yet, wait for the script
+
     const timer = setInterval(() => {
       if (window.google) {
         tryInit();
@@ -110,50 +110,63 @@ export default function LoginPage() {
 
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-brand-navy" />
+      <div className="flex min-h-[320px] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-sm">
-      <div className="rounded-2xl border border-border bg-card p-8 shadow-sm">
-        <div className="flex flex-col items-center gap-4 mb-8">
-          <Image
-            src="/images/cats-logo.png"
-            alt="CATS - Система обліку тари"
-            width={80}
-            height={80}
-            className="rounded-xl w-20 h-auto"
-            priority
-          />
-          <div className="text-center">
-            <h1 className="text-xl font-semibold tracking-tight text-card-foreground text-balance">
-              Система обліку тари
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Увійдіть для продовження
-            </p>
+    <div className="mx-auto w-full max-w-md animate-fade-in-up">
+      <div className="glass overflow-hidden rounded-[32px] border border-primary/12 shadow-[var(--luxury-shadow-hover)]">
+        <div className="relative px-8 pb-8 pt-10">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute -right-10 top-0 h-36 w-36 rounded-full bg-primary/10 blur-3xl" />
+            <div className="absolute -left-10 bottom-0 h-40 w-40 rounded-full bg-cyan-400/10 blur-3xl" />
+          </div>
+
+          <div className="relative flex flex-col items-center gap-5 text-center">
+            <div className="cats-logo-wrap rounded-[26px] p-3 animate-pulse-glow">
+              <Image
+                src="/images/cats-logo.png"
+                alt="CATS"
+                width={84}
+                height={84}
+                className="cats-logo-glow rounded-2xl"
+                priority
+              />
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.32em] text-muted-foreground">
+                Container Tracking
+              </p>
+              <h1 className="mt-2 text-3xl font-semibold tracking-tight">Система обліку тари</h1>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                Увійдіть через Google, щоб працювати з контейнерами, продуктами й технологічними датами.
+              </p>
+            </div>
+
+            <div className="w-full rounded-[28px] border border-border/70 bg-background/60 p-5">
+              {loginLoading ? (
+                <div className="flex flex-col items-center gap-3 py-3">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  <p className="text-sm text-muted-foreground">Виконуємо вхід...</p>
+                </div>
+              ) : (
+                <div className="flex justify-center">
+                  <div ref={googleButtonRef} />
+                </div>
+              )}
+            </div>
+
+            {!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? (
+              <p className="rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-xs text-amber-700 dark:text-amber-300">
+                `NEXT_PUBLIC_GOOGLE_CLIENT_ID` не налаштовано.
+              </p>
+            ) : null}
           </div>
         </div>
-
-        {loginLoading ? (
-          <div className="flex flex-col items-center gap-3 py-4">
-            <Loader2 className="h-6 w-6 animate-spin text-brand-navy" />
-            <p className="text-sm text-muted-foreground">Входимо...</p>
-          </div>
-        ) : (
-          <div className="flex justify-center">
-            <div ref={googleButtonRef} />
-          </div>
-        )}
-
-        {!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
-          <p className="mt-4 rounded-lg bg-brand-orange/10 px-3 py-2 text-center text-xs text-brand-orange">
-            NEXT_PUBLIC_GOOGLE_CLIENT_ID не налаштовано
-          </p>
-        )}
       </div>
     </div>
   );

@@ -36,14 +36,14 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
     <Link
       href={item.href}
       className={cn(
-        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+        "group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all duration-300",
         isActive
-          ? "bg-brand-navy text-primary-foreground font-medium"
-          : "text-foreground hover:bg-muted"
+          ? "bg-primary/10 text-primary shadow-[var(--neon-glow)]"
+          : "text-muted-foreground hover:bg-primary/5 hover:text-foreground hover:translate-x-1",
       )}
     >
-      <item.icon className="h-4 w-4 shrink-0" />
-      {item.label}
+      <item.icon className={cn("h-4 w-4 shrink-0 transition-transform", isActive ? "" : "group-hover:scale-110")} />
+      <span className={cn(isActive ? "font-semibold" : "")}>{item.label}</span>
     </Link>
   );
 }
@@ -53,31 +53,39 @@ export function Sidebar() {
   const { isAdmin } = useAuth();
 
   return (
-    <aside className="hidden md:flex md:w-56 md:shrink-0 md:flex-col md:border-r md:border-border md:bg-card">
-      <div className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-4">
-        <p className="mb-1 px-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Головне
-        </p>
-        {mainLinks.map((item) => (
-          <NavLink key={item.href} item={item} pathname={pathname} />
-        ))}
-
-        {isAdmin && (
-          <>
-            <p className="mb-1 mt-4 px-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Адміністрування
+    <aside className="hidden md:flex md:w-72 md:shrink-0 md:flex-col md:px-4 md:py-4">
+      <div className="glass flex h-full flex-col rounded-[28px] px-4 py-5 shadow-[var(--luxury-shadow)]">
+        <div className="flex-1 space-y-6 overflow-y-auto">
+          <div>
+            <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+              Основне
             </p>
-            {adminLinks.map((item) => (
-              <NavLink key={item.href} item={item} pathname={pathname} />
-            ))}
-          </>
-        )}
-      </div>
+            <div className="space-y-1.5">
+              {mainLinks.map((item) => (
+                <NavLink key={item.href} item={item} pathname={pathname} />
+              ))}
+            </div>
+          </div>
 
-      <div className="border-t border-border px-3 py-3">
-        {bottomLinks.map((item) => (
-          <NavLink key={item.href} item={item} pathname={pathname} />
-        ))}
+          {isAdmin ? (
+            <div>
+              <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                Адміністрування
+              </p>
+              <div className="space-y-1.5">
+                {adminLinks.map((item) => (
+                  <NavLink key={item.href} item={item} pathname={pathname} />
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="mt-6 border-t border-border/70 pt-4">
+          {bottomLinks.map((item) => (
+            <NavLink key={item.href} item={item} pathname={pathname} />
+          ))}
+        </div>
       </div>
     </aside>
   );

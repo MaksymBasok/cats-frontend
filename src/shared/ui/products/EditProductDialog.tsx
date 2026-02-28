@@ -1,4 +1,3 @@
-﻿// src/shared/ui/products/EditProductDialog.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -9,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { updateProduct } from "@/shared/api/products";
-import type { ProductDto, UpdateProductDto, ProductTypeDto } from "@/shared/types";
+import type { ProductDto, ProductTypeDto, UpdateProductDto } from "@/shared/types";
 import { toast } from "sonner";
-import { showErrorToast } from "@/shared/utils/errors";
+import { showErrorToast, showValidationToast } from "@/shared/utils/errors";
+import { validateUpdateProduct } from "@/shared/utils/form-validation";
 
 interface EditProductDialogProps {
   product: ProductDto;
@@ -29,8 +29,8 @@ type FormState = {
   shelfLifeHours: string;
 };
 
-function numToStr(v: number | null | undefined) {
-  return v == null ? "" : String(v);
+function numToStr(value: number | null | undefined) {
+  return value == null ? "" : String(value);
 }
 
 export function EditProductDialog({
@@ -42,20 +42,17 @@ export function EditProductDialog({
 }: EditProductDialogProps) {
   const [loading, setLoading] = useState(false);
 
-  const productTypeIds = useMemo(() => new Set(productTypes.map((t) => t.id)), [productTypes]);
   const productTypeById = useMemo(
     () => new Map(productTypes.map((type) => [String(type.id), type])),
-    [productTypes]
+    [productTypes],
   );
 
   const applyTypeDefaults = (typeId: string) => {
     const selectedType = productTypeById.get(typeId);
     return {
       productTypeId: typeId,
-      shelfLifeDays:
-        selectedType?.shelfLifeDays != null ? String(selectedType.shelfLifeDays) : "",
-      shelfLifeHours:
-        selectedType?.shelfLifeHours != null ? String(selectedType.shelfLifeHours) : "",
+      shelfLifeDays: selectedType?.shelfLifeDays != null ? String(selectedType.shelfLifeDays) : "",
+      shelfLifeHours: selectedType?.shelfLifeHours != null ? String(selectedType.shelfLifeHours) : "",
     };
   };
 
@@ -80,39 +77,20 @@ export function EditProductDialog({
   }, [open, product]);
 
   const buildDto = (): UpdateProductDto | null => {
-    const name = form.name.trim();
-    if (!name) {
-      toast.error("Вкажіть назву продукту");
+    const result = validateUpdateProduct({
+      name: form.name,
+      description: form.description,
+      productTypeId: form.productTypeId,
+      shelfLifeDays: form.shelfLifeDays,
+      shelfLifeHours: form.shelfLifeHours,
+    });
+
+    if (!result.success) {
+      showValidationToast(result.issues);
       return null;
     }
 
-    const ptId = form.productTypeId ? Number(form.productTypeId) : Number.NaN;
-    if (!Number.isFinite(ptId) || !productTypeIds.has(ptId)) {
-      toast.error("Оберіть тип продукту");
-      return null;
-    }
-
-    const days = form.shelfLifeDays.trim() ? Number(form.shelfLifeDays) : null;
-    const hours = form.shelfLifeHours.trim() ? Number(form.shelfLifeHours) : null;
-
-    if (days != null && (!Number.isFinite(days) || days < 0)) {
-      toast.error("Термін у днях має бути цілим числом >= 0");
-      return null;
-    }
-    if (hours != null && (!Number.isFinite(hours) || hours < 0)) {
-      toast.error("Термін у годинах має бути цілим числом >= 0");
-      return null;
-    }
-
-    const dto: UpdateProductDto = {
-      name,
-      description: form.description.trim() ? form.description.trim() : null,
-      productTypeId: ptId,
-      shelfLifeDays: days == null ? null : Math.trunc(days),
-      shelfLifeHours: hours == null ? null : Math.trunc(hours),
-    };
-
-    return dto;
+    return result.data;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -135,7 +113,7 @@ export function EditProductDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => (!v ? onClose() : undefined)}>
+    <Dialog open={open} onOpenChange={(value) => (!value ? onClose() : undefined)}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Редагувати продукт</DialogTitle>
@@ -147,14 +125,17 @@ export function EditProductDialog({
             <Input
               id="name"
               value={form.name}
-              onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+              onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
               required
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="productType">Тип продукту</Label>
-            <Select value={form.productTypeId} onValueChange={(v) => setForm((p) => ({ ...p, ...applyTypeDefaults(v) }))}>
+            <Select
+              value={form.productTypeId}
+              onValueChange={(value) => setForm((prev) => ({ ...prev, ...applyTypeDefaults(value) }))}
+            >
               <SelectTrigger id="productType">
                 <SelectValue placeholder="Оберіть тип продукту" />
               </SelectTrigger>
@@ -169,11 +150,11 @@ export function EditProductDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Опис (необов’язково)</Label>
+            <Label htmlFor="description">Опис (необов&rsquo;язково)</Label>
             <Textarea
               id="description"
               value={form.description}
-              onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+              onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
               rows={3}
             />
           </div>
@@ -188,7 +169,7 @@ export function EditProductDialog({
                 step={1}
                 inputMode="numeric"
                 value={form.shelfLifeDays}
-                onChange={(e) => setForm((p) => ({ ...p, shelfLifeDays: e.target.value }))}
+                onChange={(e) => setForm((prev) => ({ ...prev, shelfLifeDays: e.target.value }))}
                 placeholder="-"
               />
             </div>
@@ -201,11 +182,12 @@ export function EditProductDialog({
                 step={1}
                 inputMode="numeric"
                 value={form.shelfLifeHours}
-                onChange={(e) => setForm((p) => ({ ...p, shelfLifeHours: e.target.value }))}
+                onChange={(e) => setForm((prev) => ({ ...prev, shelfLifeHours: e.target.value }))}
                 placeholder="-"
               />
             </div>
           </div>
+
           <p className="-mt-2 text-xs text-muted-foreground">
             При зміні типу продукту значення терміну придатності автоматично підтягуються з типу.
           </p>

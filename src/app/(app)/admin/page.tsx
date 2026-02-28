@@ -4,7 +4,8 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, UserCheck, UserX, Shield, UserPlus, MailPlus, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { showErrorToast } from "@/shared/utils/errors";
+import { showErrorToast, showValidationToast } from "@/shared/utils/errors";
+import { validateCreateUser, validateInvitation } from "@/shared/utils/form-validation";
 
 import type { UserDto, UserRole } from "@/shared/types";
 import * as usersApi from "@/shared/api/users";
@@ -141,6 +142,11 @@ export default function AdminPage() {
 
   const handleInvite = async (e: FormEvent) => {
     e.preventDefault();
+    const inviteResult = validateInvitation({ email: inviteEmail, role: inviteRole });
+    if (!inviteResult.success) {
+      showValidationToast(inviteResult.issues);
+      return;
+    }
     if (!inviteEmail.trim()) {
       toast.error("Вкажіть електронну пошту");
       return;
@@ -151,7 +157,7 @@ export default function AdminPage() {
     }
     setInviteLoading(true);
     try {
-      await createInvitation({ email: inviteEmail.trim(), role: inviteRole });
+      await createInvitation(inviteResult.data);
       toast.success("Запрошення створено");
       setInviteEmail("");
       setInviteDialogOpen(false);
@@ -164,6 +170,18 @@ export default function AdminPage() {
 
   const handleCreateUser = async (e: FormEvent) => {
     e.preventDefault();
+    const createResult = validateCreateUser({
+      email: createEmail,
+      firstName: createFirstName,
+      middleName: "",
+      lastName: createLastName,
+      role: createRole,
+      isActive: true,
+    });
+    if (!createResult.success) {
+      showValidationToast(createResult.issues);
+      return;
+    }
     if (!createEmail.trim()) {
       toast.error("Вкажіть електронну пошту");
       return;
@@ -175,13 +193,7 @@ export default function AdminPage() {
     }
     setCreateLoading(true);
     try {
-      await usersApi.createUser({
-        email: createEmail.trim(),
-        firstName: createFirstName.trim() || null,
-        lastName: createLastName.trim() || null,
-        role: createRole,
-        isActive: true,
-      });
+      await usersApi.createUser(createResult.data);
       toast.success("Користувача створено");
       setCreateEmail("");
       setCreateFirstName("");

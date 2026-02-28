@@ -1,4 +1,3 @@
-// src/shared/ui/containers/CreateContainerDialog.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -6,7 +5,8 @@ import { toast } from "sonner";
 import { normalizeUnit } from "@/shared/constants/units";
 import { createContainer } from "@/shared/api/containers";
 import type { ContainerTypeDto, CreateContainerDto } from "@/shared/types";
-import { showErrorToast } from "@/shared/utils/errors";
+import { showErrorToast, showValidationToast } from "@/shared/utils/errors";
+import { validateCreateContainer } from "@/shared/utils/form-validation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,7 +51,9 @@ export function CreateContainerDialog({
   const defaultUnitByTypeId = useMemo(() => {
     const map = new Map<number, string>();
     for (const ct of containerTypes) {
-      if (ct.id != null && ct.defaultUnit) map.set(ct.id, ct.defaultUnit);
+      if (ct.id != null && ct.defaultUnit) {
+        map.set(ct.id, ct.defaultUnit);
+      }
     }
     return map;
   }, [containerTypes]);
@@ -70,34 +72,21 @@ export function CreateContainerDialog({
   }, [open]);
 
   const submitDto = (): CreateContainerDto | null => {
-    const name = form.name.trim();
-    const code = form.code.trim();
-    const meta = form.meta.trim();
-
-    const containerTypeIdNum = form.containerTypeId ? Number(form.containerTypeId) : Number.NaN;
-    const volumeNum = form.volume.trim() ? Number(form.volume) : Number.NaN;
-
-    if (!name) {
-      toast.error("Вкажіть назву тари");
-      return null;
-    }
-    if (!Number.isFinite(containerTypeIdNum)) {
-      toast.error("Оберіть тип тари");
-      return null;
-    }
-    if (!Number.isFinite(volumeNum) || volumeNum <= 0) {
-      toast.error("Об'єм має бути більше 0");
-      return null;
-    }
-
-    return {
-      ...(code ? { code } : {}),
-      name,
-      volume: volumeNum,
+    const result = validateCreateContainer({
+      code: form.code,
+      name: form.name,
+      volume: form.volume,
       unit: selectedTypeUnit || normalizeUnit(form.unit),
-      containerTypeId: containerTypeIdNum,
-      meta: meta ? meta : null,
-    };
+      containerTypeId: form.containerTypeId,
+      meta: form.meta,
+    });
+
+    if (!result.success) {
+      showValidationToast(result.issues);
+      return null;
+    }
+
+    return result.data;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -128,12 +117,12 @@ export function CreateContainerDialog({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="create-code">Код (необов’язково)</Label>
+            <Label htmlFor="create-code">Код (необов&rsquo;язково)</Label>
             <Input
               id="create-code"
               type="text"
               value={form.code}
-              onChange={(e) => setForm((p) => ({ ...p, code: e.target.value }))}
+              onChange={(e) => setForm((prev) => ({ ...prev, code: e.target.value }))}
               placeholder="Автоматично"
             />
           </div>
@@ -144,19 +133,19 @@ export function CreateContainerDialog({
               id="create-name"
               type="text"
               value={form.name}
-              onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+              onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
               required
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="create-volume">Об’єм *</Label>
+              <Label htmlFor="create-volume">Об&rsquo;єм *</Label>
               <Input
                 id="create-volume"
                 type="number"
                 value={form.volume}
-                onChange={(e) => setForm((p) => ({ ...p, volume: e.target.value }))}
+                onChange={(e) => setForm((prev) => ({ ...prev, volume: e.target.value }))}
                 required
                 min={0.001}
                 step="any"
@@ -165,7 +154,12 @@ export function CreateContainerDialog({
             </div>
             <div className="space-y-2">
               <Label htmlFor="create-unit">Одиниця *</Label>
-              <Input id="create-unit" value={selectedTypeUnit || "-"} readOnly className="bg-muted text-muted-foreground" />
+              <Input
+                id="create-unit"
+                value={selectedTypeUnit || "-"}
+                readOnly
+                className="bg-muted text-muted-foreground"
+              />
             </div>
           </div>
 
@@ -175,17 +169,17 @@ export function CreateContainerDialog({
               value={form.containerTypeId || "none"}
               onValueChange={(value) => {
                 if (value === "none") {
-                  setForm((p) => ({ ...p, containerTypeId: "" }));
+                  setForm((prev) => ({ ...prev, containerTypeId: "" }));
                   return;
                 }
 
                 const idNum = Number(value);
                 const suggestedUnit = Number.isFinite(idNum) ? defaultUnitByTypeId.get(idNum) : undefined;
 
-                setForm((p) => ({
-                  ...p,
+                setForm((prev) => ({
+                  ...prev,
                   containerTypeId: value,
-                  unit: suggestedUnit ? normalizeUnit(suggestedUnit) : p.unit,
+                  unit: suggestedUnit ? normalizeUnit(suggestedUnit) : prev.unit,
                 }));
               }}
             >
@@ -212,7 +206,7 @@ export function CreateContainerDialog({
             <Textarea
               id="create-meta"
               value={form.meta}
-              onChange={(e) => setForm((p) => ({ ...p, meta: e.target.value }))}
+              onChange={(e) => setForm((prev) => ({ ...prev, meta: e.target.value }))}
               rows={2}
             />
           </div>

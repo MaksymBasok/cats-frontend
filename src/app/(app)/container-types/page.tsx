@@ -23,7 +23,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Check, ChevronDown, Plus, Save, Trash2, Edit } from "lucide-react";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { MEASUREMENT_UNITS, normalizeUnit } from "@/shared/constants/units";
-import { showErrorToast } from "@/shared/utils/errors";
+import { showErrorToast, showValidationToast } from "@/shared/utils/errors";
+import { validateContainerType } from "@/shared/utils/form-validation";
 import {
   Table,
   TableBody,
@@ -131,14 +132,20 @@ export default function ContainerTypesPage() {
     setCreating(true);
     try {
       const ids = allTypesSelected ? [] : Array.from(new Set(selectedTypeIds));
-
-      await createContainerType({
-        name: name.trim(),
-        codePrefix: codePrefix.trim() || null,
-        defaultUnit: normalizeUnit(defaultUnit),
-        meta: meta.trim() || null,
+      const createResult = validateContainerType({
+        name,
+        codePrefix,
+        defaultUnit,
+        meta,
         allowedProductTypeIds: allTypesSelected ? [] : ids,
       });
+      if (!createResult.success) {
+        showValidationToast(createResult.issues);
+        setCreating(false);
+        return;
+      }
+
+      await createContainerType(createResult.data);
 
       toast.success("Тип тари створено");
       setName("");
@@ -169,14 +176,20 @@ export default function ContainerTypesPage() {
       const allowedProductTypeIds = editAllTypesSelected
         ? []
         : Array.from(new Set(editSelectedTypeIds));
-
-      await updateContainerType(String(item.id), {
+      const updateResult = validateContainerType({
         name: trimmedName,
-        codePrefix: item.codePrefix,
-        defaultUnit: normalizeUnit(item.defaultUnit),
-        meta: item.meta,
+        codePrefix: item.codePrefix ?? "",
+        defaultUnit: item.defaultUnit ?? "",
+        meta: item.meta ?? "",
         allowedProductTypeIds,
       });
+      if (!updateResult.success) {
+        showValidationToast(updateResult.issues);
+        setUpdating(false);
+        return;
+      }
+
+      await updateContainerType(String(item.id), updateResult.data);
       toast.success("Тип тари оновлено");
       setEditDialogOpen(false);
       setEditingItem(null);

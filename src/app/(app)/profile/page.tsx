@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { showErrorToast } from "@/shared/utils/errors";
+import { showErrorToast, showValidationToast } from "@/shared/utils/errors";
 import Image from "next/image";
 import { Save, LogOut, UserCircle } from "lucide-react";
 
@@ -13,6 +13,7 @@ import { updateProfile } from "@/shared/api/users";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { validateProfile } from "@/shared/utils/form-validation";
 
 export default function ProfilePage() {
   const { user, refreshProfile, logout } = useAuth();
@@ -49,12 +50,17 @@ export default function ProfilePage() {
 
   const handleSave = async () => {
     if (!user) return;
+    const profileResult = validateProfile({
+      firstName,
+      middleName,
+      lastName,
+    });
+    if (!profileResult.success) {
+      showValidationToast(profileResult.issues);
+      return;
+    }
 
-    const payload = {
-      firstName: firstName.trim() || null,
-      middleName: middleName.trim() || null,
-      lastName: lastName.trim() || null,
-    };
+    const payload = profileResult.data;
 
     setSaving(true);
     try {

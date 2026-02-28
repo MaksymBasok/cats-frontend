@@ -1,29 +1,17 @@
-﻿import { createElement } from "react";
+import { createElement } from "react";
 import { toast } from "sonner";
 import { ApiError } from "@/shared/api/client";
+import { resolveApiErrorPresentation } from "@/shared/utils/api-error-presentation";
 
-function extractErrorDetails(error: unknown): string | null {
-  if (error instanceof ApiError) {
-    if (typeof error.details === "string" && error.details.trim()) {
-      return error.details.trim();
-    }
-
-    if (error.details && typeof error.details === "object") {
-      const plainText = toPlainText(error.details);
-      if (plainText) {
-        return plainText;
-      }
-    }
-  }
-
-  if (error instanceof Error && error.message.trim()) {
-    if (process.env.NODE_ENV !== "production" && error.stack) {
-      return error.stack;
-    }
-    return error.message.trim();
-  }
-
-  return null;
+function renderIssueList(items: string[]) {
+  return createElement(
+    "ul",
+    {
+      className:
+        "mt-1 max-h-52 list-disc space-y-1 overflow-auto pl-4 text-sm leading-relaxed text-muted-foreground",
+    },
+    ...items.map((item, index) => createElement("li", { key: `${item}-${index}` }, item)),
+  );
 }
 
 function toPlainText(value: unknown, prefix = ""): string | null {
@@ -52,36 +40,40 @@ function toPlainText(value: unknown, prefix = ""): string | null {
   return `${prefix}${String(value)}`;
 }
 
+function extractErrorDetails(error: unknown): string | null {
+  if (error instanceof ApiError) {
+    const presentation = resolveApiErrorPresentation(error.details);
+    if (presentation.details.length > 0) {
+      return presentation.details.join("\n");
+    }
+
+    if (typeof error.details === "string" && error.details.trim()) {
+      return error.details.trim();
+    }
+
+    if (error.details && typeof error.details === "object") {
+      const plainText = toPlainText(error.details);
+      if (plainText) {
+        return plainText;
+      }
+    }
+  }
+
+  if (error instanceof Error && error.message.trim()) {
+    if (process.env.NODE_ENV !== "production" && error.stack) {
+      return error.stack;
+    }
+    return error.message.trim();
+  }
+
+  return null;
+}
+
 function humanizeErrorDetails(error: unknown): string | null {
   if (error instanceof ApiError) {
-    const details = error.details;
-
-    if (details && typeof details === "object") {
-      const detailValue = (details as { detail?: unknown; message?: unknown; title?: unknown }).detail;
-      if (typeof detailValue === "string" && detailValue.trim()) {
-        return detailValue.trim();
-      }
-
-      const messageValue = (details as { message?: unknown }).message;
-      if (typeof messageValue === "string" && messageValue.trim()) {
-        return messageValue.trim();
-      }
-
-      const titleValue = (details as { title?: unknown }).title;
-      if (typeof titleValue === "string" && titleValue.trim()) {
-        return titleValue.trim();
-      }
-
-      const errors = (details as { errors?: Record<string, string[] | string> }).errors;
-      if (errors && typeof errors === "object") {
-        const firstError = Object.values(errors)
-          .flatMap((entry) => (Array.isArray(entry) ? entry : [entry]))
-          .find((entry) => typeof entry === "string" && entry.trim().length > 0);
-
-        if (typeof firstError === "string") {
-          return firstError.trim();
-        }
-      }
+    const presentation = resolveApiErrorPresentation(error.details);
+    if (presentation.title) {
+      return presentation.title;
     }
   }
 
@@ -112,26 +104,41 @@ export function getErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
+export function showValidationToast(
+  issues: string[],
+  fallbackTitle = "Перевірте дані форми.",
+): void {
+  const uniqueIssues = Array.from(new Set(issues.map((issue) => issue.trim()).filter(Boolean)));
+  if (uniqueIssues.length === 0) {
+    toast.error(fallbackTitle);
+    return;
+  }
+
+  const title = uniqueIssues.length === 1 ? uniqueIssues[0] : fallbackTitle;
+
+  toast.error(title, {
+    description:
+      uniqueIssues.length > 1
+        ? renderIssueList(uniqueIssues)
+        : "Виправте дані у формі та повторіть дію.",
+  });
+}
+
 export function showErrorToast(error: unknown, fallbackTitle: string): void {
   const details = extractErrorDetails(error);
   const shortReason = humanizeErrorDetails(error);
   const title = shortReason || getErrorMessage(error, fallbackTitle);
+  const detailItems = details
+    ? details
+        .split("\n")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
 
   toast.error(title, {
-    description: details
-      ? createElement(
-          "details",
-          { className: "mt-1 cursor-pointer text-sm text-muted-foreground" },
-          createElement("summary", { className: "outline-none" }, "Показати деталі"),
-          createElement(
-            "p",
-            {
-              className:
-                "mt-2 max-h-52 overflow-auto whitespace-pre-wrap rounded-md border border-border bg-background/90 p-3 text-sm leading-relaxed text-foreground",
-            },
-            details,
-          ),
-        )
-      : "Спробуйте повторити дію або зверніться до адміністратора, якщо проблема повторюється.",
+    description:
+      detailItems.length > 0
+        ? renderIssueList(detailItems)
+        : "Спробуйте повторити дію або зверніться до адміністратора, якщо проблема повторюється.",
   });
 }

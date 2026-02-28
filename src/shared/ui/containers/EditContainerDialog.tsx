@@ -1,17 +1,17 @@
-﻿// src/shared/ui/containers/EditContainerDialog.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import type { ContainerDto, ContainerTypeDto, UpdateContainerDto } from "@/shared/types";
 import { updateContainer } from "@/shared/api/containers";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { normalizeUnit } from "@/shared/constants/units";
-import { showErrorToast } from "@/shared/utils/errors";
+import { showErrorToast, showValidationToast } from "@/shared/utils/errors";
+import { validateUpdateContainer } from "@/shared/utils/form-validation";
 
 interface EditContainerDialogProps {
   container: ContainerDto;
@@ -29,8 +29,8 @@ type FormState = {
   meta: string;
 };
 
-function toStr(v: unknown) {
-  return v == null ? "" : String(v);
+function toStr(value: unknown) {
+  return value == null ? "" : String(value);
 }
 
 export function EditContainerDialog({
@@ -50,7 +50,7 @@ export function EditContainerDialog({
       containerTypeId: container.containerTypeId != null ? String(container.containerTypeId) : "",
       meta: container.meta ?? "",
     }),
-    [container]
+    [container],
   );
 
   const [form, setForm] = useState<FormState>(initialForm);
@@ -68,35 +68,20 @@ export function EditContainerDialog({
   }, [open, initialForm]);
 
   const buildDto = (): UpdateContainerDto | null => {
-    const name = form.name.trim();
-    const unit = normalizeUnit(form.unit);
-    const meta = form.meta.trim();
+    const result = validateUpdateContainer({
+      name: form.name,
+      volume: form.volume,
+      unit: normalizeUnit(form.unit),
+      containerTypeId: form.containerTypeId,
+      meta: form.meta,
+    });
 
-    const volumeNum = form.volume.trim() ? Number(form.volume) : Number.NaN;
-    const typeIdNum = form.containerTypeId ? Number(form.containerTypeId) : Number.NaN;
-
-    if (!name) {
-      toast.error("Вкажіть назву тари");
-      return null;
-    }
-    if (!Number.isFinite(volumeNum) || volumeNum <= 0) {
-      toast.error("Об'єм має бути більше 0");
-      return null;
-    }
-    if (!Number.isFinite(typeIdNum)) {
-      toast.error("Оберіть тип тари");
+    if (!result.success) {
+      showValidationToast(result.issues);
       return null;
     }
 
-    const dto: UpdateContainerDto = {
-      name,
-      volume: volumeNum,
-      unit,
-      containerTypeId: typeIdNum,
-      meta: meta ? meta : null,
-    };
-
-    return dto;
+    return result.data;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -120,7 +105,7 @@ export function EditContainerDialog({
   if (!open) return null;
 
   return (
-    <Dialog open={open} onOpenChange={(v) => (!v ? onClose() : undefined)}>
+    <Dialog open={open} onOpenChange={(value) => (!value ? onClose() : undefined)}>
       <DialogContent className="sm:max-w-[460px]">
         <DialogHeader>
           <DialogTitle>Редагувати тару {toStr(container.code)}</DialogTitle>
@@ -132,14 +117,14 @@ export function EditContainerDialog({
             <Input
               id="name"
               value={form.name}
-              onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+              onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
               required
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="volume">Об’єм *</Label>
+              <Label htmlFor="volume">Об&rsquo;єм *</Label>
               <Input
                 id="volume"
                 type="number"
@@ -147,11 +132,10 @@ export function EditContainerDialog({
                 step="any"
                 min={0.001}
                 value={form.volume}
-                onChange={(e) => setForm((p) => ({ ...p, volume: e.target.value }))}
+                onChange={(e) => setForm((prev) => ({ ...prev, volume: e.target.value }))}
                 required
               />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="unit">Одиниця *</Label>
               <Input
@@ -182,7 +166,7 @@ export function EditContainerDialog({
             <Textarea
               id="meta"
               value={form.meta}
-              onChange={(e) => setForm((p) => ({ ...p, meta: e.target.value }))}
+              onChange={(e) => setForm((prev) => ({ ...prev, meta: e.target.value }))}
               rows={3}
             />
           </div>

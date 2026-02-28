@@ -1,30 +1,19 @@
-﻿// src/shared/ui/containers/EditFillDialog.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { updateContainerFill } from "@/shared/api/containers";
 import { getProducts } from "@/shared/api/products";
 import { getContainerTypes } from "@/shared/api/container-types";
 import type { ContainerDto, ContainerTypeDto, ProductDto, UpdateContainerFillDto } from "@/shared/types";
 import { toast } from "sonner";
 import { normalizeUnit } from "@/shared/constants/units";
-import { showErrorToast } from "@/shared/utils/errors";
+import { showErrorToast, showValidationToast } from "@/shared/utils/errors";
+import { validateUpdateContainerFill } from "@/shared/utils/form-validation";
 
 interface EditFillDialogProps {
   container: ContainerDto;
@@ -34,40 +23,37 @@ interface EditFillDialogProps {
 }
 
 function todayYmd() {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function toYmd(value?: string | null) {
   if (!value) return "";
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
 
-  try {
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return "";
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
-  } catch {
-    return "";
-  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function addShelfLife(baseYmd: string, days: number, hours: number) {
-  const [y, m, d] = baseYmd.split("-").map((x) => Number(x));
-  const dt = new Date(y, (m ?? 1) - 1, d ?? 1, 0, 0, 0, 0);
+  const [year, month, day] = baseYmd.split("-").map((value) => Number(value));
+  const date = new Date(year, (month ?? 1) - 1, day ?? 1, 0, 0, 0, 0);
 
-  if (Number.isFinite(days) && days) dt.setDate(dt.getDate() + days);
-  if (Number.isFinite(hours) && hours) dt.setHours(dt.getHours() + hours);
+  if (Number.isFinite(days) && days) date.setDate(date.getDate() + days);
+  if (Number.isFinite(hours) && hours) date.setHours(date.getHours() + hours);
 
-  const yy = dt.getFullYear();
-  const mm = String(dt.getMonth() + 1).padStart(2, "0");
-  const dd = String(dt.getDate()).padStart(2, "0");
-  return `${yy}-${mm}-${dd}`;
+  const nextYear = date.getFullYear();
+  const nextMonth = String(date.getMonth() + 1).padStart(2, "0");
+  const nextDay = String(date.getDate()).padStart(2, "0");
+  return `${nextYear}-${nextMonth}-${nextDay}`;
 }
 
 export function EditFillDialog({ container, open, onClose, onSuccess }: EditFillDialogProps) {
@@ -75,19 +61,15 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
   const [containerTypes, setContainerTypes] = useState<ContainerTypeDto[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const [productIdStr, setProductIdStr] = useState<string>(
-    container.currentProductId != null ? String(container.currentProductId) : ""
+  const [productIdStr, setProductIdStr] = useState(
+    container.currentProductId != null ? String(container.currentProductId) : "",
   );
-  const [quantityStr, setQuantityStr] = useState<string>(
-    String(container.currentQuantity ?? container.volume ?? "")
+  const [quantityStr, setQuantityStr] = useState(
+    String(container.currentQuantity ?? container.volume ?? ""),
   );
   const unit = normalizeUnit(container.unit);
-  const [productionDate, setProductionDate] = useState<string>(
-    toYmd(container.currentProductionDate) || todayYmd()
-  );
-  const [expirationDate, setExpirationDate] = useState<string>(
-    toYmd(container.currentExpirationDate) || ""
-  );
+  const [productionDate, setProductionDate] = useState(toYmd(container.currentProductionDate) || todayYmd());
+  const [expirationDate, setExpirationDate] = useState(toYmd(container.currentExpirationDate) || "");
 
   const allowedProductTypeNames = useMemo(() => {
     const currentType = containerTypes.find((type) => type.id === container.containerTypeId);
@@ -109,7 +91,6 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
     setLoading(false);
     setProducts([]);
     setContainerTypes([]);
-
     setProductIdStr(container.currentProductId != null ? String(container.currentProductId) : "");
     setQuantityStr(String(container.currentQuantity ?? container.volume ?? ""));
     setProductionDate(toYmd(container.currentProductionDate) || todayYmd());
@@ -124,10 +105,10 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
   }, [
     open,
     container.containerTypeId,
-    container.currentProductId,
-    container.currentQuantity,
-    container.currentProductionDate,
     container.currentExpirationDate,
+    container.currentProductId,
+    container.currentProductionDate,
+    container.currentQuantity,
     container.volume,
   ]);
 
@@ -143,9 +124,9 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
   }, [filteredProducts, open, productIdStr]);
 
   const selectedProduct = useMemo(() => {
-    const pid = Number(productIdStr);
-    if (!Number.isFinite(pid) || pid <= 0) return null;
-    return filteredProducts.find((p) => p.id === pid) ?? null;
+    const productId = Number(productIdStr);
+    if (!Number.isFinite(productId) || productId <= 0) return null;
+    return filteredProducts.find((product) => product.id === productId) ?? null;
   }, [filteredProducts, productIdStr]);
 
   useEffect(() => {
@@ -153,49 +134,38 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
 
     const days = selectedProduct.shelfLifeDays ?? 0;
     const hours = selectedProduct.shelfLifeHours ?? 0;
-    const hasShelf = !!(days || hours);
-    if (!hasShelf || !productionDate) return;
+    const hasShelfLife = !!(days || hours);
+    if (!hasShelfLife || !productionDate) return;
 
     setExpirationDate(addShelfLife(productionDate, days, hours));
   }, [selectedProduct, productionDate]);
+
+  const hasShelfLife =
+    !!selectedProduct && !!(selectedProduct.shelfLifeDays || selectedProduct.shelfLifeHours);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (filteredProducts.length === 0) {
-      toast.error("Для цього типу тари немає доступних продуктів");
+      showValidationToast(["Для цього типу тари немає доступних продуктів."]);
       return;
     }
 
-    const pid = Number(productIdStr);
-    if (!Number.isFinite(pid) || pid <= 0) {
-      toast.error("Оберіть продукт");
-      return;
-    }
-
-    const quantity = Number(quantityStr);
-    if (!Number.isFinite(quantity) || quantity <= 0) {
-      toast.error("Кількість має бути більше 0");
-      return;
-    }
-
-    if (!productionDate) {
-      toast.error("Вкажіть дату виробництва");
-      return;
-    }
-
-    if (!expirationDate) {
-      toast.error("Вкажіть термін придатності");
-      return;
-    }
-
-    const payload: UpdateContainerFillDto = {
-      productId: pid,
-      quantity,
+    const result = validateUpdateContainerFill({
+      productId: productIdStr,
+      quantity: quantityStr,
       unit,
       productionDate,
       expirationDate,
-    };
+      requireExpirationDate: true,
+    });
+
+    if (!result.success) {
+      showValidationToast(result.issues);
+      return;
+    }
+
+    const payload: UpdateContainerFillDto = result.data;
 
     setLoading(true);
     try {
@@ -210,11 +180,8 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
     }
   };
 
-  const hasShelfLife =
-    !!selectedProduct && !!(selectedProduct.shelfLifeDays || selectedProduct.shelfLifeHours);
-
   return (
-    <Dialog open={open} onOpenChange={(v) => (!v ? onClose() : undefined)}>
+    <Dialog open={open} onOpenChange={(value) => (!value ? onClose() : undefined)}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Редагувати вміст контейнера {container.code ?? ""}</DialogTitle>
@@ -228,10 +195,10 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
                 <SelectValue placeholder="Оберіть продукт" />
               </SelectTrigger>
               <SelectContent>
-                {filteredProducts.map((p) => (
-                  <SelectItem key={p.id} value={String(p.id)}>
-                    {p.name ?? "-"}
-                    {p.productTypeName ? ` (${p.productTypeName})` : ""}
+                {filteredProducts.map((product) => (
+                  <SelectItem key={product.id} value={String(product.id)}>
+                    {product.name ?? "-"}
+                    {product.productTypeName ? ` (${product.productTypeName})` : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -284,7 +251,7 @@ export function EditFillDialog({ container, open, onClose, onSuccess }: EditFill
             />
             {hasShelfLife ? (
               <p className="text-xs text-muted-foreground">
-                Дата придатності розрахована автоматично з терміну придатності продукту (можна змінити вручну).
+                Дата придатності розрахована автоматично з терміну придатності продукту, але її можна змінити вручну.
               </p>
             ) : null}
             <p className="text-xs text-muted-foreground">

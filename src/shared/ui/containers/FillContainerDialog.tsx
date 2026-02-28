@@ -1,30 +1,19 @@
-﻿// src/shared/ui/containers/FillContainerDialog.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fillContainer } from "@/shared/api/containers";
 import { getProducts } from "@/shared/api/products";
 import { getContainerTypes } from "@/shared/api/container-types";
 import type { ContainerDto, ContainerTypeDto, FillContainerDto, ProductDto } from "@/shared/types";
 import { toast } from "sonner";
 import { normalizeUnit } from "@/shared/constants/units";
-import { showErrorToast } from "@/shared/utils/errors";
+import { showErrorToast, showValidationToast } from "@/shared/utils/errors";
+import { validateFillContainer } from "@/shared/utils/form-validation";
 
 interface FillContainerDialogProps {
   container: ContainerDto;
@@ -34,24 +23,24 @@ interface FillContainerDialogProps {
 }
 
 function todayYmd() {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function addShelfLife(baseYmd: string, days: number, hours: number) {
-  const [y, m, d] = baseYmd.split("-").map((x) => Number(x));
-  const dt = new Date(y, (m ?? 1) - 1, d ?? 1, 0, 0, 0, 0);
+  const [year, month, day] = baseYmd.split("-").map((value) => Number(value));
+  const date = new Date(year, (month ?? 1) - 1, day ?? 1, 0, 0, 0, 0);
 
-  if (Number.isFinite(days) && days) dt.setDate(dt.getDate() + days);
-  if (Number.isFinite(hours) && hours) dt.setHours(dt.getHours() + hours);
+  if (Number.isFinite(days) && days) date.setDate(date.getDate() + days);
+  if (Number.isFinite(hours) && hours) date.setHours(date.getHours() + hours);
 
-  const yy = dt.getFullYear();
-  const mm = String(dt.getMonth() + 1).padStart(2, "0");
-  const dd = String(dt.getDate()).padStart(2, "0");
-  return `${yy}-${mm}-${dd}`;
+  const nextYear = date.getFullYear();
+  const nextMonth = String(date.getMonth() + 1).padStart(2, "0");
+  const nextDay = String(date.getDate()).padStart(2, "0");
+  return `${nextYear}-${nextMonth}-${nextDay}`;
 }
 
 export function FillContainerDialog({
@@ -64,11 +53,11 @@ export function FillContainerDialog({
   const [containerTypes, setContainerTypes] = useState<ContainerTypeDto[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const [productIdStr, setProductIdStr] = useState<string>("");
-  const [quantityStr, setQuantityStr] = useState<string>("");
+  const [productIdStr, setProductIdStr] = useState("");
+  const [quantityStr, setQuantityStr] = useState("");
   const unit = normalizeUnit(container.unit);
-  const [productionDate, setProductionDate] = useState<string>(todayYmd());
-  const [expirationDate, setExpirationDate] = useState<string>("");
+  const [productionDate, setProductionDate] = useState(todayYmd());
+  const [expirationDate, setExpirationDate] = useState("");
 
   const allowedProductTypeNames = useMemo(() => {
     const currentType = containerTypes.find((type) => type.id === container.containerTypeId);
@@ -115,9 +104,9 @@ export function FillContainerDialog({
   }, [filteredProducts, open, productIdStr]);
 
   const selectedProduct = useMemo(() => {
-    const pid = Number(productIdStr);
-    if (!Number.isFinite(pid) || pid <= 0) return null;
-    return filteredProducts.find((p) => p.id === pid) ?? null;
+    const productId = Number(productIdStr);
+    if (!Number.isFinite(productId) || productId <= 0) return null;
+    return filteredProducts.find((product) => product.id === productId) ?? null;
   }, [filteredProducts, productIdStr]);
 
   useEffect(() => {
@@ -125,44 +114,38 @@ export function FillContainerDialog({
 
     const days = selectedProduct.shelfLifeDays ?? 0;
     const hours = selectedProduct.shelfLifeHours ?? 0;
-    const hasShelf = !!(days || hours);
-    if (!hasShelf || !productionDate) return;
+    const hasShelfLife = !!(days || hours);
+    if (!hasShelfLife || !productionDate) return;
 
     setExpirationDate(addShelfLife(productionDate, days, hours));
   }, [selectedProduct, productionDate]);
+
+  const hasShelfLife =
+    !!selectedProduct && !!(selectedProduct.shelfLifeDays || selectedProduct.shelfLifeHours);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (filteredProducts.length === 0) {
-      toast.error("Для цього типу тари немає доступних продуктів");
+      showValidationToast(["Для цього типу тари немає доступних продуктів."]);
       return;
     }
 
-    const pid = Number(productIdStr);
-    if (!Number.isFinite(pid) || pid <= 0) {
-      toast.error("Оберіть продукт");
-      return;
-    }
-
-    const quantity = Number(quantityStr);
-    if (!Number.isFinite(quantity) || quantity <= 0) {
-      toast.error("Кількість має бути більше 0");
-      return;
-    }
-
-    if (!productionDate) {
-      toast.error("Вкажіть дату виробництва");
-      return;
-    }
-
-    const payload: FillContainerDto = {
-      productId: pid,
-      quantity,
+    const result = validateFillContainer({
+      productId: productIdStr,
+      quantity: quantityStr,
       unit,
       productionDate,
-      expirationDate: expirationDate ? expirationDate : null,
-    };
+      expirationDate,
+      requireExpirationDate: !hasShelfLife,
+    });
+
+    if (!result.success) {
+      showValidationToast(result.issues);
+      return;
+    }
+
+    const payload: FillContainerDto = result.data;
 
     setLoading(true);
     try {
@@ -177,11 +160,8 @@ export function FillContainerDialog({
     }
   };
 
-  const hasShelfLife =
-    !!selectedProduct && !!(selectedProduct.shelfLifeDays || selectedProduct.shelfLifeHours);
-
   return (
-    <Dialog open={open} onOpenChange={(v) => (!v ? onClose() : undefined)}>
+    <Dialog open={open} onOpenChange={(value) => (!value ? onClose() : undefined)}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Заповнити контейнер {container.code ?? ""}</DialogTitle>
@@ -195,10 +175,10 @@ export function FillContainerDialog({
                 <SelectValue placeholder="Оберіть продукт" />
               </SelectTrigger>
               <SelectContent>
-                {filteredProducts.map((p) => (
-                  <SelectItem key={p.id} value={String(p.id)}>
-                    {p.name ?? "-"}
-                    {p.productTypeName ? ` (${p.productTypeName})` : ""}
+                {filteredProducts.map((product) => (
+                  <SelectItem key={product.id} value={String(product.id)}>
+                    {product.name ?? "-"}
+                    {product.productTypeName ? ` (${product.productTypeName})` : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -223,7 +203,6 @@ export function FillContainerDialog({
                 required
               />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="unit">Одиниця</Label>
               <Input id="unit" value={unit || "-"} readOnly className="bg-muted text-muted-foreground" />
@@ -251,9 +230,13 @@ export function FillContainerDialog({
             />
             {hasShelfLife ? (
               <p className="text-xs text-muted-foreground">
-                Дата придатності розрахована автоматично з терміну придатності продукту (можна змінити вручну).
+                Дата придатності розрахована автоматично з терміну придатності продукту, але її можна змінити вручну.
               </p>
-            ) : null}
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Для цього продукту потрібно вказати термін придатності вручну.
+              </p>
+            )}
             <p className="text-xs text-muted-foreground">
               Одиниця фіксована налаштуванням тари та не редагується у цій формі.
             </p>

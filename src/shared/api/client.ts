@@ -1,4 +1,5 @@
-﻿import { getAccessToken } from "@/shared/auth/token";
+import { getAccessToken } from "@/shared/auth/token";
+import { resolveApiErrorPresentation } from "@/shared/utils/api-error-presentation";
 
 export const AUTH_EXPIRED_EVENT = "cats:auth-expired";
 
@@ -12,13 +13,6 @@ export class ApiError extends Error {
     this.details = details;
   }
 }
-
-type ValidationErrorShape = {
-  errors?: Record<string, string[] | undefined>;
-  detail?: string;
-  title?: string;
-  message?: string;
-};
 
 type RequestOptions = {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -129,8 +123,9 @@ export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T
     }
 
     const details = (data ?? {}) as ErrorPayload;
+    const presentation = resolveApiErrorPresentation(data);
     const message =
-      extractValidationMessage(data) ||
+      presentation.title ||
       details.message ||
       details.title ||
       statusMessage(res.status) ||
@@ -141,20 +136,6 @@ export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T
   }
 
   return data as T;
-}
-
-function extractValidationMessage(payload: unknown): string | null {
-  if (!payload || typeof payload !== "object") return null;
-
-  const typed = payload as ValidationErrorShape;
-  const errors = typed.errors;
-  if (!errors || typeof errors !== "object") return null;
-
-  const firstMessage = Object.values(errors)
-    .flatMap((arr) => (Array.isArray(arr) ? arr : []))
-    .find((value) => typeof value === "string" && value.trim().length > 0);
-
-  return firstMessage?.trim() ?? null;
 }
 
 function statusMessage(status: number): string | null {

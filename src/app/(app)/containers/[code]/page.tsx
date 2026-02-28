@@ -1,29 +1,52 @@
-// src/app/(app)/containers/[code]/page.tsx
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import type { ContainerDto, ContainerFillDto, ContainerStatus } from "@/shared/types";
+import { format } from "date-fns";
+import { ArrowLeft, CalendarDays, Download, Droplets, Edit, Package2, Trash2, X } from "lucide-react";
+import { toast } from "sonner";
 import * as containersApi from "@/shared/api/containers";
+import { ApiError } from "@/shared/api/client";
+import { useAuth } from "@/shared/auth/AuthProvider";
+import type { ContainerDto, ContainerFillDto, ContainerStatus } from "@/shared/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Download, Droplets, Edit, Trash2, X } from "lucide-react";
+import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
+import { QrGeneratorDialog } from "@/shared/ui/QrGeneratorDialog";
 import { FillContainerDialog } from "@/shared/ui/containers/FillContainerDialog";
 import { EditFillDialog } from "@/shared/ui/containers/EditFillDialog";
-import { QrGeneratorDialog } from "@/shared/ui/QrGeneratorDialog";
-import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
-import { format } from "date-fns";
-import { toast } from "sonner";
 import { showErrorToast } from "@/shared/utils/errors";
-import { eventsApi, type Event } from "@/api/events";
-import { ContainerTimeline } from "@/shared/ui/containers/ContainerTimeline";
-import { useAuth } from "@/shared/auth/AuthProvider";
-import { ApiError } from "@/shared/api/client";
 
-function safeParam(p: string | string[] | undefined): string {
-  if (!p) return "";
-  return Array.isArray(p) ? p[0] : p;
+function safeParam(param: string | string[] | undefined): string {
+  if (!param) return "";
+  return Array.isArray(param) ? param[0] : param;
+}
+
+function formatDate(value?: string | null): string {
+  if (!value) return "-";
+  return format(new Date(value), "dd.MM.yyyy");
+}
+
+function formatDateTime(value?: string | null): string {
+  if (!value) return "-";
+  return format(new Date(value), "dd.MM.yyyy HH:mm");
+}
+
+function getStatusCopy(status: ContainerStatus | null) {
+  if (status === "Full") {
+    return {
+      label: "Заповнена",
+      dotClass: "bg-emerald-500",
+      badgeClass: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    };
+  }
+
+  return {
+    label: "Порожня",
+    dotClass: "bg-slate-400",
+    badgeClass: "border-slate-500/20 bg-slate-500/10 text-slate-700 dark:text-slate-300",
+  };
 }
 
 export default function ContainerDetailPage() {
@@ -35,7 +58,6 @@ export default function ContainerDetailPage() {
 
   const [container, setContainer] = useState<ContainerDto | null>(null);
   const [history, setHistory] = useState<ContainerFillDto[]>([]);
-  const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [fillOpen, setFillOpen] = useState(false);
   const [editFillOpen, setEditFillOpen] = useState(false);
@@ -45,13 +67,12 @@ export default function ContainerDetailPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [historyLoadFailed, setHistoryLoadFailed] = useState(false);
-  const [eventsLoadFailed, setEventsLoadFailed] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [eventsLoading, setEventsLoading] = useState(false);
 
   const fetchHistory = useCallback(async (containerId: number) => {
     setHistoryLoading(true);
     setHistoryLoadFailed(false);
+
     try {
       const historyData = await containersApi.getContainerHistory(containerId);
       setHistory(historyData);
@@ -63,31 +84,14 @@ export default function ContainerDetailPage() {
     }
   }, []);
 
-  const fetchEvents = useCallback(async (containerCode: string) => {
-    setEventsLoading(true);
-    setEventsLoadFailed(false);
-    try {
-      const eventItems = await eventsApi.getByContainer(containerCode);
-      setEvents(eventItems);
-    } catch {
-      setEvents([]);
-      setEventsLoadFailed(true);
-    } finally {
-      setEventsLoading(false);
-    }
-  }, []);
-
   const fetchContainerData = useCallback(async () => {
     if (!hasCode) {
       setLoading(false);
       setLoadError(null);
       setContainer(null);
       setHistory([]);
-      setEvents([]);
       setHistoryLoadFailed(false);
-      setEventsLoadFailed(false);
       setHistoryLoading(false);
-      setEventsLoading(false);
       return;
     }
 
@@ -97,19 +101,12 @@ export default function ContainerDetailPage() {
 
       const containerData = await containersApi.getContainerByCode(code);
       setContainer(containerData);
-
-      await Promise.all([
-        fetchHistory(containerData.id),
-        fetchEvents(containerData.code ?? code),
-      ]);
+      await fetchHistory(containerData.id);
     } catch (error) {
       setContainer(null);
       setHistory([]);
-      setEvents([]);
       setHistoryLoadFailed(false);
-      setEventsLoadFailed(false);
       setHistoryLoading(false);
-      setEventsLoading(false);
       setLoadError("Не вдалося завантажити дані тари.");
 
       if (!(error instanceof ApiError && error.status === 404)) {
@@ -118,7 +115,7 @@ export default function ContainerDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [code, fetchEvents, fetchHistory, hasCode]);
+  }, [code, fetchHistory, hasCode]);
 
   useEffect(() => {
     void fetchContainerData();
@@ -142,6 +139,7 @@ export default function ContainerDetailPage() {
 
   const handleEmpty = async () => {
     if (!container) return;
+
     try {
       setActionLoading(true);
       await containersApi.emptyContainer(container.id);
@@ -155,34 +153,31 @@ export default function ContainerDetailPage() {
     }
   };
 
-  const handleExportQR = () => {
-    setQrOpen(true);
-  };
-
   const qrUrl = useMemo(() => {
     if (!container || typeof window === "undefined") return "";
     const containerCode = container.code ?? code;
     return `${window.location.origin}/containers/${encodeURIComponent(containerCode)}`;
   }, [container, code]);
 
-  const statusLabel = useMemo(() => {
-    const s: ContainerStatus | null = container?.status ?? null;
-    if (s === "Empty") return "Порожня";
-    if (s === "Full") return "Заповнена";
-    return "-";
-  }, [container?.status]);
+  const containerCode = container?.code ?? code;
+  const statusCopy = getStatusCopy(container?.status ?? null);
+  const isFull = container?.status === "Full";
+  const isEmpty = !isFull;
 
-  const statusDotClass = useMemo(() => {
-    const s: ContainerStatus | null = container?.status ?? null;
-    if (s === "Empty") return "bg-gray-500";
-    if (s === "Full") return "bg-blue-500";
-    return "bg-muted-foreground";
-  }, [container?.status]);
+  const hasCurrentContent =
+    isFull &&
+    (container?.currentProductName != null ||
+      container?.currentQuantity != null ||
+      container?.currentProductionDate != null ||
+      container?.currentExpirationDate != null);
 
   if (loading) {
     return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
+      <div className="flex min-h-[420px] items-center justify-center">
+        <div className="glass animate-fade-in-up flex items-center gap-3 rounded-3xl px-6 py-5 shadow-[var(--luxury-shadow)]">
+          <div className="h-7 w-7 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
+          <span className="text-sm font-medium text-muted-foreground">Завантажуємо дані тари...</span>
+        </div>
       </div>
     );
   }
@@ -218,252 +213,260 @@ export default function ContainerDetailPage() {
     );
   }
 
-  const isFull = container.status === "Full";
-  const isEmpty = !isFull;
-  const containerCode = container.code ?? code;
-
-  const hasCurrentContent =
-    isFull &&
-    (container.currentProductName != null ||
-      container.currentQuantity != null ||
-      container.currentProductionDate != null ||
-      container.currentExpirationDate != null);
-
   return (
     <div className="space-y-6 pb-20 md:pb-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="icon" onClick={() => router.push("/containers")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="space-y-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold">{containerCode}</h1>
-              <Badge variant="secondary" className="gap-2 px-3 py-1 text-sm font-semibold">
-                <span className={`h-2 w-2 rounded-full ${statusDotClass}`} />
-                {statusLabel}
-              </Badge>
+      <section className="relative overflow-hidden rounded-[28px] border border-primary/10 bg-card/80 p-6 shadow-[var(--luxury-shadow)] glass animate-fade-in-up">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -right-20 -top-16 h-52 w-52 rounded-full bg-primary/10 blur-3xl" />
+          <div className="absolute -bottom-24 left-10 h-48 w-48 rounded-full bg-cyan-400/10 blur-3xl" />
+        </div>
+
+        <div className="relative flex flex-col gap-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex items-start gap-3">
+              <Button variant="outline" size="icon" onClick={() => router.push("/containers")}>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-[var(--neon-glow)]">
+                    <Package2 className="h-6 w-6" />
+                  </div>
+
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h1 className="text-3xl font-semibold tracking-tight">{containerCode}</h1>
+                      <Badge variant="outline" className={`gap-2 px-3 py-1 text-sm font-semibold ${statusCopy.badgeClass}`}>
+                        <span className={`h-2.5 w-2.5 rounded-full ${statusCopy.dotClass}`} />
+                        {statusCopy.label}
+                      </Badge>
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Створено {formatDate(container.createdAt)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="glass-subtle rounded-2xl border border-primary/10 px-4 py-3">
+                    <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Тип тари</p>
+                    <p className="mt-1 text-sm font-semibold">{container.containerTypeName ?? "-"}</p>
+                  </div>
+                  <div className="glass-subtle rounded-2xl border border-primary/10 px-4 py-3">
+                    <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Об&rsquo;єм</p>
+                    <p className="mt-1 text-sm font-semibold">
+                      {container.volume} {container.unit ?? ""}
+                    </p>
+                  </div>
+                  <div className="glass-subtle rounded-2xl border border-primary/10 px-4 py-3">
+                    <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Останнє оновлення</p>
+                    <p className="mt-1 text-sm font-semibold">{formatDateTime(container.currentFilledAt ?? container.createdAt)}</p>
+                  </div>
+                </div>
+              </div>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Створено {format(new Date(container.createdAt), "dd.MM.yyyy")}
-            </p>
+
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
+              {isEmpty ? (
+                <Button onClick={() => setFillOpen(true)} disabled={actionLoading} className="gap-2">
+                  <Droplets className="h-4 w-4" />
+                  Заповнити
+                </Button>
+              ) : (
+                <>
+                  <Button variant="outline" onClick={() => setEditFillOpen(true)} disabled={actionLoading} className="gap-2">
+                    <Edit className="h-4 w-4" />
+                    Редагувати
+                  </Button>
+                  <Button variant="outline" onClick={() => setEmptyConfirmOpen(true)} disabled={actionLoading} className="gap-2">
+                    <X className="h-4 w-4" />
+                    Звільнити
+                  </Button>
+                </>
+              )}
+
+              <Button variant="outline" onClick={() => setQrOpen(true)} disabled={actionLoading} className="gap-2">
+                <Download className="h-4 w-4" />
+                QR-код
+              </Button>
+
+              {isAdmin ? (
+                <Button variant="destructive" onClick={() => setDeleteConfirmOpen(true)} disabled={actionLoading} className="gap-2">
+                  <Trash2 className="h-4 w-4" />
+                  Видалити
+                </Button>
+              ) : null}
+            </div>
           </div>
         </div>
+      </section>
 
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-          {isEmpty ? (
-            <Button
-              size="sm"
-              onClick={() => setFillOpen(true)}
-              className="bg-brand-navy"
-              disabled={actionLoading}
-            >
-              <Droplets className="mr-2 h-4 w-4" />
-              Заповнити
-            </Button>
-          ) : (
-            <>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setEditFillOpen(true)}
-                aria-label="Редагувати вміст"
-                disabled={actionLoading}
-              >
-                <Edit className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Редагувати</span>
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setEmptyConfirmOpen(true)}
-                disabled={actionLoading}
-              >
-                <X className="mr-2 h-4 w-4" />
-                Звільнити
-              </Button>
-            </>
-          )}
-
-          <Button variant="outline" size="sm" onClick={handleExportQR} disabled={actionLoading}>
-            <Download className="mr-2 h-4 w-4" />
-            QR-код
-          </Button>
-
-          {isAdmin && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => setDeleteConfirmOpen(true)}
-              aria-label="Видалити тару"
-              disabled={actionLoading}
-            >
-              <Trash2 className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Видалити</span>
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Деталі</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Код</p>
-              <p className="text-lg font-medium">{containerCode}</p>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
+        <Card className="stylish-card animate-fade-in-up">
+          <CardHeader>
+            <CardTitle>Параметри тари</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2">
+            <div className="rounded-2xl border border-border/70 bg-background/70 p-4">
+              <p className="text-sm text-muted-foreground">Код</p>
+              <p className="mt-1 text-lg font-semibold">{containerCode}</p>
             </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Назва</p>
-              <p className="text-lg font-medium">{container.name ?? "-"}</p>
+            <div className="rounded-2xl border border-border/70 bg-background/70 p-4">
+              <p className="text-sm text-muted-foreground">Назва</p>
+              <p className="mt-1 text-lg font-semibold">{container.name ?? "-"}</p>
             </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Обʼєм</p>
-              <p className="text-lg font-medium">
+            <div className="rounded-2xl border border-border/70 bg-background/70 p-4">
+              <p className="text-sm text-muted-foreground">Об&rsquo;єм</p>
+              <p className="mt-1 text-lg font-semibold">
                 {container.volume} {container.unit ?? ""}
               </p>
             </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Тип</p>
-              <p className="text-lg font-medium">{container.containerTypeName ?? "-"}</p>
+            <div className="rounded-2xl border border-border/70 bg-background/70 p-4">
+              <p className="text-sm text-muted-foreground">Тип</p>
+              <p className="mt-1 text-lg font-semibold">{container.containerTypeName ?? "-"}</p>
             </div>
-          </div>
+            <div className="rounded-2xl border border-border/70 bg-background/70 p-4 sm:col-span-2">
+              <p className="text-sm text-muted-foreground">Примітки</p>
+              <p className="mt-1 text-base">{container.meta?.trim() || "Немає приміток."}</p>
+            </div>
+          </CardContent>
+        </Card>
 
-          {hasCurrentContent && (
-            <div className="border-t pt-4">
-              <h3 className="mb-2 font-medium">Поточний вміст</h3>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Продукт</p>
-                  <p className="text-lg font-medium">{container.currentProductName ?? "-"}</p>
+        <Card className="stylish-card animate-fade-in-up">
+          <CardHeader>
+            <CardTitle>Поточний вміст</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {hasCurrentContent ? (
+              <>
+                <div className="rounded-2xl border border-emerald-500/10 bg-emerald-500/5 p-4">
+                  <p className="text-sm text-muted-foreground">Продукт</p>
+                  <p className="mt-1 text-xl font-semibold">{container.currentProductName ?? "-"}</p>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Кількість</p>
-                  <p className="text-lg font-medium">
-                    {container.currentQuantity ?? "-"} {container.unit ?? ""}
-                  </p>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-border/70 bg-background/70 p-4">
+                    <p className="text-sm text-muted-foreground">Кількість</p>
+                    <p className="mt-1 text-base font-semibold">
+                      {container.currentQuantity ?? "-"} {container.unit ?? ""}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-border/70 bg-background/70 p-4">
+                    <p className="text-sm text-muted-foreground">Заповнено</p>
+                    <p className="mt-1 text-base font-semibold">{formatDateTime(container.currentFilledAt)}</p>
+                  </div>
+                  <div className="rounded-2xl border border-border/70 bg-background/70 p-4">
+                    <p className="text-sm text-muted-foreground">Дата виробництва</p>
+                    <p className="mt-1 text-base font-semibold">{formatDate(container.currentProductionDate)}</p>
+                  </div>
+                  <div className="rounded-2xl border border-border/70 bg-background/70 p-4">
+                    <p className="text-sm text-muted-foreground">Термін придатності</p>
+                    <p className="mt-1 text-base font-semibold">{formatDate(container.currentExpirationDate)}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Дата виробництва</p>
-                  <p className="text-lg font-medium">
-                    {container.currentProductionDate
-                      ? format(new Date(container.currentProductionDate), "dd.MM.yyyy")
-                      : "-"}
-                  </p>
+              </>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-border bg-background/60 p-6 text-center">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <CalendarDays className="h-6 w-6" />
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Термін придатності</p>
-                  <p className="text-lg font-medium">
-                    {container.currentExpirationDate
-                      ? format(new Date(container.currentExpirationDate), "dd.MM.yyyy")
-                      : "-"}
-                  </p>
-                </div>
+                <p className="mt-4 text-base font-semibold">Тара зараз порожня</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Після заповнення тут з&rsquo;являться дані про продукт, дату виробництва та термін придатності.
+                </p>
               </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="stylish-card animate-fade-in-up">
+        <CardHeader className="flex flex-row items-center justify-between gap-3">
+          <div>
+            <CardTitle>Історія заповнень</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Без аудиту подій. Тут залишилась лише історія фактичного вмісту тари.
+            </p>
+          </div>
+          {historyLoadFailed ? (
+            <Button variant="outline" size="sm" onClick={() => void fetchHistory(container.id)} disabled={historyLoading}>
+              Повторити
+            </Button>
+          ) : null}
+        </CardHeader>
+        <CardContent>
+          {historyLoadFailed ? (
+            <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
+              Не вдалося завантажити історію вмісту.
+            </div>
+          ) : historyLoading ? (
+            <div className="flex items-center gap-3 rounded-2xl border border-border/70 bg-background/60 p-5">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
+              <p className="text-sm text-muted-foreground">Завантажуємо історію...</p>
+            </div>
+          ) : history.length > 0 ? (
+            <div className="space-y-4">
+              {history.map((fill, index) => (
+                <div
+                  key={fill.id}
+                  className="relative overflow-hidden rounded-3xl border border-border/80 bg-background/70 p-5 shadow-sm"
+                >
+                  <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-primary to-cyan-400" />
+                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline">Заповнення #{history.length - index}</Badge>
+                        <h3 className="text-lg font-semibold">{fill.productName ?? "-"}</h3>
+                      </div>
+                      <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
+                        <p>
+                          Кількість: <span className="font-medium text-foreground">{fill.quantity} {fill.unit ?? ""}</span>
+                        </p>
+                        <p>
+                          Заповнено: <span className="font-medium text-foreground">{formatDateTime(fill.filledDate)}</span>
+                        </p>
+                        <p>
+                          Вироблено: <span className="font-medium text-foreground">{formatDate(fill.productionDate)}</span>
+                        </p>
+                        <p>
+                          Придатне до: <span className="font-medium text-foreground">{formatDate(fill.expirationDate)}</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="min-w-[170px] rounded-2xl border border-border/70 bg-card/80 p-4 text-sm">
+                      <p className="text-muted-foreground">Статус запису</p>
+                      <p className="mt-1 font-semibold">
+                        {fill.emptiedDate ? "Завершено" : "Активне заповнення"}
+                      </p>
+                      <p className="mt-2 text-muted-foreground">
+                        {fill.emptiedDate ? `Звільнено ${formatDateTime(fill.emptiedDate)}` : "Ще не звільнено"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-border bg-background/60 p-8 text-center">
+              <p className="text-base font-semibold">Історія заповнень поки порожня</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Після першого заповнення тут з&rsquo;являться всі зміни вмісту цієї тари.
+              </p>
             </div>
           )}
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Історія та аудит</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <details open className="rounded-lg border border-border p-3">
-            <summary className="cursor-pointer font-medium">Історія вмісту</summary>
-
-            {historyLoadFailed ? (
-              <div className="mt-3 flex flex-col items-start gap-2">
-                <p className="text-sm text-destructive">Не вдалося завантажити історію вмісту.</p>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => void fetchHistory(container.id)}
-                  disabled={historyLoading}
-                >
-                  Повторити
-                </Button>
-              </div>
-            ) : historyLoading ? (
-              <p className="mt-3 text-sm text-muted-foreground">Завантаження історії...</p>
-            ) : history.length > 0 ? (
-              <div className="mt-4 space-y-4">
-                {history.map((fill) => (
-                  <div key={fill.id} className="rounded-md border border-border/80 bg-muted/20 p-3">
-                    <div className="font-medium">{fill.productName ?? "-"}</div>
-                    <div className="text-sm text-muted-foreground">
-                      Кількість: {fill.quantity} {fill.unit ?? ""}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Заповнено: {format(new Date(fill.filledDate), "dd.MM.yyyy HH:mm")}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Дата виробництва: {format(new Date(fill.productionDate), "dd.MM.yyyy")}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Термін придатності: {format(new Date(fill.expirationDate), "dd.MM.yyyy")}
-                    </div>
-                    {fill.emptiedDate && (
-                      <div className="text-sm text-muted-foreground">
-                        Звільнено: {format(new Date(fill.emptiedDate), "dd.MM.yyyy HH:mm")}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-3 text-sm text-muted-foreground">Історія вмісту поки відсутня.</p>
-            )}
-          </details>
-
-          <details open className="rounded-lg border border-border p-3">
-            <summary className="cursor-pointer font-medium">Аудит подій</summary>
-
-            {eventsLoadFailed ? (
-              <div className="mt-3 flex flex-col items-start gap-2">
-                <p className="text-sm text-destructive">Не вдалося завантажити аудит подій.</p>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => void fetchEvents(containerCode)}
-                  disabled={eventsLoading}
-                >
-                  Повторити
-                </Button>
-              </div>
-            ) : eventsLoading ? (
-              <p className="mt-3 text-sm text-muted-foreground">Завантаження подій...</p>
-            ) : (
-              <div className="mt-4">
-                <ContainerTimeline
-                  events={events.map((event) => ({
-                    id: event.id,
-                    type: event.type,
-                    timestamp: event.timestamp,
-                    metadata: event.data,
-                    performedBy: { id: event.userId, name: event.userName },
-                  }))}
-                />
-              </div>
-            )}
-          </details>
-        </CardContent>
-      </Card>
-
-      {isEmpty && (
+      {isEmpty ? (
         <FillContainerDialog
           container={container}
           open={fillOpen}
           onClose={() => setFillOpen(false)}
           onSuccess={fetchContainerData}
         />
-      )}
-      {!isEmpty && (
+      ) : (
         <EditFillDialog
           container={container}
           open={editFillOpen}
@@ -477,7 +480,7 @@ export default function ContainerDetailPage() {
       <ConfirmDialog
         open={emptyConfirmOpen}
         title="Звільнити тару?"
-        description="Поточне заповнення буде завершено. Після цього тару можна заповнити знову."
+        description="Поточне заповнення буде завершено. Після цього тару можна буде заповнити повторно."
         confirmLabel="Звільнити"
         cancelLabel="Скасувати"
         variant="default"
@@ -486,7 +489,7 @@ export default function ContainerDetailPage() {
         loading={actionLoading}
       />
 
-      {isAdmin && (
+      {isAdmin ? (
         <ConfirmDialog
           open={deleteConfirmOpen}
           title="Видалити тару?"
@@ -498,7 +501,7 @@ export default function ContainerDetailPage() {
           onCancel={() => setDeleteConfirmOpen(false)}
           loading={actionLoading}
         />
-      )}
+      ) : null}
     </div>
   );
 }
