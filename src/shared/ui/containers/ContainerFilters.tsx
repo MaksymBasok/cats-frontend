@@ -1,4 +1,3 @@
-// src/shared/ui/containers/ContainerFilters.tsx
 "use client";
 
 import { useMemo, useState } from "react";
@@ -57,16 +56,16 @@ export function ContainerFilters({
     onChange({ ...filters, ...patch });
   };
 
-  const filledTodayChecked = useMemo(() => !!filters.filledToday, [filters.filledToday]);
+  const filledTodayChecked = useMemo(() => Boolean(filters.filledToday), [filters.filledToday]);
 
   const hasActiveFilters = useMemo(() => {
     return (
       filters.containerTypeId != null ||
       filters.status != null ||
-      !!filters.productionDate ||
+      Boolean(filters.productionDate) ||
       filters.currentProductTypeId != null ||
-      !!filters.showExpired ||
-      !!filters.filledToday
+      Boolean(filters.showExpired) ||
+      Boolean(filters.filledToday)
     );
   }, [
     filters.containerTypeId,
@@ -86,16 +85,16 @@ export function ContainerFilters({
   const productTypeValue = filters.currentProductTypeId != null ? String(filters.currentProductTypeId) : "all";
 
   return (
-    <div className="rounded-xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md">
-      <div className="flex items-center gap-2 p-3">
-        <div className="relative flex-1">
+    <div className="glass rounded-[28px] border border-primary/10 p-3 shadow-[var(--luxury-shadow)]">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-0 flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="text"
             value={filters.searchTerm || ""}
             onChange={(e) => update({ searchTerm: e.target.value || undefined })}
-            placeholder="Пошук за кодом, назвою..."
-            className="pl-9"
+            placeholder="Пошук за кодом або назвою..."
+            className="h-11 rounded-2xl border-border/70 bg-background/70 pl-9"
           />
         </div>
 
@@ -103,45 +102,45 @@ export function ContainerFilters({
           type="button"
           variant="outline"
           size="sm"
-          onClick={() => setExpanded((v) => !v)}
-          className={`gap-1.5 transition-all duration-200 hover:-translate-y-0.5 ${
+          onClick={() => setExpanded((value) => !value)}
+          className={
             hasActiveFilters
-              ? "border-brand-orange bg-brand-orange/10 text-brand-orange hover:bg-brand-orange/15 hover:text-brand-orange"
-              : "hover:border-brand-orange/40 hover:bg-brand-orange/10 hover:text-brand-orange"
-          }`}
+              ? "gap-1.5 rounded-2xl border-primary/30 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
+              : "gap-1.5 rounded-2xl hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+          }
         >
           <Filter className="h-4 w-4" />
-          <span className="hidden sm:inline">Фільтри</span>
-          {hasActiveFilters && (
-            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-brand-orange text-[10px] font-bold text-brand-navy">
+          <span className="hidden sm:inline">{expanded ? "Сховати фільтри" : "Фільтри"}</span>
+          {hasActiveFilters ? (
+            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
               !
             </span>
-          )}
+          ) : null}
         </Button>
       </div>
 
-      {expanded && (
-        <div className="border-t border-border px-3 pb-3 pt-2">
+      {expanded ? (
+        <div className="mt-3 border-t border-border/70 px-1 pb-1 pt-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Тип тари</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">Тип тари</Label>
               <Select value={containerTypeValue} onValueChange={(value) => update({ containerTypeId: toNumberOrUndefined(value) })}>
-                <SelectTrigger>
+                <SelectTrigger className="h-11 rounded-2xl border-border/70 bg-background/70">
                   <SelectValue placeholder="Всі типи" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Всі типи</SelectItem>
                   {containerTypes.map((ct) => (
                     <SelectItem key={ct.id} value={String(ct.id)}>
-                      {ct.name ?? "—"}
+                      {ct.name ?? "-"}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Статус</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">Статус</Label>
               <Select
                 value={statusValue}
                 onValueChange={(value) =>
@@ -150,7 +149,7 @@ export function ContainerFilters({
                   })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-11 rounded-2xl border-border/70 bg-background/70">
                   <SelectValue placeholder="Всі" />
                 </SelectTrigger>
                 <SelectContent>
@@ -161,17 +160,18 @@ export function ContainerFilters({
               </Select>
             </div>
 
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Дата виробництва</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">Дата виробництва</Label>
               <Input
                 type="date"
                 value={fromIsoToDateInput(filters.productionDate)}
                 onChange={(e) => update({ productionDate: toIsoStartOfDay(e.target.value) })}
+                className="h-11 rounded-2xl border-border/70 bg-background/70"
               />
             </div>
 
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Тип продукту</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">Тип продукту</Label>
               <Select
                 value={productTypeValue}
                 onValueChange={(value) =>
@@ -180,14 +180,14 @@ export function ContainerFilters({
                   })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-11 rounded-2xl border-border/70 bg-background/70">
                   <SelectValue placeholder="Всі типи" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Всі типи</SelectItem>
                   {productTypes.map((pt) => (
                     <SelectItem key={pt.id} value={String(pt.id)}>
-                      {pt.name ?? "—"}
+                      {pt.name ?? "-"}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -195,17 +195,17 @@ export function ContainerFilters({
             </div>
 
             <div className="flex flex-wrap items-center gap-3 sm:gap-4 lg:col-span-2">
-              <label className="inline-flex items-center gap-2 rounded-md border border-transparent px-2 py-1 text-sm text-foreground transition-colors hover:border-border hover:bg-muted/50">
+              <label className="inline-flex items-center gap-2 rounded-xl border border-border/70 bg-background/60 px-3 py-2 text-sm text-foreground transition-colors hover:border-primary/20 hover:bg-primary/5">
                 <input
                   type="checkbox"
-                  checked={!!filters.showExpired}
+                  checked={Boolean(filters.showExpired)}
                   onChange={(e) => update({ showExpired: e.target.checked ? true : undefined })}
                   className="rounded border-input"
                 />
                 Прострочені
               </label>
 
-              <label className="inline-flex items-center gap-2 rounded-md border border-transparent px-2 py-1 text-sm text-foreground transition-colors hover:border-border hover:bg-muted/50">
+              <label className="inline-flex items-center gap-2 rounded-xl border border-border/70 bg-background/60 px-3 py-2 text-sm text-foreground transition-colors hover:border-primary/20 hover:bg-primary/5">
                 <input
                   type="checkbox"
                   checked={filledTodayChecked}
@@ -221,7 +221,7 @@ export function ContainerFilters({
             </div>
           </div>
 
-          {hasActiveFilters && (
+          {hasActiveFilters ? (
             <Button
               type="button"
               variant="ghost"
@@ -232,10 +232,9 @@ export function ContainerFilters({
               <X className="h-3.5 w-3.5" />
               Скинути фільтри
             </Button>
-          )}
+          ) : null}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
-

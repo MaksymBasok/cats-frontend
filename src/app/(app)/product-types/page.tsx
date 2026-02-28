@@ -259,7 +259,7 @@ export default function ProductTypesPage() {
                 {items.map((item) => (
                   <TableRow
                     key={item.id}
-                    className="cursor-pointer transition-colors hover:bg-muted/50"
+                    className="cursor-pointer transition-colors hover:bg-primary/5"
                     onClick={(event) => handleRowNavigation(event, `/product-types/${item.id}`)}
                   >
                     <TableCell>

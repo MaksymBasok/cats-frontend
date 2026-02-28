@@ -14,13 +14,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="absolute -left-24 bottom-16 h-80 w-80 rounded-full bg-cyan-400/10 blur-[140px] animate-float-reverse" />
         </div>
 
-        <AppHeader />
-
-        <div className="relative z-10 flex flex-1">
+        <div className="relative z-10 flex min-h-0 flex-1">
           <Sidebar />
-          <main className="flex-1 overflow-y-auto px-4 py-4 pb-24 md:px-6 md:pb-6 xl:px-8">
-            <div className="mx-auto w-full max-w-[1600px]">{children}</div>
-          </main>
+
+          <div className="flex min-w-0 flex-1 flex-col">
+            <AppHeader />
+
+            <main className="flex-1 overflow-y-auto px-4 py-4 pb-24 md:px-6 md:pb-6 xl:px-8">
+              <div className="mx-auto w-full max-w-[1600px]">{children}</div>
+            </main>
+          </div>
         </div>
 
         <BottomNav />

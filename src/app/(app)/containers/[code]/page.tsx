@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
 import {
-  ArrowLeft,
   CalendarDays,
   ChevronDown,
   Download,
@@ -41,6 +40,10 @@ function formatDate(value?: string | null): string {
 function formatDateTime(value?: string | null): string {
   if (!value) return "-";
   return format(new Date(value), "dd.MM.yyyy HH:mm");
+}
+
+function formatActorName(value?: string | null): string {
+  return value?.trim() || "Невідомий користувач";
 }
 
 function getStatusCopy(status: ContainerStatus | null) {
@@ -178,6 +181,7 @@ export default function ContainerDetailPage() {
   const statusCopy = getStatusCopy(container?.status ?? null);
   const isFull = container?.status === "Full";
   const isEmpty = !isFull;
+  const hasContainerUpdates = Boolean(container?.updatedAt);
 
   const hasCurrentContent =
     isFull &&
@@ -202,7 +206,6 @@ export default function ContainerDetailPage() {
       <div className="space-y-4">
         <p className="text-sm text-muted-foreground">Некоректний код тари.</p>
         <Button variant="outline" onClick={() => router.push("/containers")}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
           До списку тари
         </Button>
       </div>
@@ -220,7 +223,6 @@ export default function ContainerDetailPage() {
             </Button>
           ) : null}
           <Button variant="outline" onClick={() => router.push("/containers")}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
             До списку тари
           </Button>
         </div>
@@ -230,13 +232,6 @@ export default function ContainerDetailPage() {
 
   return (
     <div className="space-y-6 pb-20 md:pb-6">
-      <div className="md:hidden">
-        <Button variant="outline" onClick={() => router.push("/containers")} className="gap-2">
-          <ArrowLeft className="h-4 w-4" />
-          До списку тари
-        </Button>
-      </div>
-
       <section className="glass animate-fade-in-up relative overflow-hidden rounded-[28px] border border-primary/10 bg-card/80 p-6 shadow-[var(--luxury-shadow)]">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute -right-20 -top-16 h-52 w-52 rounded-full bg-primary/10 blur-3xl" />
@@ -245,32 +240,21 @@ export default function ContainerDetailPage() {
 
         <div className="relative flex flex-col gap-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="flex items-start gap-3">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => router.push("/containers")}
-                className="hidden md:inline-flex"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-[var(--neon-glow)]">
+                  <Package2 className="h-6 w-6" />
+                </div>
 
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-[var(--neon-glow)]">
-                    <Package2 className="h-6 w-6" />
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="text-3xl font-semibold tracking-tight">{containerCode}</h1>
+                    <Badge variant="outline" className={`gap-2 px-3 py-1 text-sm font-semibold ${statusCopy.badgeClass}`}>
+                      <span className={`h-2.5 w-2.5 rounded-full ${statusCopy.dotClass}`} />
+                      {statusCopy.label}
+                    </Badge>
                   </div>
-
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h1 className="text-3xl font-semibold tracking-tight">{containerCode}</h1>
-                      <Badge variant="outline" className={`gap-2 px-3 py-1 text-sm font-semibold ${statusCopy.badgeClass}`}>
-                        <span className={`h-2.5 w-2.5 rounded-full ${statusCopy.dotClass}`} />
-                        {statusCopy.label}
-                      </Badge>
-                    </div>
-                    <p className="mt-1 text-sm text-muted-foreground">Створено {formatDate(container.createdAt)}</p>
-                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">Створено {formatDate(container.createdAt)}</p>
                 </div>
               </div>
             </div>
@@ -325,7 +309,7 @@ export default function ContainerDetailPage() {
               <p className="mt-1 text-lg font-semibold">{container.name ?? "-"}</p>
             </div>
             <div className="rounded-2xl border border-border/70 bg-background/70 p-4">
-              <p className="text-sm text-muted-foreground">Об&rsquo;єм</p>
+              <p className="text-sm text-muted-foreground">Об’єм</p>
               <p className="mt-1 text-lg font-semibold">
                 {container.volume} {container.unit ?? ""}
               </p>
@@ -335,13 +319,21 @@ export default function ContainerDetailPage() {
               <p className="mt-1 text-lg font-semibold">{container.containerTypeName ?? "-"}</p>
             </div>
             <div className="rounded-2xl border border-border/70 bg-background/70 p-4">
-              <p className="text-sm text-muted-foreground">Створив</p>
-              <p className="mt-1 text-base font-semibold">{container.createdByName ?? "-"}</p>
+              <p className="text-sm text-muted-foreground">Створено</p>
+              <p className="mt-1 text-base font-semibold">{formatDateTime(container.createdAt)}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Відповідальний: {formatActorName(container.createdByName)}
+              </p>
             </div>
             <div className="rounded-2xl border border-border/70 bg-background/70 p-4">
               <p className="text-sm text-muted-foreground">Останнє оновлення</p>
-              <p className="mt-1 text-base font-semibold">{formatDateTime(container.updatedAt ?? container.createdAt)}</p>
-              <p className="mt-1 text-xs text-muted-foreground">Змінено: {container.lastModifiedByName ?? "-"}</p>
+              <p className="mt-1 text-base font-semibold">
+                {hasContainerUpdates ? formatDateTime(container.updatedAt) : "Ще не оновлювалося"}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Відповідальний:{" "}
+                {hasContainerUpdates ? formatActorName(container.lastModifiedByName) : formatActorName(container.createdByName)}
+              </p>
             </div>
             <div className="rounded-2xl border border-border/70 bg-background/70 p-4 sm:col-span-2 xl:col-span-3">
               <p className="text-sm text-muted-foreground">Примітки</p>
@@ -361,7 +353,6 @@ export default function ContainerDetailPage() {
                   <p className="text-sm text-muted-foreground">Продукт</p>
                   <p className="mt-1 text-xl font-semibold">{container.currentProductName ?? "-"}</p>
                 </div>
-
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="rounded-2xl border border-border/70 bg-background/70 p-4">
                     <p className="text-sm text-muted-foreground">Кількість</p>
@@ -390,7 +381,7 @@ export default function ContainerDetailPage() {
                 </div>
                 <p className="mt-4 text-base font-semibold">Тара зараз порожня</p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Після заповнення тут з&rsquo;являться дані про продукт, дату виробництва та термін придатності.
+                  Після заповнення тут з’являться дані про продукт, дату виробництва та термін придатності.
                 </p>
               </div>
             )}
@@ -401,7 +392,10 @@ export default function ContainerDetailPage() {
       <Card className="stylish-card animate-fade-in-up">
         <CardHeader className="flex flex-row items-center justify-between gap-3">
           <div>
-            <CardTitle>Історія заповнень</CardTitle>
+            <CardTitle>Історія та аудит</CardTitle>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Створення тари, оновлення її даних та всі події з вмістом контейнера.
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -432,62 +426,140 @@ export default function ContainerDetailPage() {
             </div>
           ) : history.length > 0 ? (
             <div className="space-y-4">
+              <div className="grid gap-3 lg:grid-cols-2">
+                <div className="rounded-3xl border border-border/70 bg-background/70 p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Створення тари</p>
+                  <p className="mt-3 text-lg font-semibold">{formatDateTime(container.createdAt)}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Відповідальний: <span className="font-medium text-foreground">{formatActorName(container.createdByName)}</span>
+                  </p>
+                </div>
+                <div className="rounded-3xl border border-border/70 bg-background/70 p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Оновлення тари</p>
+                  <p className="mt-3 text-lg font-semibold">
+                    {hasContainerUpdates ? formatDateTime(container.updatedAt) : "Змін поки не було"}
+                  </p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Відповідальний:{" "}
+                    <span className="font-medium text-foreground">
+                      {hasContainerUpdates ? formatActorName(container.lastModifiedByName) : formatActorName(container.createdByName)}
+                    </span>
+                  </p>
+                </div>
+              </div>
+
               {history.map((fill, index) => (
                 <div
                   key={fill.id}
                   className="relative overflow-hidden rounded-3xl border border-border/80 bg-background/70 p-5 shadow-sm"
                 >
                   <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-primary to-cyan-400" />
-                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                    <div className="space-y-2">
+                  <div className="space-y-4">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="outline">Заповнення #{history.length - index}</Badge>
                         <h3 className="text-lg font-semibold">{fill.productName ?? "-"}</h3>
                       </div>
-                      <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
-                        <p>
-                          Кількість: <span className="font-medium text-foreground">{fill.quantity} {fill.unit ?? ""}</span>
-                        </p>
-                        <p>
-                          Заповнено: <span className="font-medium text-foreground">{formatDateTime(fill.filledDate)}</span>
-                        </p>
-                        <p>
-                          Вироблено: <span className="font-medium text-foreground">{formatDate(fill.productionDate)}</span>
-                        </p>
-                        <p>
-                          Придатне до: <span className="font-medium text-foreground">{formatDate(fill.expirationDate)}</span>
-                        </p>
-                        <p>
-                          Наповнив: <span className="font-medium text-foreground">{fill.filledByUserName ?? "-"}</span>
-                        </p>
-                        <p>
-                          Спорожнив: <span className="font-medium text-foreground">{fill.emptiedByUserName ?? "-"}</span>
-                        </p>
-                      </div>
+                      <Badge
+                        variant="outline"
+                        className={
+                          fill.emptiedDate
+                            ? "border-slate-500/20 bg-slate-500/10 text-slate-700 dark:text-slate-300"
+                            : "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                        }
+                      >
+                        {fill.emptiedDate ? "Завершено" : "Активне заповнення"}
+                      </Badge>
                     </div>
 
-                    <div className="min-w-[170px] rounded-2xl border border-border/70 bg-card/80 p-4 text-sm">
-                      <p className="text-muted-foreground">Статус запису</p>
-                      <p className="mt-1 font-semibold">
-                        {fill.emptiedDate ? "Завершено" : "Активне заповнення"}
-                      </p>
-                      <p className="mt-2 text-muted-foreground">
-                        {fill.emptiedDate ? `Звільнено ${formatDateTime(fill.emptiedDate)}` : "Ще не звільнено"}
-                      </p>
-                      <p className="mt-2 text-muted-foreground">
-                        Оператор: {fill.emptiedDate ? fill.emptiedByUserName ?? "-" : fill.filledByUserName ?? "-"}
-                      </p>
+                    <div className="grid gap-3 lg:grid-cols-2">
+                      <div className="rounded-2xl border border-emerald-500/15 bg-emerald-500/5 p-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-700 dark:text-emerald-300">
+                          Заливання
+                        </p>
+                        <p className="mt-3 text-base font-semibold">{formatDateTime(fill.filledDate)}</p>
+                        <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
+                          <p>
+                            Відповідальний:{" "}
+                            <span className="font-medium text-foreground">{formatActorName(fill.filledByUserName)}</span>
+                          </p>
+                          <p>
+                            Продукт:{" "}
+                            <span className="font-medium text-foreground">
+                              {fill.productName ?? "-"} ({fill.quantity} {fill.unit ?? ""})
+                            </span>
+                          </p>
+                          <p>
+                            Дата виробництва:{" "}
+                            <span className="font-medium text-foreground">{formatDate(fill.productionDate)}</span>
+                          </p>
+                          <p>
+                            Придатне до:{" "}
+                            <span className="font-medium text-foreground">{formatDate(fill.expirationDate)}</span>
+                          </p>
+                        </div>
+                      </div>
+
+                      {fill.emptiedDate ? (
+                        <div className="rounded-2xl border border-slate-500/15 bg-slate-500/5 p-4">
+                          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-700 dark:text-slate-300">
+                            Очищення
+                          </p>
+                          <p className="mt-3 text-base font-semibold">{formatDateTime(fill.emptiedDate)}</p>
+                          <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
+                            <p>
+                              Відповідальний:{" "}
+                              <span className="font-medium text-foreground">{formatActorName(fill.emptiedByUserName)}</span>
+                            </p>
+                            <p>
+                              Статус: <span className="font-medium text-foreground">Заповнення завершено</span>
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="rounded-2xl border border-dashed border-emerald-500/25 bg-background/60 p-4">
+                          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Стан</p>
+                          <p className="mt-3 text-base font-semibold">Контейнер ще заповнений</p>
+                          <p className="mt-2 text-sm text-muted-foreground">
+                            Подія очищення з’явиться тут після звільнення тари.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="rounded-2xl border border-dashed border-border bg-background/60 p-8 text-center">
-              <p className="text-base font-semibold">Історія заповнень поки порожня</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Після першого заповнення тут з&rsquo;являться всі зміни вмісту цієї тари.
-              </p>
+            <div className="space-y-4">
+              <div className="grid gap-3 lg:grid-cols-2">
+                <div className="rounded-3xl border border-border/70 bg-background/70 p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Створення тари</p>
+                  <p className="mt-3 text-lg font-semibold">{formatDateTime(container.createdAt)}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Відповідальний: <span className="font-medium text-foreground">{formatActorName(container.createdByName)}</span>
+                  </p>
+                </div>
+                <div className="rounded-3xl border border-border/70 bg-background/70 p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Оновлення тари</p>
+                  <p className="mt-3 text-lg font-semibold">
+                    {hasContainerUpdates ? formatDateTime(container.updatedAt) : "Змін поки не було"}
+                  </p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Відповідальний:{" "}
+                    <span className="font-medium text-foreground">
+                      {hasContainerUpdates ? formatActorName(container.lastModifiedByName) : formatActorName(container.createdByName)}
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-dashed border-border bg-background/60 p-8 text-center">
+                <p className="text-base font-semibold">Історія заповнень поки порожня</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Після першого заповнення тут з’являться всі зміни вмісту цієї тари.
+                </p>
+              </div>
             </div>
           )}
         </CardContent>

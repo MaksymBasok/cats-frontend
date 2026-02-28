@@ -12,6 +12,11 @@ export interface ContainerTypeDto {
   defaultUnit: string | null;
   meta: string | null;
   createdAt: string;
+  createdById?: string | null;
+  createdByName?: string | null;
+  updatedAt?: string | null;
+  lastModifiedById?: string | null;
+  lastModifiedByName?: string | null;
   allowedProductTypeNames: string[] | null;
 }
 
@@ -86,55 +91,43 @@ export interface UpdateProductDto {
 // === Containers ===
 export interface ContainerFillDto {
   id: number;
-
   containerId: number;
   containerCode: string | null;
-
   productId: number;
   productName: string | null;
-
   quantity: number;
   unit: string | null;
-
-  productionDate: string; // date-time
-  filledDate: string; // date-time
-  expirationDate: string; // date-time
-
-  emptiedDate: string | null; // date-time | null
-
-  filledByUserId: string; // uuid
+  productionDate: string;
+  filledDate: string;
+  expirationDate: string;
+  emptiedDate: string | null;
+  filledByUserId: string;
   filledByUserName?: string | null;
-  emptiedByUserId: string | null; // uuid | null
+  emptiedByUserId: string | null;
   emptiedByUserName?: string | null;
 }
 
 export interface ContainerDto {
   id: number;
-
   code: string | null;
   name: string | null;
-
   volume: number;
   unit: string | null;
-
   containerTypeId: number;
   containerTypeName: string | null;
-
   status: ContainerStatus | null;
-
   currentProductId: number | null;
   currentProductName: string | null;
   currentQuantity: number | null;
-  currentProductionDate: string | null; // date-time
-  currentExpirationDate: string | null; // date-time
-  currentFilledAt: string | null; // date-time
-
+  currentProductionDate: string | null;
+  currentExpirationDate: string | null;
+  currentFilledAt: string | null;
   meta: string | null;
-  createdAt: string; // date-time
-  createdById?: string | null; // uuid
+  createdAt: string;
+  createdById?: string | null;
   createdByName?: string | null;
-  updatedAt?: string | null; // date-time
-  lastModifiedById?: string | null; // uuid
+  updatedAt?: string | null;
+  lastModifiedById?: string | null;
   lastModifiedByName?: string | null;
 }
 
@@ -159,44 +152,42 @@ export interface FillContainerDto {
   productId: number;
   quantity: number;
   unit?: string | null;
-  productionDate: string; // date-time
-  expirationDate?: string | null; // date-time | null
+  productionDate: string;
+  expirationDate?: string | null;
 }
 
 export interface UpdateContainerFillDto {
   productId?: number | null;
   quantity: number;
   unit?: string | null;
-  productionDate: string; // date-time
-  expirationDate: string; // date-time (required in OpenAPI)
+  productionDate: string;
+  expirationDate: string;
 }
 
 export interface SearchContainersParams {
   searchTerm?: string;
   containerTypeId?: number;
   status?: ContainerStatus;
-
-  productionDate?: string; // date-time
+  productionDate?: string;
   currentProductId?: number;
   currentProductTypeId?: number;
   lastProductId?: number;
-
   showExpired?: boolean;
-  filledToday?: string; // date-time
+  filledToday?: string;
 }
 
 export interface SearchContainerFillsParams {
   containerId?: number;
   productId?: number;
   productTypeId?: number;
-  fromDate?: string; // date-time
-  toDate?: string; // date-time
+  fromDate?: string;
+  toDate?: string;
   onlyActive?: boolean;
 }
 
 // === Users ===
 export interface UserDto {
-  id: string; // uuid
+  id: string;
   email: string | null;
   firstName: string | null;
   middleName: string | null;

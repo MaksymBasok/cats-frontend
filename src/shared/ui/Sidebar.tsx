@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Box, Users, Package, User, Shapes, FlaskConical, BellRing } from "lucide-react";
 import { useAuth } from "@/shared/auth/AuthProvider";
@@ -55,7 +56,32 @@ export function Sidebar() {
   return (
     <aside className="hidden md:flex md:w-72 md:shrink-0 md:flex-col md:px-4 md:py-4">
       <div className="glass flex h-full flex-col rounded-[28px] px-4 py-5 shadow-[var(--luxury-shadow)]">
-        <div className="flex-1 space-y-6 overflow-y-auto">
+        <div className="border-b border-border/70 pb-4">
+          <Link
+            href="/"
+            className="cats-logo-wrap flex w-full items-center gap-3 rounded-[24px] p-4 text-left transition-all hover:-translate-y-0.5"
+          >
+            <div className="rounded-2xl bg-gradient-to-br from-[#0891b2] to-[#22d3ee] p-2 shadow-md shadow-primary/20">
+              <Image
+                src="/images/cats-logo.png"
+                alt="CATS"
+                width={36}
+                height={36}
+                className="cats-logo-glow h-9 w-9 object-contain"
+                quality={100}
+                priority
+              />
+            </div>
+            <div className="min-w-0">
+              <span className="block text-xl font-bold tracking-tight gradient-text-animated">CATS</span>
+              <span className="mt-1 block text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+                Tracking System
+              </span>
+            </div>
+          </Link>
+        </div>
+
+        <div className="mt-6 flex-1 space-y-6 overflow-y-auto">
           <div>
             <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
               Основне

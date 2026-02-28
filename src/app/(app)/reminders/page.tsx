@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { differenceInCalendarDays, format, isBefore, parseISO } from "date-fns";
+import { Filter, X } from "lucide-react";
 import { showErrorToast } from "@/shared/utils/errors";
 import { getContainers, searchContainerFills } from "@/shared/api/containers";
 import { getProducts } from "@/shared/api/products";
@@ -10,7 +11,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Filter, X } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -46,9 +46,7 @@ export default function RemindersPage() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
-  const isDateRangeInvalid = useMemo(() => {
-    return Boolean(fromDate && toDate && fromDate > toDate);
-  }, [fromDate, toDate]);
+  const isDateRangeInvalid = useMemo(() => Boolean(fromDate && toDate && fromDate > toDate), [fromDate, toDate]);
 
   const load = useCallback(async () => {
     if (isDateRangeInvalid) {
@@ -60,6 +58,7 @@ export default function RemindersPage() {
 
     setLoading(true);
     setLoadError(null);
+
     try {
       const [fillsData, containersData, productsData] = await Promise.all([
         searchContainerFills({
@@ -70,6 +69,7 @@ export default function RemindersPage() {
         getContainers(),
         getProducts(),
       ]);
+
       setFills(fillsData);
       setContainers(containersData);
       setProducts(productsData);
@@ -118,11 +118,9 @@ export default function RemindersPage() {
       .filter((value): value is Date => value !== null);
     return dates.length > 0 ? dates[0] : null;
   }, [filtered]);
+
   const hasActiveFilters =
-    selectedContainer !== "all" ||
-    selectedProduct !== "all" ||
-    Boolean(fromDate) ||
-    Boolean(toDate);
+    selectedContainer !== "all" || selectedProduct !== "all" || Boolean(fromDate) || Boolean(toDate);
 
   const clearFilters = () => {
     setSelectedContainer("all");
@@ -133,11 +131,21 @@ export default function RemindersPage() {
 
   return (
     <div className="space-y-6 pb-20 md:pb-6">
-      <div>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <h1 className="text-3xl font-bold">Технологічні дати</h1>
-          {!loading && (
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+      <section className="glass relative overflow-hidden rounded-[28px] border border-primary/10 p-6 shadow-[var(--luxury-shadow)]">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -right-16 -top-12 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
+          <div className="absolute -left-10 bottom-0 h-40 w-40 rounded-full bg-cyan-400/10 blur-3xl" />
+        </div>
+
+        <div className="relative">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">Технологічні дати</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight">Контроль термінів придатності</h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+            Моніторинг активних заповнень та швидкий контроль дедлайнів у тому ж стилі, що й решта системи.
+          </p>
+
+          {!loading ? (
+            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
               <span>
                 В роботі: <span className="font-semibold text-foreground">{filtered.length}</span>
               </span>
@@ -154,80 +162,82 @@ export default function RemindersPage() {
                 </span>
               </span>
             </div>
-          )}
+          ) : null}
         </div>
-        <p className="text-muted-foreground">Моніторинг активних заповнень та контроль термінів придатності.</p>
-      </div>
+      </section>
 
-
-      <Card>
+      <Card className="stylish-card animate-fade-in-up border-primary/10">
         <CardHeader className="flex-row items-center justify-between space-y-0">
           <CardTitle>Список нагадувань</CardTitle>
           <Button
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => setFiltersOpen((v) => !v)}
-            className={hasActiveFilters ? "border-brand-orange text-brand-orange dark:border-brand-orange dark:text-brand-orange" : ""}
+            onClick={() => setFiltersOpen((value) => !value)}
+            className={
+              hasActiveFilters
+                ? "rounded-xl border-primary/30 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
+                : "rounded-xl hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+            }
           >
             <Filter className="h-4 w-4 md:mr-2" />
             <span className="hidden md:inline">{filtersOpen ? "Сховати" : "Фільтри"}</span>
           </Button>
         </CardHeader>
-        {filtersOpen && (
-          <div className="border-t border-border px-4 pb-4 pt-3">
+
+        {filtersOpen ? (
+          <div className="border-t border-border/70 px-6 pb-4 pt-3">
             <div className="grid gap-3 md:grid-cols-4">
-            <Select value={selectedContainer} onValueChange={setSelectedContainer}>
-              <SelectTrigger>
-                <SelectValue placeholder="Уся тара" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Уся тара</SelectItem>
-                {containers.map((c) => (
-                  <SelectItem key={c.id} value={String(c.id)}>
-                    {c.code ?? `#${c.id}`}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <Select value={selectedContainer} onValueChange={setSelectedContainer}>
+                <SelectTrigger className="h-11 rounded-2xl border-border/70 bg-background/70">
+                  <SelectValue placeholder="Уся тара" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Уся тара</SelectItem>
+                  {containers.map((c) => (
+                    <SelectItem key={c.id} value={String(c.id)}>
+                      {c.code ?? `#${c.id}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-            <Select value={selectedProduct} onValueChange={setSelectedProduct}>
-              <SelectTrigger>
-                <SelectValue placeholder="Усі продукти" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Усі продукти</SelectItem>
-                {products.map((p) => (
-                  <SelectItem key={p.id} value={String(p.id)}>
-                    {p.name ?? `#${p.id}`}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <Select value={selectedProduct} onValueChange={setSelectedProduct}>
+                <SelectTrigger className="h-11 rounded-2xl border-border/70 bg-background/70">
+                  <SelectValue placeholder="Усі продукти" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Усі продукти</SelectItem>
+                  {products.map((p) => (
+                    <SelectItem key={p.id} value={String(p.id)}>
+                      {p.name ?? `#${p.id}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-            <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
-            <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+              <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="h-11 rounded-2xl border-border/70 bg-background/70" />
+              <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="h-11 rounded-2xl border-border/70 bg-background/70" />
             </div>
 
-            {isDateRangeInvalid && (
-              <p className="mt-2 text-sm text-destructive">
-                Дата &quot;Від&quot; не може бути пізніше за дату &quot;До&quot;.
-              </p>
-            )}
+            {isDateRangeInvalid ? (
+              <p className="mt-2 text-sm text-destructive">Дата &quot;Від&quot; не може бути пізніше за дату &quot;До&quot;.</p>
+            ) : null}
 
-            {hasActiveFilters && (
+            {hasActiveFilters ? (
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={clearFilters}
-                className="mt-3 h-auto gap-1.5 px-0 text-muted-foreground transition-colors hover:text-foreground"
+                className="mt-3 h-auto gap-1.5 px-0 text-muted-foreground hover:text-foreground"
               >
                 <X className="h-3.5 w-3.5" /> Скинути фільтри
               </Button>
-            )}
+            ) : null}
           </div>
-        )}
+        ) : null}
+
         <CardContent className="space-y-3 pt-0">
           {loading ? (
             <p className="text-sm text-muted-foreground">Завантаження...</p>
@@ -236,7 +246,7 @@ export default function RemindersPage() {
           ) : loadError ? (
             <div className="flex flex-col items-center py-6 text-center">
               <p className="text-sm text-destructive">{loadError}</p>
-              <Button type="button" variant="outline" className="mt-3" onClick={() => void load()}>
+              <Button type="button" variant="outline" className="mt-3 rounded-xl" onClick={() => void load()}>
                 Спробувати ще раз
               </Button>
             </div>
@@ -247,7 +257,7 @@ export default function RemindersPage() {
               <div className="hidden md:block">
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                    <TableRow className="hover:bg-transparent">
                       <TableHead>Тара / продукт</TableHead>
                       <TableHead>Партія</TableHead>
                       <TableHead>Дата наповнення</TableHead>
@@ -265,11 +275,19 @@ export default function RemindersPage() {
                       const soon = daysLeft != null && daysLeft >= 0 && daysLeft <= 3;
 
                       return (
-                        <TableRow key={row.id} className="transition-colors hover:bg-muted/50">
-                          <TableCell className="font-medium">Тара {row.containerCode ?? `#${row.containerId}`} · {row.productName}</TableCell>
-                          <TableCell>{row.quantity} {row.unit}</TableCell>
-                          <TableCell className="text-muted-foreground">{filledAt ? format(filledAt, "dd.MM.yyyy HH:mm") : "—"}</TableCell>
-                          <TableCell className="text-muted-foreground">{expires ? format(expires, "dd.MM.yyyy HH:mm") : "—"}</TableCell>
+                        <TableRow key={row.id} className="transition-colors hover:bg-primary/5">
+                          <TableCell className="font-medium">
+                            Тара {row.containerCode ?? `#${row.containerId}`} • {row.productName}
+                          </TableCell>
+                          <TableCell>
+                            {row.quantity} {row.unit}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {filledAt ? format(filledAt, "dd.MM.yyyy HH:mm") : "—"}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {expires ? format(expires, "dd.MM.yyyy HH:mm") : "—"}
+                          </TableCell>
                           <TableCell className="text-right font-medium">
                             {daysLeft == null ? "—" : daysLeft < 0 ? `${Math.abs(daysLeft)} дн. тому` : `${daysLeft} дн.`}
                           </TableCell>
@@ -294,11 +312,13 @@ export default function RemindersPage() {
                   const soon = daysLeft != null && daysLeft >= 0 && daysLeft <= 3;
 
                   return (
-                    <div key={row.id} className="space-y-1 rounded-xl border bg-card p-4 text-sm shadow-sm">
+                    <div key={row.id} className="stylish-card space-y-1 rounded-[24px] border border-primary/10 p-4 text-sm">
                       <div className="flex items-start justify-between gap-2">
-                        <p className="font-medium">Тара {row.containerCode ?? `#${row.containerId}`} · {row.productName}</p>
+                        <p className="font-medium">
+                          Тара {row.containerCode ?? `#${row.containerId}`} • {row.productName}
+                        </p>
                         <Badge variant={expired ? "destructive" : soon ? "secondary" : "outline"}>
-                          {expired ? "Прострочено" : soon ? "Термін скоро" : "Нормально"}
+                          {expired ? "Прострочено" : soon ? "Скоро" : "Нормально"}
                         </Badge>
                       </div>
                       <p className="text-muted-foreground">Партія: {row.quantity} {row.unit}</p>

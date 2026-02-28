@@ -93,7 +93,7 @@ export default function ContainerTypeDetailPage() {
 
   if (loadError) {
     return (
-      <Card>
+      <Card className="stylish-card border-primary/10">
         <CardContent className="flex flex-col items-start gap-3 py-8">
           <p className="text-sm text-destructive">{loadError}</p>
           <div className="flex flex-wrap gap-2">
@@ -127,18 +127,30 @@ export default function ContainerTypeDetailPage() {
   }
 
   return (
-    <div className="space-y-4 pb-20 md:pb-6">
-      <div className="flex items-center gap-2">
-        <Button asChild variant="outline" size="icon">
-          <Link href="/container-types">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <h1 className="text-2xl font-bold">{item.name || `Тип #${item.id}`}</h1>
-        <Badge variant="secondary">#{item.id}</Badge>
-      </div>
+    <div className="space-y-6 pb-20 md:pb-6">
+      <section className="glass relative overflow-hidden rounded-[28px] border border-primary/10 p-6 shadow-[var(--luxury-shadow)]">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -right-16 -top-12 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
+          <div className="absolute -left-10 bottom-0 h-40 w-40 rounded-full bg-cyan-400/10 blur-3xl" />
+        </div>
 
-      <Card>
+        <div className="relative flex flex-wrap items-center gap-3">
+          <Button asChild variant="outline" size="icon">
+            <Link href="/container-types">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">Тип тари</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-semibold tracking-tight">{item.name || `Тип #${item.id}`}</h1>
+              <Badge variant="secondary">#{item.id}</Badge>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <Card className="stylish-card border-primary/10">
         <CardHeader>
           <CardTitle>Інформація про тип</CardTitle>
         </CardHeader>
@@ -153,15 +165,15 @@ export default function ContainerTypeDetailPage() {
             Дозволені типи продуктів:{" "}
             <span className="font-medium">{item.allowedProductTypeNames?.join(", ") || "усі"}</span>
           </p>
-          {item.meta && (
+          {item.meta ? (
             <p>
               Примітки: <span className="font-medium">{item.meta}</span>
             </p>
-          )}
+          ) : null}
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="stylish-card border-primary/10">
         <CardHeader>
           <CardTitle>Тара цього типу ({containers.length})</CardTitle>
         </CardHeader>
@@ -174,7 +186,7 @@ export default function ContainerTypeDetailPage() {
                 <TableRow>
                   <TableHead>Код</TableHead>
                   <TableHead>Назва</TableHead>
-                  <TableHead>Обʼєм</TableHead>
+                  <TableHead>Об&apos;єм</TableHead>
                   <TableHead>Стан</TableHead>
                 </TableRow>
               </TableHeader>
@@ -182,7 +194,7 @@ export default function ContainerTypeDetailPage() {
                 {containers.map((container) => (
                   <TableRow
                     key={container.id}
-                    className="cursor-pointer transition-colors hover:bg-muted/50"
+                    className="cursor-pointer"
                     onClick={() =>
                       router.push(`/containers/${encodeURIComponent(container.code ?? String(container.id))}`)
                     }

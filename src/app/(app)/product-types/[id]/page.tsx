@@ -86,7 +86,7 @@ export default function ProductTypeDetailPage() {
 
   if (loadError) {
     return (
-      <Card>
+      <Card className="stylish-card border-primary/10">
         <CardContent className="flex flex-col items-start gap-3 py-8">
           <p className="text-sm text-destructive">{loadError}</p>
           <div className="flex flex-wrap gap-2">
@@ -120,18 +120,30 @@ export default function ProductTypeDetailPage() {
   }
 
   return (
-    <div className="space-y-4 pb-20 md:pb-6">
-      <div className="flex items-center gap-2">
-        <Button asChild variant="outline" size="icon">
-          <Link href="/product-types">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <h1 className="text-2xl font-bold">{item.name || `Тип #${item.id}`}</h1>
-        <Badge variant="secondary">#{item.id}</Badge>
-      </div>
+    <div className="space-y-6 pb-20 md:pb-6">
+      <section className="glass relative overflow-hidden rounded-[28px] border border-primary/10 p-6 shadow-[var(--luxury-shadow)]">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -right-16 -top-12 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
+          <div className="absolute -left-10 bottom-0 h-40 w-40 rounded-full bg-cyan-400/10 blur-3xl" />
+        </div>
 
-      <Card>
+        <div className="relative flex flex-wrap items-center gap-3">
+          <Button asChild variant="outline" size="icon">
+            <Link href="/product-types">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">Тип продукту</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-semibold tracking-tight">{item.name || `Тип #${item.id}`}</h1>
+              <Badge variant="secondary">#{item.id}</Badge>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <Card className="stylish-card border-primary/10">
         <CardHeader>
           <CardTitle>Інформація про тип</CardTitle>
         </CardHeader>
@@ -142,21 +154,21 @@ export default function ProductTypeDetailPage() {
               {item.shelfLifeDays ?? 0} дн. {item.shelfLifeHours ?? 0} год.
             </span>
           </p>
-          {item.meta && (
+          {item.meta ? (
             <p>
               Примітки: <span className="font-medium">{item.meta}</span>
             </p>
-          )}
+          ) : null}
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="stylish-card border-primary/10">
         <CardHeader>
           <CardTitle>Продукти цього типу ({products.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {products.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Для цього типу продуктів не знайдено.</p>
+            <p className="text-sm text-muted-foreground">Для цього типу продуктів записів не знайдено.</p>
           ) : (
             <Table>
               <TableHeader>

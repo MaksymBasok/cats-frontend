@@ -27,13 +27,16 @@ export function AppHeader() {
       picture?: string | null;
       imageUrl?: string | null;
     }) | null;
+
     return extended?.avatarUrl || extended?.picture || extended?.imageUrl || null;
   }, [user]);
 
   const userInitials = useMemo(() => {
     const first = (user?.firstName ?? "").trim();
     const last = (user?.lastName ?? "").trim();
+
     if (first || last) return `${first[0] ?? ""}${last[0] ?? ""}`.toUpperCase() || "К";
+
     const mail = (user?.email ?? "").trim();
     return mail ? mail[0].toUpperCase() : "К";
   }, [user?.email, user?.firstName, user?.lastName]);
@@ -69,11 +72,11 @@ export function AppHeader() {
   return (
     <>
       <header className="sticky top-0 z-30 border-b border-primary/10 bg-background/70 backdrop-blur-xl">
-        <div className="mx-auto flex min-h-16 max-w-[1600px] items-center gap-3 px-4 md:px-6 xl:px-8">
+        <div className="flex min-h-16 items-center gap-3 px-4 md:px-6 xl:px-8">
           <div className="flex min-w-0 flex-1 items-center gap-4">
             <Link
               href="/"
-              className="cats-logo-wrap flex items-center gap-3 rounded-2xl px-3 py-2 text-left transition-all hover:-translate-y-0.5"
+              className="cats-logo-wrap flex items-center gap-3 rounded-2xl px-3 py-2 text-left transition-all hover:-translate-y-0.5 md:hidden"
             >
               <div className="rounded-xl bg-gradient-to-br from-[#0891b2] to-[#22d3ee] p-1.5 shadow-md shadow-primary/20">
                 <Image
@@ -99,7 +102,7 @@ export function AppHeader() {
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="ml-auto flex shrink-0 items-center justify-end gap-2">
             <Button
               onClick={toggleTheme}
               variant="outline"
@@ -184,7 +187,7 @@ export function AppHeader() {
           </div>
         </div>
 
-        <div className="mx-auto max-w-[1600px] px-4 pb-3 md:hidden">
+        <div className="px-4 pb-3 md:hidden">
           <Breadcrumbs />
         </div>
       </header>
